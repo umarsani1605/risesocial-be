@@ -1,0 +1,653 @@
+import { validationResult } from 'express-validator';
+import InstructorService from '../../services/instructorService.js';
+import { successResponse, errorResponse } from '../../utils/response.js';
+
+class InstructorController {
+  constructor() {
+    this.instructorService = new InstructorService();
+  }
+
+  // ========================
+  // INSTRUCTOR CRUD METHODS
+  // ========================
+
+  /**
+   * Mendapatkan semua instructor dengan pagination dan filtering
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  async getAllInstructors(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const options = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 10,
+        search: req.query.search,
+        includeBootcamps: req.query.include_bootcamps === 'true',
+      };
+
+      const result = await this.instructorService.getAllInstructors(options);
+
+      return res.send(successResponse(result, 'Instructor berhasil diambil'));
+    } catch (error) {
+      console.error('Error getting instructors:', error);
+      return res.send(errorResponse('Gagal mendapatkan instructor', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan instructor berdasarkan ID
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  async getInstructorById(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { id } = req.params;
+      const includeBootcamps = req.query.include_bootcamps === 'true';
+
+      const instructor = await this.instructorService.getInstructorById(parseInt(id), includeBootcamps);
+
+      if (!instructor) {
+        return res.send(errorResponse('Instructor tidak ditemukan', 404));
+      }
+
+      return res.send(successResponse(instructor, 'Instructor berhasil diambil'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Membuat instructor baru
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  async createInstructor(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const instructor = await this.instructorService.createInstructor(req.body);
+      return res.status(201).send(successResponse(instructor, 'Instructor berhasil dibuat'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Update instructor
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  async updateInstructor(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { id } = req.params;
+      const instructor = await this.instructorService.updateInstructor(parseInt(id), req.body);
+
+      return res.send(successResponse(instructor, 'Instructor berhasil diupdate'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Menghapus instructor
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   */
+  async deleteInstructor(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { id } = req.params;
+      await this.instructorService.deleteInstructor(parseInt(id));
+
+      return res.send(successResponse(null, 'Instructor berhasil dihapus'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  // ========================
+  // SEARCH & FILTER METHODS
+  // ========================
+
+  /**
+   * Mencari instructor berdasarkan nama
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async searchInstructorByName(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { name } = req.query;
+      const instructors = await this.instructorService.searchInstructorByName(name);
+
+      return res.send(
+        successResponse(
+          {
+            instructors,
+            total: instructors.length,
+            search_query: name,
+          },
+          'Pencarian instructor berhasil'
+        )
+      );
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan instructor berdasarkan job title
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async getInstructorsByJobTitle(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { job_title } = req.query;
+      const instructors = await this.instructorService.getInstructorsByJobTitle(job_title);
+
+      return res.send(
+        successResponse(
+          {
+            instructors,
+            total: instructors.length,
+            job_title_filter: job_title,
+          },
+          'Instructor berdasarkan job title berhasil diambil'
+        )
+      );
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan instructor terpopuler
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async getPopularInstructors(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const limit = parseInt(req.query.limit) || 10;
+      const instructors = await this.instructorService.getPopularInstructors(limit);
+
+      return res.send(
+        successResponse(
+          {
+            instructors,
+            total: instructors.length,
+            limit,
+          },
+          'Instructor terpopuler berhasil diambil'
+        )
+      );
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  // ========================
+  // BOOTCAMP ASSOCIATION METHODS
+  // ========================
+
+  /**
+   * Mendapatkan instructor untuk bootcamp tertentu
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async getInstructorsByBootcampId(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { bootcampId } = req.params;
+      const instructors = await this.instructorService.getInstructorsByBootcampId(parseInt(bootcampId));
+
+      return res.send(
+        successResponse(
+          {
+            instructors,
+            total: instructors.length,
+            bootcamp_id: parseInt(bootcampId),
+          },
+          'Instructor bootcamp berhasil diambil'
+        )
+      );
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan bootcamp yang diajar oleh instructor
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async getBootcampsByInstructorId(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { instructorId } = req.params;
+      const bootcamps = await this.instructorService.getBootcampsByInstructorId(parseInt(instructorId));
+
+      return res.send(
+        successResponse(
+          {
+            bootcamps,
+            total: bootcamps.length,
+            instructor_id: parseInt(instructorId),
+          },
+          'Bootcamp instructor berhasil diambil'
+        )
+      );
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan instructor yang tersedia untuk bootcamp
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async getAvailableInstructorsForBootcamp(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { bootcampId } = req.params;
+      const instructors = await this.instructorService.getAvailableInstructorsForBootcamp(parseInt(bootcampId));
+
+      return res.send(
+        successResponse(
+          {
+            instructors,
+            total: instructors.length,
+            bootcamp_id: parseInt(bootcampId),
+          },
+          'Instructor tersedia berhasil diambil'
+        )
+      );
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  // ========================
+  // ASSIGNMENT MANAGEMENT METHODS
+  // ========================
+
+  /**
+   * Assign instructor ke bootcamp
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async assignInstructorToBootcamp(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { bootcampId } = req.params;
+      const { instructor_id, instructor_order } = req.body;
+
+      const assignment = await this.instructorService.assignInstructorToBootcamp(parseInt(bootcampId), instructor_id, instructor_order);
+
+      return res.status(201).send(successResponse(assignment, 'Instructor berhasil di-assign ke bootcamp'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Remove instructor dari bootcamp
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async removeInstructorFromBootcamp(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { bootcampId, instructorId } = req.params;
+
+      await this.instructorService.removeInstructorFromBootcamp(parseInt(bootcampId), parseInt(instructorId));
+
+      return res.send(successResponse(null, 'Instructor berhasil di-remove dari bootcamp'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Reorder instructor dalam bootcamp
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async reorderInstructorsInBootcamp(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { bootcampId } = req.params;
+      const { order_data } = req.body;
+
+      const assignments = await this.instructorService.reorderInstructorsInBootcamp(parseInt(bootcampId), order_data);
+
+      return res.send(successResponse(assignments, 'Instructor berhasil diurutkan ulang'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Batch assign instructor ke bootcamp
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async batchAssignInstructors(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { bootcampId } = req.params;
+      const { instructor_ids } = req.body;
+
+      const assignments = await this.instructorService.batchAssignInstructors(parseInt(bootcampId), instructor_ids);
+
+      return res.status(201).send(successResponse(assignments, 'Instructor berhasil di-assign secara batch'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Batch remove instructor dari bootcamp
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async batchRemoveInstructors(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { bootcampId } = req.params;
+      const { instructor_ids } = req.body;
+
+      const removedCount = await this.instructorService.batchRemoveInstructors(parseInt(bootcampId), instructor_ids);
+
+      return res.send(
+        successResponse(
+          {
+            removed_count: removedCount,
+            instructor_ids,
+          },
+          'Instructor berhasil di-remove secara batch'
+        )
+      );
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan detail assignment
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async getAssignmentDetail(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { bootcampId, instructorId } = req.params;
+
+      const assignment = await this.instructorService.getAssignmentDetail(parseInt(bootcampId), parseInt(instructorId));
+
+      if (!assignment) {
+        return res.send(errorResponse('Assignment tidak ditemukan', 404));
+      }
+
+      return res.send(successResponse(assignment, 'Detail assignment berhasil diambil'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  // ========================
+  // STATISTICS METHODS
+  // ========================
+
+  /**
+   * Mendapatkan statistik instructor
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async getInstructorStats(req, res) {
+    try {
+      const stats = await this.instructorService.getInstructorStats();
+
+      return res.send(successResponse(stats, 'Statistik instructor berhasil diambil'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  // ========================
+  // OVERVIEW METHODS
+  // ========================
+
+  /**
+   * Mendapatkan overview instructor dengan bootcamp
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async getInstructorBootcampOverview(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { instructorId } = req.params;
+      const includeDetails = req.query.include_details === 'true';
+
+      const [instructor, bootcamps] = await Promise.all([
+        this.instructorService.getInstructorById(parseInt(instructorId), false),
+        this.instructorService.getBootcampsByInstructorId(parseInt(instructorId)),
+      ]);
+
+      if (!instructor) {
+        return res.send(errorResponse('Instructor tidak ditemukan', 404));
+      }
+
+      const overview = {
+        instructor,
+        bootcamps: {
+          data: bootcamps,
+          total: bootcamps.length,
+          active_count: bootcamps.filter((b) => b.status === 'ACTIVE').length,
+          categories: [...new Set(bootcamps.map((b) => b.category).filter(Boolean))],
+        },
+        summary: {
+          total_bootcamps: bootcamps.length,
+          profile_completeness: instructor.profile_completeness,
+          experience_level: instructor.experience_level,
+          instructor_type: instructor.instructor_type,
+          expertise_areas: instructor.expertise_areas,
+        },
+      };
+
+      return res.send(successResponse(overview, 'Overview instructor-bootcamp berhasil diambil'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan overview bootcamp dengan instructor
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async getBootcampInstructorOverview(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation Error', 400, errors.array()));
+      }
+
+      const { bootcampId } = req.params;
+      const includeDetails = req.query.include_details === 'true';
+
+      const [instructors, availableInstructors] = await Promise.all([
+        this.instructorService.getInstructorsByBootcampId(parseInt(bootcampId)),
+        this.instructorService.getAvailableInstructorsForBootcamp(parseInt(bootcampId)),
+      ]);
+
+      const overview = {
+        bootcamp_id: parseInt(bootcampId),
+        assigned_instructors: {
+          data: instructors,
+          total: instructors.length,
+          experience_levels: this.getExperienceLevelDistribution(instructors),
+          instructor_types: this.getInstructorTypeDistribution(instructors),
+        },
+        available_instructors: {
+          data: includeDetails ? availableInstructors : [],
+          total: availableInstructors.length,
+        },
+        summary: {
+          total_assigned: instructors.length,
+          total_available: availableInstructors.length,
+          completion_rate:
+            instructors.length > 0 ? Math.round(instructors.reduce((sum, i) => sum + i.profile_completeness, 0) / instructors.length) : 0,
+        },
+      };
+
+      return res.send(successResponse(overview, 'Overview bootcamp-instructor berhasil diambil'));
+    } catch (error) {
+      console.error('Error:', error);
+      return res.send(errorResponse('Internal server error', 500, error.message));
+    }
+  }
+
+  // ========================
+  // HELPER METHODS
+  // ========================
+
+  /**
+   * Mendapatkan distribusi experience level
+   * @param {Array} instructors - Array instructor
+   * @returns {Object} Distribution object
+   */
+  getExperienceLevelDistribution(instructors) {
+    const distribution = {};
+    instructors.forEach((instructor) => {
+      const level = instructor.experience_level;
+      distribution[level] = (distribution[level] || 0) + 1;
+    });
+    return distribution;
+  }
+
+  /**
+   * Mendapatkan distribusi instructor type
+   * @param {Array} instructors - Array instructor
+   * @returns {Object} Distribution object
+   */
+  getInstructorTypeDistribution(instructors) {
+    const distribution = {};
+    instructors.forEach((instructor) => {
+      const type = instructor.instructor_type;
+      distribution[type] = (distribution[type] || 0) + 1;
+    });
+    return distribution;
+  }
+}
+
+export default InstructorController;

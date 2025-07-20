@@ -1,0 +1,656 @@
+import { validationResult } from 'express-validator';
+import { successResponse, errorResponse } from '../../utils/response.js';
+
+/**
+ * EnrollmentController - Controller untuk mengelola enrollment bootcamp
+ * Menangani HTTP request/response dan berinteraksi dengan service layer
+ */
+class EnrollmentController {
+  constructor(enrollmentService) {
+    this.enrollmentService = enrollmentService;
+  }
+
+  /**
+   * Mendapatkan semua enrollment
+   * GET /api/enrollments
+   */
+  async getAllEnrollments(request, reply) {
+    try {
+      // Validasi input
+      const errors = validationResult(request);
+      if (!errors.isEmpty()) {
+        return reply.send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const options = {
+        user_id: request.query.user_id ? parseInt(request.query.user_id) : undefined,
+        bootcamp_id: request.query.bootcamp_id ? parseInt(request.query.bootcamp_id) : undefined,
+        enrollment_status: request.query.enrollment_status,
+        progress_min: request.query.progress_min ? parseInt(request.query.progress_min) : undefined,
+        progress_max: request.query.progress_max ? parseInt(request.query.progress_max) : undefined,
+        enrolled_from: request.query.enrolled_from,
+        enrolled_to: request.query.enrolled_to,
+        page: request.query.page ? parseInt(request.query.page) : 1,
+        limit: request.query.limit ? parseInt(request.query.limit) : 10,
+        include_user: request.query.include_user === 'true',
+        include_bootcamp: request.query.include_bootcamp === 'true',
+        include_pricing: request.query.include_pricing === 'true',
+      };
+
+      const enrollments = await this.enrollmentService.getAllEnrollments(options);
+
+      return reply.send(successResponse(enrollments, 'Enrollment berhasil ditemukan'));
+    } catch (error) {
+      request.log.error(error);
+      return reply.send(errorResponse('Gagal mendapatkan enrollment', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan enrollment berdasarkan ID
+   * GET /api/enrollments/:id
+   */
+  async getEnrollmentById(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const { id } = req.params;
+      const enrollment = await this.enrollmentService.getEnrollmentById(parseInt(id));
+
+      if (!enrollment) {
+        return res.send(errorResponse('Enrollment tidak ditemukan', 404));
+      }
+
+      return res.send(successResponse(enrollment, 'Enrollment berhasil ditemukan'));
+    } catch (error) {
+      console.error('Error getting enrollment by ID:', error);
+      return res.send(errorResponse('Gagal mendapatkan enrollment', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan enrollment berdasarkan user dan bootcamp
+   * GET /api/enrollments/user/:userId/bootcamp/:bootcampId
+   */
+  async getEnrollmentByUserAndBootcamp(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const { userId, bootcampId } = req.params;
+      const enrollment = await this.enrollmentService.getEnrollmentByUserAndBootcamp(parseInt(userId), parseInt(bootcampId));
+
+      if (!enrollment) {
+        return res.status(404).send(errorResponse('Enrollment tidak ditemukan', 404));
+      }
+
+      return res.send(successResponse(enrollment, 'Enrollment berhasil ditemukan'));
+    } catch (error) {
+      console.error('Error getting enrollment by user and bootcamp:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan enrollment', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan enrollment berdasarkan user ID
+   * GET /api/enrollments/user/:userId
+   */
+  async getUserEnrollments(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const { userId } = req.params;
+      const options = {
+        enrollment_status: req.query.enrollment_status,
+        progress_min: req.query.progress_min ? parseInt(req.query.progress_min) : undefined,
+        progress_max: req.query.progress_max ? parseInt(req.query.progress_max) : undefined,
+        page: req.query.page ? parseInt(req.query.page) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit) : 10,
+      };
+
+      const enrollments = await this.enrollmentService.getUserEnrollments(parseInt(userId), options);
+
+      return res.send(successResponse(enrollments, 'Enrollment user berhasil ditemukan'));
+    } catch (error) {
+      console.error('Error getting user enrollments:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan enrollment user', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan enrollment berdasarkan bootcamp ID
+   * GET /api/enrollments/bootcamp/:bootcampId
+   */
+  async getBootcampEnrollments(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const { bootcampId } = req.params;
+      const options = {
+        enrollment_status: req.query.enrollment_status,
+        progress_min: req.query.progress_min ? parseInt(req.query.progress_min) : undefined,
+        progress_max: req.query.progress_max ? parseInt(req.query.progress_max) : undefined,
+        page: req.query.page ? parseInt(req.query.page) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit) : 10,
+      };
+
+      const enrollments = await this.enrollmentService.getBootcampEnrollments(parseInt(bootcampId), options);
+
+      return res.send(successResponse(enrollments, 'Enrollment bootcamp berhasil ditemukan'));
+    } catch (error) {
+      console.error('Error getting bootcamp enrollments:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan enrollment bootcamp', 500, error.message));
+    }
+  }
+
+  /**
+   * Membuat enrollment baru
+   * POST /api/enrollments
+   */
+  async createEnrollment(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const enrollmentData = {
+        user_id: req.body.user_id,
+        bootcamp_id: req.body.bootcamp_id,
+        pricing_tier_id: req.body.pricing_tier_id,
+        enrollment_status: req.body.enrollment_status,
+        progress_percentage: req.body.progress_percentage,
+      };
+
+      const enrollment = await this.enrollmentService.createEnrollment(enrollmentData);
+
+      return res.status(201).send(successResponse(enrollment, 'Enrollment berhasil dibuat'));
+    } catch (error) {
+      console.error('Error creating enrollment:', error);
+      return res.status(500).send(errorResponse('Gagal membuat enrollment', 500, error.message));
+    }
+  }
+
+  /**
+   * Update enrollment
+   * PUT /api/enrollments/:id
+   */
+  async updateEnrollment(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const { id } = req.params;
+      const updateData = {
+        enrollment_status: req.body.enrollment_status,
+        progress_percentage: req.body.progress_percentage,
+        pricing_tier_id: req.body.pricing_tier_id,
+      };
+
+      // Remove undefined values
+      Object.keys(updateData).forEach((key) => updateData[key] === undefined && delete updateData[key]);
+
+      const enrollment = await this.enrollmentService.updateEnrollment(parseInt(id), updateData);
+
+      return res.send(successResponse(enrollment, 'Enrollment berhasil diupdate'));
+    } catch (error) {
+      console.error('Error updating enrollment:', error);
+      return res.status(500).send(errorResponse('Gagal mengupdate enrollment', 500, error.message));
+    }
+  }
+
+  /**
+   * Update progress enrollment
+   * PUT /api/enrollments/:id/progress
+   */
+  async updateProgress(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const { id } = req.params;
+      const { progress_percentage } = req.body;
+
+      const enrollment = await this.enrollmentService.updateProgress(parseInt(id), progress_percentage);
+
+      return res.send(successResponse(enrollment, 'Progress enrollment berhasil diupdate'));
+    } catch (error) {
+      console.error('Error updating progress:', error);
+      return res.status(500).send(errorResponse('Gagal mengupdate progress enrollment', 500, error.message));
+    }
+  }
+
+  /**
+   * Update status enrollment
+   * PUT /api/enrollments/:id/status
+   */
+  async updateStatus(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const { id } = req.params;
+      const { enrollment_status } = req.body;
+
+      const enrollment = await this.enrollmentService.updateStatus(parseInt(id), enrollment_status);
+
+      return res.send(successResponse(enrollment, 'Status enrollment berhasil diupdate'));
+    } catch (error) {
+      console.error('Error updating status:', error);
+      return res.status(500).send(errorResponse('Gagal mengupdate status enrollment', 500, error.message));
+    }
+  }
+
+  /**
+   * Bulk update status enrollment
+   * PUT /api/enrollments/bulk-status
+   */
+  async bulkUpdateStatus(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const { enrollment_ids, enrollment_status } = req.body;
+
+      const result = await this.enrollmentService.bulkUpdateStatus(enrollment_ids, enrollment_status);
+
+      return res.send(successResponse(result, 'Bulk update status berhasil'));
+    } catch (error) {
+      console.error('Error bulk updating status:', error);
+      return res.status(500).send(errorResponse('Gagal bulk update status', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan statistik enrollment
+   * GET /api/enrollments/stats
+   */
+  async getEnrollmentStats(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const options = {
+        bootcamp_id: req.query.bootcamp_id ? parseInt(req.query.bootcamp_id) : undefined,
+        user_id: req.query.user_id ? parseInt(req.query.user_id) : undefined,
+        date_from: req.query.date_from,
+        date_to: req.query.date_to,
+      };
+
+      const stats = await this.enrollmentService.getEnrollmentStats(options);
+
+      return res.send(successResponse(stats, 'Statistik enrollment berhasil didapat'));
+    } catch (error) {
+      console.error('Error getting enrollment stats:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan statistik enrollment', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan enrollment yang akan berakhir
+   * GET /api/enrollments/expiring
+   */
+  async getExpiringEnrollments(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const days = req.query.days ? parseInt(req.query.days) : 7;
+
+      const enrollments = await this.enrollmentService.getExpiringEnrollments(days);
+
+      return res.send(successResponse(enrollments, 'Enrollment yang akan berakhir berhasil ditemukan'));
+    } catch (error) {
+      console.error('Error getting expiring enrollments:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan enrollment yang akan berakhir', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan top learners
+   * GET /api/enrollments/top-learners
+   */
+  async getTopLearners(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const options = {
+        limit: req.query.limit ? parseInt(req.query.limit) : 10,
+        bootcamp_id: req.query.bootcamp_id ? parseInt(req.query.bootcamp_id) : undefined,
+      };
+
+      const topLearners = await this.enrollmentService.getTopLearners(options);
+
+      return res.send(successResponse(topLearners, 'Top learners berhasil ditemukan'));
+    } catch (error) {
+      console.error('Error getting top learners:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan top learners', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan dashboard overview
+   * GET /api/enrollments/dashboard
+   */
+  async getDashboardOverview(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const options = {
+        bootcamp_id: req.query.bootcamp_id ? parseInt(req.query.bootcamp_id) : undefined,
+        user_id: req.query.user_id ? parseInt(req.query.user_id) : undefined,
+        date_from: req.query.date_from,
+        date_to: req.query.date_to,
+      };
+
+      const dashboard = await this.enrollmentService.getDashboardOverview(options);
+
+      return res.send(successResponse(dashboard, 'Dashboard overview berhasil didapat'));
+    } catch (error) {
+      console.error('Error getting dashboard overview:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan dashboard overview', 500, error.message));
+    }
+  }
+
+  /**
+   * Search enrollments
+   * GET /api/enrollments/search
+   */
+  async searchEnrollments(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      // Implementasi search logic bisa ditambahkan di service
+      const options = {
+        q: req.query.q,
+        user_name: req.query.user_name,
+        bootcamp_title: req.query.bootcamp_title,
+        email: req.query.email,
+        enrollment_status: req.query.enrollment_status,
+        progress_min: req.query.progress_min ? parseInt(req.query.progress_min) : undefined,
+        progress_max: req.query.progress_max ? parseInt(req.query.progress_max) : undefined,
+        page: req.query.page ? parseInt(req.query.page) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit) : 10,
+      };
+
+      // Untuk sementara gunakan getAllEnrollments dengan filter
+      const enrollments = await this.enrollmentService.getAllEnrollments({
+        enrollment_status: options.enrollment_status,
+        progress_min: options.progress_min,
+        progress_max: options.progress_max,
+        page: options.page,
+        limit: options.limit,
+        include_user: true,
+        include_bootcamp: true,
+      });
+
+      return res.send(successResponse(enrollments, 'Search enrollment berhasil'));
+    } catch (error) {
+      console.error('Error searching enrollments:', error);
+      return res.status(500).send(errorResponse('Gagal melakukan search enrollment', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan enrollment overview
+   * GET /api/enrollments/overview
+   */
+  async getEnrollmentOverview(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const options = {
+        bootcamp_id: req.query.bootcamp_id ? parseInt(req.query.bootcamp_id) : undefined,
+        user_id: req.query.user_id ? parseInt(req.query.user_id) : undefined,
+        date_from: req.query.date_from,
+        date_to: req.query.date_to,
+      };
+
+      const overview = await this.enrollmentService.getDashboardOverview(options);
+
+      return res.send(successResponse(overview, 'Enrollment overview berhasil didapat'));
+    } catch (error) {
+      console.error('Error getting enrollment overview:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan enrollment overview', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan enrollment analysis
+   * GET /api/enrollments/analysis
+   */
+  async getEnrollmentAnalysis(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const options = {
+        period: req.query.period || 'monthly',
+        bootcamp_id: req.query.bootcamp_id ? parseInt(req.query.bootcamp_id) : undefined,
+        date_from: req.query.date_from,
+        date_to: req.query.date_to,
+      };
+
+      // Untuk sementara gunakan stats
+      const analysis = await this.enrollmentService.getEnrollmentStats(options);
+
+      return res.send(
+        successResponse(
+          {
+            ...analysis,
+            period: options.period,
+            analysis_type: 'enrollment_performance',
+          },
+          'Enrollment analysis berhasil didapat'
+        )
+      );
+    } catch (error) {
+      console.error('Error getting enrollment analysis:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan enrollment analysis', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan enrollment trends
+   * GET /api/enrollments/trends
+   */
+  async getEnrollmentTrends(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const options = {
+        period: req.query.period || '30days',
+        bootcamp_id: req.query.bootcamp_id ? parseInt(req.query.bootcamp_id) : undefined,
+        group_by: req.query.group_by || 'day',
+      };
+
+      // Untuk sementara gunakan stats
+      const trends = await this.enrollmentService.getEnrollmentStats(options);
+
+      return res.send(
+        successResponse(
+          {
+            ...trends,
+            period: options.period,
+            group_by: options.group_by,
+            trend_type: 'enrollment_trends',
+          },
+          'Enrollment trends berhasil didapat'
+        )
+      );
+    } catch (error) {
+      console.error('Error getting enrollment trends:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan enrollment trends', 500, error.message));
+    }
+  }
+
+  /**
+   * Mendapatkan enrollment reports
+   * GET /api/enrollments/reports
+   */
+  async getEnrollmentReports(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const options = {
+        type: req.query.type || 'summary',
+        format: req.query.format || 'json',
+        bootcamp_id: req.query.bootcamp_id ? parseInt(req.query.bootcamp_id) : undefined,
+        user_id: req.query.user_id ? parseInt(req.query.user_id) : undefined,
+        date_from: req.query.date_from,
+        date_to: req.query.date_to,
+      };
+
+      // Generate report berdasarkan type
+      let reportData;
+      switch (options.type) {
+        case 'detailed':
+          reportData = await this.enrollmentService.getAllEnrollments({
+            bootcamp_id: options.bootcamp_id,
+            user_id: options.user_id,
+            enrolled_from: options.date_from,
+            enrolled_to: options.date_to,
+            include_user: true,
+            include_bootcamp: true,
+            include_pricing: true,
+            limit: 1000,
+          });
+          break;
+        case 'progress':
+          reportData = await this.enrollmentService.getAllEnrollments({
+            bootcamp_id: options.bootcamp_id,
+            user_id: options.user_id,
+            enrolled_from: options.date_from,
+            enrolled_to: options.date_to,
+            include_user: true,
+            include_bootcamp: true,
+            limit: 1000,
+          });
+          break;
+        case 'completion':
+          reportData = await this.enrollmentService.getAllEnrollments({
+            bootcamp_id: options.bootcamp_id,
+            user_id: options.user_id,
+            enrolled_from: options.date_from,
+            enrolled_to: options.date_to,
+            enrollment_status: 'COMPLETED',
+            include_user: true,
+            include_bootcamp: true,
+            limit: 1000,
+          });
+          break;
+        default: // summary
+          reportData = await this.enrollmentService.getEnrollmentStats(options);
+          break;
+      }
+
+      return res.send(
+        successResponse(
+          {
+            report_type: options.type,
+            report_format: options.format,
+            generated_at: new Date().toISOString(),
+            report_data: reportData,
+          },
+          'Enrollment reports berhasil didapat'
+        )
+      );
+    } catch (error) {
+      console.error('Error getting enrollment reports:', error);
+      return res.status(500).send(errorResponse('Gagal mendapatkan enrollment reports', 500, error.message));
+    }
+  }
+
+  /**
+   * Delete enrollment
+   * DELETE /api/enrollments/:id
+   */
+  async deleteEnrollment(req, res) {
+    try {
+      // Validasi input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).send(errorResponse('Validation error', 400, errors.array()));
+      }
+
+      const { id } = req.params;
+
+      // Cek apakah enrollment ada
+      const enrollment = await this.enrollmentService.getEnrollmentById(parseInt(id));
+      if (!enrollment) {
+        return res.status(404).send(errorResponse('Enrollment tidak ditemukan', 404));
+      }
+
+      // Soft delete dengan mengubah status menjadi CANCELLED
+      await this.enrollmentService.updateStatus(parseInt(id), 'CANCELLED');
+
+      return res.send(successResponse(null, 'Enrollment berhasil dihapus (dibatalkan)'));
+    } catch (error) {
+      console.error('Error deleting enrollment:', error);
+      return res.status(500).send(errorResponse('Gagal menghapus enrollment', 500, error.message));
+    }
+  }
+}
+
+export { EnrollmentController };

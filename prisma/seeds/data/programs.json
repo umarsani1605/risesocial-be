@@ -1,0 +1,23 @@
+[
+  {
+    "title": "Rise Young Leaders Summit",
+    "slug": "rise-young-leaders-summit",
+    "image": "/images/rise_young_leader.png",
+    "description": "Rise Young Leaders Summit is an annual program to improve youth capacity for young people aged 16-25 in various topics. The program encourages youth through competitions for fully and partially funded Leadership Trip Programs in 6 lot of countries.",
+    "status": "ACTIVE"
+  },
+  {
+    "title": "Rise Sustainability Bootcamp", 
+    "slug": "rise-sustainability-bootcamp",
+    "image": "/images/rise_educator.png",
+    "description": "Rise Educator's Skills Accelerator is an online learning program started from 1 up to 5 months live class with experts and mentor to student get comprehensive understanding in various sustainability topic. This program is for young professional, career switchers, sustainability and green workers to improve their knowledge and skills in this topic, equipped with JOB ACCELERATOR program with our hiring partners.",
+    "status": "ACTIVE"
+  },
+  {
+    "title": "Little Hero Camp",
+    "slug": "little-hero-camp", 
+    "image": "/images/rise_little_hero.png",
+    "description": "Little Hero Camp is an offline summer training for children aged 7-15 years old. Equipped with various topics in sustainability, to enhance their skills and interests and become more empowered during their summer vacation.",
+    "status": "ACTIVE"
+  }
+] 

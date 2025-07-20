@@ -1,0 +1,163 @@
+{
+  "bootcamps": [
+    {
+      "title": "ESG (Environmental, Social, and Governance)",
+      "path_slug": "bootcamp-esg",
+      "description": "The ESG Bootcamp is an intensive program designed to equip participants with in-demand sustainability skills through 15 live classes led by ESG experts, interactive real-world case studies, and a job accelerator program. Participants will gain practical insights into Environmental, Social, and Governance (ESG) principles, sharpen their problem-solving abilities by working on industry-relevant challenges, and receive tailored career support including CV building, interview preparation, and access to ESG-related job and internship opportunities—making it ideal for students, young professionals, or career switchers looking to thrive in the sustainability sector.",
+      "duration": "3 bulan",
+      "format": "Online Live Classes",
+      "category": "ESG",
+      "image_url": "/images/stock-image/envato-labs-ai-2e12bab4-dec4-496c-9fdb-54e9b51817d1.jpg",
+      "rating": 4.8,
+      "rating_count": 127,
+      "certificate": true,
+      "portfolio": true,
+      "status": "ACTIVE",
+      "meta_title": "ESG Bootcamp - Master Sustainability Skills | Rise Social",
+      "meta_description": "Join our comprehensive ESG bootcamp and master Environmental, Social, and Governance principles. 15 live classes, expert instructors, job accelerator program.",
+      "pricing": [
+        {
+          "name": "1 Tema",
+          "original_price": 2390000,
+          "discount_price": 1390000,
+          "tier_order": 1
+        },
+        {
+          "name": "3 Tema",
+          "original_price": 4790000,
+          "discount_price": 3790000,
+          "tier_order": 2
+        }
+      ],
+      "features": [
+        {
+          "title": "Full Stack Material + Real Study Case",
+          "description": "Equip participants with full stack material in ESG + real study case",
+          "icon": "heroicons:clipboard-document-check",
+          "feature_order": 1
+        },
+        {
+          "title": "Comprehensive Module",
+          "description": "Comprehensive module, learn in 3 months with experts",
+          "icon": "heroicons:clipboard-document-list",
+          "feature_order": 2
+        },
+        {
+          "title": "Talent Showcase",
+          "description": "Talent showcase for companies with participant's presentation and portfolio",
+          "icon": "heroicons:presentation-chart-bar",
+          "feature_order": 3
+        },
+        {
+          "title": "Job Accelerator",
+          "description": "Access to job opportunities from our hiring partners",
+          "icon": "heroicons:briefcase",
+          "feature_order": 4
+        }
+      ],
+      "topics": [
+        {
+          "title": "Dasar-Dasar ESG",
+          "description": "Memahami konsep dasar ESG, standar internasional, dan regulasi yang berlaku di berbagai industri.",
+          "topic_order": 1,
+          "sessions": [
+            { "title": "Perkenalan ESG", "session_order": 1 },
+            { "title": "Lingkungan (Environmental) dalam ESG", "session_order": 2 },
+            { "title": "Sosial (Social) dalam ESG", "session_order": 3 },
+            { "title": "Tata Kelola (Governance) dalam ESG", "session_order": 4 },
+            { "title": "Studi kasus", "session_order": 5 }
+          ]
+        },
+        {
+          "title": "Penerapan ESG dalam Bisnis dan Korporasi",
+          "description": "Mempelajari perencanaan, implementasi, hingga evaluasi ESG dalam bisnis dan korporasi.",
+          "topic_order": 2,
+          "sessions": [
+            { "title": "Pendahuluan", "session_order": 1 },
+            { "title": "Perencanaan ESG dalam Bisnis dan Korporasi", "session_order": 2 },
+            { "title": "Implementasi ESG dalam Bisnis dan Korporasi", "session_order": 3 },
+            { "title": "Evaluasi penerapan ESG dalam bisnis dan korporasi", "session_order": 4 },
+            { "title": "Studi kasus", "session_order": 5 }
+          ]
+        },
+        {
+          "title": "Pembuatan ESG Report",
+          "description": "Mendalami pembuatan ESG report yang komprehensif dan sesuai standar internasional.",
+          "topic_order": 3,
+          "sessions": [
+            { "title": "Pendahuluan", "session_order": 1 },
+            { "title": "Persiapan penulisan ESG Report", "session_order": 2 },
+            { "title": "Penulisan dan Pelaporan ESG Report", "session_order": 3 },
+            { "title": "Evaluasi dan Analisis ESG Report", "session_order": 4 },
+            { "title": "Studi Kasus", "session_order": 5 }
+          ]
+        }
+      ],
+      "instructors": [
+        {
+          "name": "Dasi Agung Ospaman",
+          "job_title": "Environmental Product Labeling Analyst at Non-Profit Organization",
+          "avatar_url": "/images/bootcamp/mas-agung.png",
+          "description": "Expert in environmental analysis with 10+ years experience in sustainability consulting.",
+          "instructor_order": 1
+        },
+        {
+          "name": "Norlina Pasaribu",
+          "job_title": "ESG & Sustainability Specialist at Cladtek",
+          "avatar_url": "/images/instructors/norlina.jpg",
+          "description": "ESG specialist with extensive experience in corporate sustainability and governance frameworks.",
+          "instructor_order": 2
+        },
+        {
+          "name": "Muamar",
+          "job_title": "Sustainability & ESG Manager at Manufacture Company",
+          "avatar_url": "/images/instructors/muamar.jpg",
+          "description": "ESG manager with hands-on experience in implementing sustainability practices in manufacturing.",
+          "instructor_order": 3
+        }
+      ],
+      "testimonials": [
+        {
+          "name": "Budi Santoso",
+          "avatar_url": "/images/testimonials/budi.jpg",
+          "comment": "Bootcamp ESG yang sangat komprehensif! Materinya up-to-date dan aplikatif langsung untuk pekerjaan saya di sustainability department.",
+          "testimonial_order": 1
+        },
+        {
+          "name": "Sari Dewi",
+          "avatar_url": "/images/testimonials/sari.jpg",
+          "comment": "Instruktur sangat berpengalaman dan memberikan insight praktis dari industri. Highly recommended untuk professional yang ingin career switch ke sustainability.",
+          "testimonial_order": 2
+        },
+        {
+          "name": "Ahmad Rahman",
+          "avatar_url": "/images/testimonials/ahmad.jpg",
+          "comment": "Program yang terstruktur dengan baik. Live session sangat interaktif dan mendapat feedback langsung dari mentor.",
+          "testimonial_order": 3
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Apakah bootcamp ini cocok untuk pemula?",
+          "answer": "Ya, meskipun level intermediate, kami menyediakan materi foundational di awal program. Yang penting adalah komitmen untuk belajar dan basic understanding tentang business.",
+          "faq_order": 1
+        },
+        {
+          "question": "Bagaimana format live class-nya?",
+          "answer": "Live class dilakukan 2x seminggu via Zoom, masing-masing 2 jam. Semua session akan direkam dan bisa diakses kapan saja.",
+          "faq_order": 2
+        },
+        {
+          "question": "Apakah ada job placement guarantee?",
+          "answer": "Kami memiliki job accelerator program dengan hiring partners, namun tidak ada guarantee. Yang kami jamin adalah career coaching dan networking opportunities.",
+          "faq_order": 3
+        },
+        {
+          "question": "Apakah mendapat sertifikat?",
+          "answer": "Ya, peserta yang menyelesaikan program akan mendapat sertifikat completion dari Rise Social yang diakui industri.",
+          "faq_order": 4
+        }
+      ]
+    }
+  ]
+} 

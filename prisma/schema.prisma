@@ -1,0 +1,648 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================
+// ENUMS SECTION
+// ========================
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  PREFER_NOT_TO_SAY
+}
+
+enum BootcampStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  ENROLLED
+  COMPLETED
+  CANCELLED
+  SUSPENDED
+}
+
+// ========================
+// USER DOMAIN
+// ========================
+
+/// User management domain - handles authentication, profiles, and settings
+model User {
+  id         Int     @id @default(autoincrement())
+  username   String  @unique @db.VarChar(50) // Auto generated, unique identifier
+  first_name String  @db.VarChar(100)
+  last_name  String  @db.VarChar(100)
+  avatar     String? @db.VarChar(500)
+  email      String  @unique @db.VarChar(255)
+  phone      String? @db.VarChar(20)
+  password   String  @db.VarChar(255) // bcrypt hashed password
+
+  // Verification fields
+  email_verified_at DateTime?
+  phone_verified_at DateTime?
+
+  // Role system - simple enum
+  role UserRole @default(USER)
+
+  // Profile information
+  gender   Gender?
+  country  String? @db.VarChar(100)
+  province String? @db.VarChar(100)
+  city     String? @db.VarChar(100)
+
+  // Professional information
+  last_education  String?  @db.VarChar(255)
+  current_job     String?  @db.VarChar(255)
+  current_company String?  @db.VarChar(255)
+  skills          String[] // Array of strings untuk multiple skills
+
+  // Timestamps otomatis
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationships
+  user_setting     UserSetting?
+  enrollments      BootcampEnrollment[] @relation("UserEnrollmentRelation")
+  job_applications JobApplication[]
+  saved_jobs       UserSavedJob[]
+
+  // Performance indexes
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([created_at(sort: Desc)])
+  @@map("users")
+}
+
+/// User notification and privacy preferences
+model UserSetting {
+  id      Int @id @default(autoincrement())
+  user_id Int @unique
+
+  // Notification preferences
+  job_notification     Boolean @default(true)
+  program_notification Boolean @default(true)
+  promo_notification   Boolean @default(false)
+
+  // Timestamps
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationship
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+// ========================
+// BOOTCAMP DOMAIN
+// ========================
+
+/// Main bootcamp entity with comprehensive metadata and validation
+model Bootcamp {
+  id          Int     @id @default(autoincrement())
+  title       String  @db.VarChar(255)
+  path_slug   String  @unique @db.VarChar(255)
+  description String? @db.Text
+  duration    String? @db.VarChar(100) // '3 bulan'
+  format      String? @db.VarChar(100) // 'Online Live Classes'
+  category    String? @db.VarChar(100) // 'ESG'
+  image_url   String? @db.VarChar(500)
+
+  // Rating dan review (0-5 range, validated in application)
+  rating       Float @default(0) @db.DoublePrecision
+  rating_count Int   @default(0)
+
+  // Benefits flags
+  certificate Boolean @default(false)
+  portfolio   Boolean @default(false)
+
+  // Status management
+  status BootcampStatus @default(ACTIVE)
+
+  // SEO & Marketing
+  meta_title       String? @db.VarChar(255)
+  meta_description String? @db.VarChar(500)
+
+  // Timestamps
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationships
+  pricing      BootcampPricing[]     @relation("BootcampPricingRelation")
+  features     BootcampFeature[]     @relation("BootcampFeatureRelation")
+  topics       BootcampTopic[]       @relation("BootcampTopicRelation")
+  instructors  BootcampInstructor[]  @relation("BootcampInstructorRelation")
+  testimonials BootcampTestimonial[] @relation("BootcampTestimonialRelation")
+  faqs         BootcampFaq[]         @relation("BootcampFaqRelation")
+  enrollments  BootcampEnrollment[]  @relation("BootcampEnrollmentRelation")
+
+  // Performance indexes
+  @@index([category, status])
+  @@index([status])
+  @@index([path_slug])
+  @@index([created_at(sort: Desc)])
+  @@index([rating(sort: Desc)])
+  @@map("bootcamps")
+}
+
+/// Bootcamp pricing tiers with validation
+model BootcampPricing {
+  id             Int    @id @default(autoincrement())
+  bootcamp_id    Int
+  name           String @db.VarChar(100) // '1 Tema', '3 Tema'
+  original_price Int // Harga asli dalam rupiah (validated > 0 in app)
+  discount_price Int // Harga setelah diskon (validated <= original_price in app)
+  tier_order     Int    @default(1) // Urutan tier (validated > 0 in app)
+
+  // Timestamps
+  created_at DateTime @default(now())
+
+  // Relationships
+  bootcamp    Bootcamp             @relation("BootcampPricingRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+  enrollments BootcampEnrollment[] @relation("EnrollmentPricingRelation")
+
+  // Indexes
+  @@index([bootcamp_id, tier_order])
+  @@map("bootcamp_pricing")
+}
+
+/// Bootcamp features and benefits
+model BootcampFeature {
+  id            Int     @id @default(autoincrement())
+  bootcamp_id   Int
+  title         String  @db.VarChar(255)
+  description   String? @db.Text
+  icon          String? @db.VarChar(100) // Icon name
+  feature_order Int     @default(1) // Urutan feature (validated > 0 in app)
+
+  // Timestamps
+  created_at DateTime @default(now())
+
+  // Relationships
+  bootcamp Bootcamp @relation("BootcampFeatureRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([bootcamp_id, feature_order])
+  @@map("bootcamp_features")
+}
+
+/// Bootcamp curriculum topics
+model BootcampTopic {
+  id          Int     @id @default(autoincrement())
+  bootcamp_id Int
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+  topic_order Int     @default(1) // Urutan topic (validated > 0 in app)
+
+  // Timestamps
+  created_at DateTime @default(now())
+
+  // Relationships
+  bootcamp Bootcamp          @relation("BootcampTopicRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+  sessions BootcampSession[] @relation("TopicSessionRelation")
+
+  // Indexes
+  @@index([bootcamp_id, topic_order])
+  @@map("bootcamp_topics")
+}
+
+/// Individual sessions within topics
+model BootcampSession {
+  id            Int    @id @default(autoincrement())
+  topic_id      Int
+  title         String @db.VarChar(255)
+  session_order Int    @default(1) // Urutan session dalam topic (validated > 0 in app)
+
+  // Timestamps
+  created_at DateTime @default(now())
+
+  // Relationships
+  topic BootcampTopic @relation("TopicSessionRelation", fields: [topic_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([topic_id, session_order])
+  @@map("bootcamp_sessions")
+}
+
+/// Master instructor data
+model Instructor {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(255)
+  job_title   String? @db.VarChar(255)
+  avatar_url  String? @db.VarChar(500)
+  description String? @db.Text
+
+  // Timestamps
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationships
+  bootcamp_instructors BootcampInstructor[] @relation("InstructorBootcampRelation")
+
+  // Indexes
+  @@index([name])
+  @@map("instructors")
+}
+
+/// Many-to-many relationship between bootcamps and instructors
+model BootcampInstructor {
+  bootcamp_id      Int
+  instructor_id    Int
+  instructor_order Int @default(1) // Urutan instructor dalam bootcamp (validated > 0 in app)
+
+  // Relationships
+  bootcamp   Bootcamp   @relation("BootcampInstructorRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+  instructor Instructor @relation("InstructorBootcampRelation", fields: [instructor_id], references: [id], onDelete: Cascade)
+
+  // Composite primary key
+  @@id([bootcamp_id, instructor_id])
+  @@map("bootcamp_instructors")
+}
+
+/// Alumni testimonials and reviews
+model BootcampTestimonial {
+  id                Int     @id @default(autoincrement())
+  bootcamp_id       Int
+  name              String  @db.VarChar(255)
+  avatar_url        String? @db.VarChar(500)
+  comment           String  @db.Text
+  testimonial_order Int     @default(1) // Urutan testimonial (validated > 0 in app)
+
+  // Timestamps
+  created_at DateTime @default(now())
+
+  // Relationships
+  bootcamp Bootcamp @relation("BootcampTestimonialRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([bootcamp_id, testimonial_order])
+  @@map("bootcamp_testimonials")
+}
+
+/// Frequently asked questions
+model BootcampFaq {
+  id          Int    @id @default(autoincrement())
+  bootcamp_id Int
+  question    String @db.Text
+  answer      String @db.Text
+  faq_order   Int    @default(1) // Urutan FAQ (validated > 0 in app)
+
+  // Timestamps
+  created_at DateTime @default(now())
+
+  // Relationships
+  bootcamp Bootcamp @relation("BootcampFaqRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([bootcamp_id, faq_order])
+  @@map("bootcamp_faqs")
+}
+
+// ========================
+// ENROLLMENT DOMAIN
+// ========================
+
+/// User enrollments with progress tracking
+model BootcampEnrollment {
+  id                  Int              @id @default(autoincrement())
+  bootcamp_id         Int
+  user_id             Int
+  pricing_tier_id     Int?
+  enrollment_status   EnrollmentStatus @default(ENROLLED)
+  progress_percentage Int              @default(0) // 0-100 (validated in app)
+
+  // Timestamps
+  enrolled_at  DateTime  @default(now())
+  completed_at DateTime?
+
+  // Relationships
+  bootcamp     Bootcamp         @relation("BootcampEnrollmentRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+  user         User             @relation("UserEnrollmentRelation", fields: [user_id], references: [id], onDelete: Cascade)
+  pricing_tier BootcampPricing? @relation("EnrollmentPricingRelation", fields: [pricing_tier_id], references: [id])
+
+  // Business constraints
+  @@unique([bootcamp_id, user_id], map: "uk_enrollment_user_bootcamp")
+  // Performance indexes
+  @@index([user_id])
+  @@index([bootcamp_id])
+  @@index([enrollment_status])
+  @@index([enrolled_at(sort: Desc)])
+  @@map("bootcamp_enrollments")
+}
+
+// ========================
+// JOBS DOMAIN - Full LinkedIn API Integration
+// ========================
+
+/// Enhanced Companies table dengan full LinkedIn data
+model Company {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(255)
+  slug String @unique @db.VarChar(255)
+
+  // Basic info
+  logo_url     String? @db.VarChar(500)
+  website_url  String? @db.VarChar(500)
+  industry     String? @db.VarChar(255)
+  headquarters String? @db.VarChar(255)
+  description  String? @db.Text
+
+  // LinkedIn specific data (FULL UTILIZATION)
+  linkedin_url                   String? @db.VarChar(500)
+  linkedin_slug                  String? @db.VarChar(255)
+  linkedin_employees             Int?
+  linkedin_size                  String? @db.VarChar(100) // "501-1,000 employees"
+  linkedin_slogan                String? @db.VarChar(500)
+  linkedin_followers             Int?
+  linkedin_type                  String? @db.VarChar(100) // "Public Company"
+  linkedin_founded_date          String? @db.VarChar(4) // "2012"
+  linkedin_specialties           Json? // Array of specialties
+  linkedin_locations             Json? // Array of office locations
+  linkedin_is_recruitment_agency Boolean @default(false)
+
+  // Timestamps
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  jobs Job[]
+
+  // Indexes
+  @@index([industry])
+  @@index([linkedin_size])
+  @@index([linkedin_employees])
+  @@map("companies")
+}
+
+/// Enhanced Locations table dengan koordinat GPS
+model JobLocation {
+  id Int @id @default(autoincrement())
+
+  // Derived location data
+  city     String? @db.VarChar(255)
+  region   String? @db.VarChar(255)
+  country  String  @db.VarChar(255)
+  timezone String? @db.VarChar(100)
+
+  // GPS coordinates
+  latitude  Decimal? @db.Decimal(10, 8)
+  longitude Decimal? @db.Decimal(11, 8)
+
+  // Raw location data from API
+  raw_location_data Json? // Full locations_raw structure
+  location_type     String? @db.VarChar(100)
+
+  // Derived flags
+  is_remote Boolean @default(false)
+
+  created_at DateTime @default(now())
+
+  // Relations
+  jobs Job[]
+
+  // Unique constraint
+  @@unique([city, region, country])
+  @@index([country])
+  @@index([is_remote])
+  @@index([latitude, longitude])
+  @@map("job_locations")
+}
+
+/// Enhanced Jobs table dengan FULL LinkedIn API integration
+model Job {
+  id    Int    @id @default(autoincrement())
+  title String @db.VarChar(255)
+  slug  String @db.VarChar(255)
+
+  // Relations
+  company_id  Int
+  location_id Int?
+
+  // Basic job info
+  description     String  @db.Text
+  employment_type String  @db.VarChar(50) // Store original like "FULL_TIME"
+  seniority_level String? @db.VarChar(100) // "Entry level", "Mid-Senior level"
+  status          String  @default("active") @db.VarChar(50)
+
+  // Application info
+  direct_apply Boolean @default(true)
+  external_url String? @db.VarChar(500)
+
+  // Dates from API
+  posted_date DateTime
+  valid_until DateTime?
+
+  // Source tracking (FULL UTILIZATION)
+  source_type     String? @db.VarChar(100) // "jobboard"
+  source          String? @db.VarChar(100) // "linkedin" 
+  source_domain   String? @db.VarChar(255) // "id.linkedin.com"
+  source_url      String? @db.VarChar(500) // Original LinkedIn URL
+  linkedin_job_id String? @db.VarChar(255) // External job ID
+
+  // Recruiter information (FULL UTILIZATION)
+  recruiter_name  String? @db.VarChar(255)
+  recruiter_title String? @db.VarChar(255)
+  recruiter_url   String? @db.VarChar(500)
+
+  // Raw salary data
+  salary_raw String? @db.VarChar(500)
+
+  // Location requirements
+  location_requirements_raw String? @db.Text
+
+  // SEO
+  meta_title       String? @db.VarChar(255)
+  meta_description String? @db.VarChar(500)
+
+  // Timestamps
+  api_created_at DateTime? // date_created dari API
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  // Relations
+  company        Company          @relation(fields: [company_id], references: [id])
+  location       JobLocation?     @relation(fields: [location_id], references: [id])
+  ai_insights    JobAIInsights?
+  applications   JobApplication[]
+  saved_by_users UserSavedJob[]
+
+  @@unique([company_id, slug])
+  // Indexes
+  @@index([company_id])
+  @@index([location_id])
+  @@index([employment_type])
+  @@index([seniority_level])
+  @@index([posted_date(sort: Desc)])
+  @@index([source])
+  @@map("jobs")
+}
+
+/// AI-Enhanced Job Insights (GAME CHANGER!)
+model JobAIInsights {
+  id     Int @id @default(autoincrement())
+  job_id Int @unique
+
+  // AI Salary Analysis
+  ai_salary_currency  String? @db.VarChar(3) // "IDR", "USD"
+  ai_salary_value     Int? // Single salary value
+  ai_salary_min_value Int? // Min salary range
+  ai_salary_max_value Int? // Max salary range  
+  ai_salary_unit_text String? @db.VarChar(100) // "per month", "per year"
+
+  // AI Job Content Analysis
+  ai_benefits                String? @db.Text // Parsed benefits
+  ai_experience_level        String? @db.VarChar(100) // AI-determined exp level
+  ai_work_arrangement        String? @db.VarChar(100) // "remote", "hybrid", "office"
+  ai_work_arrangement_days   Int? // Office days per week
+  ai_remote_location         String? @db.VarChar(255) // Specific remote location allowed
+  ai_remote_location_derived String? @db.VarChar(255)
+
+  // AI Skills & Requirements Analysis  
+  ai_key_skills            Json? // Array of extracted skills
+  ai_core_responsibilities String? @db.Text // AI-summarized responsibilities
+  ai_requirements_summary  String? @db.Text // AI-summarized requirements
+
+  // AI Work Details
+  ai_working_hours    String?  @db.VarChar(100) // "Full-time", "Part-time"
+  ai_job_language     String?  @db.VarChar(100) // "English", "Indonesian"
+  ai_visa_sponsorship Boolean? // true/false/null
+
+  // AI Hiring Manager Analysis
+  ai_hiring_manager_name  String? @db.VarChar(255)
+  ai_hiring_manager_email String? @db.VarChar(255)
+
+  // Confidence scores untuk AI analysis
+  salary_confidence       Decimal? @db.Decimal(3, 2) // 0.00-1.00
+  skills_confidence       Decimal? @db.Decimal(3, 2) // 0.00-1.00
+  requirements_confidence Decimal? @db.Decimal(3, 2) // 0.00-1.00
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  job Job @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([ai_experience_level])
+  @@index([ai_work_arrangement])
+  @@index([ai_salary_min_value, ai_salary_max_value])
+  @@map("job_ai_insights")
+}
+
+/// User Job Applications dengan enhanced tracking
+model JobApplication {
+  id           Int      @id @default(autoincrement())
+  user_id      Int
+  job_id       Int
+  status       String   @default("PENDING") @db.VarChar(50) // PENDING, REVIEWED, etc.
+  applied_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  cover_letter String?  @db.Text
+  resume_url   String?  @db.VarChar(500)
+  notes        String?
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, job_id])
+  // Indexes
+  @@index([user_id])
+  @@index([job_id])
+  @@index([status])
+  @@map("job_applications")
+}
+
+/// User Saved Jobs untuk favorites
+model UserSavedJob {
+  id       Int      @id @default(autoincrement())
+  user_id  Int
+  job_id   Int
+  saved_at DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, job_id])
+  // Indexes
+  @@index([user_id])
+  @@index([job_id])
+  @@map("user_saved_jobs")
+}
+
+// ==========================================
+// TESTIMONIALS DOMAIN
+// ==========================================
+
+model Testimonial {
+  id         Int               @id @default(autoincrement())
+  name       String            @db.VarChar(255)
+  country    String            @db.VarChar(100)
+  text       String            @db.Text
+  rating     Int               @default(5)
+  status     TestimonialStatus @default(ACTIVE)
+  featured   Boolean           @default(false)
+  created_at DateTime          @default(now())
+  updated_at DateTime          @updatedAt
+
+  // Indexes
+  @@index([status])
+  @@index([featured])
+  @@index([country])
+  @@map("testimonials")
+}
+
+// ==========================================
+// PROGRAMS DOMAIN
+// ==========================================
+
+model Program {
+  id          Int           @id @default(autoincrement())
+  title       String        @db.VarChar(255)
+  slug        String        @unique @db.VarChar(255)
+  image       String        @db.VarChar(500)
+  description String        @db.Text
+  status      ProgramStatus @default(ACTIVE)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Indexes
+  @@index([status])
+  @@index([slug])
+  @@map("programs")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum TestimonialStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum ProgramStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}

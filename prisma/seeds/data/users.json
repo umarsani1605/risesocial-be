@@ -1,0 +1,79 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "first_name": "Admin",
+      "last_name": "Rise Social",
+      "email": "admin@risesocial.org",
+      "phone": "+62-812-3456-7890",
+      "password": "password123",
+      "avatar": "https://i.pravatar.cc/150?u=admin@risesocial.org",
+      "role": "ADMIN",
+      "email_verified_at": true,
+      "phone_verified_at": true,
+      "gender": "PREFER_NOT_TO_SAY",
+      "country": "Indonesia",
+      "province": "DKI Jakarta",
+      "city": "Jakarta Selatan",
+      "last_education": "S1 Computer Science",
+      "current_job": "System Administrator",
+      "current_company": "Rise Social",
+      "skills": ["Leadership", "Management", "System Administration", "Database Management"],
+      "user_setting": {
+        "job_notification": false,
+        "program_notification": true,
+        "promo_notification": false
+      }
+    },
+    {
+      "username": "demo",
+      "first_name": "Demo",
+      "last_name": "User",
+      "email": "demo@risesocial.org",
+      "phone": "+62-812-3456-7893",
+      "password": "password123",
+      "avatar": "https://i.pravatar.cc/150?u=demo@risesocial.org",
+      "role": "USER",
+      "email_verified_at": true,
+      "phone_verified_at": false,
+      "gender": "MALE",
+      "country": "Indonesia",
+      "province": "Jawa Barat",
+      "city": "Bandung",
+      "last_education": "S1 Computer Science",
+      "current_job": "Software Developer",
+      "current_company": "Software House",
+      "skills": ["JavaScript", "Node.js", "React", "Vue.js", "PostgreSQL"],
+      "user_setting": {
+        "job_notification": true,
+        "program_notification": true,
+        "promo_notification": true
+      }
+    },
+    {
+      "username": "sarah",
+      "first_name": "Sarah",
+      "last_name": "Sustainability",
+      "email": "sarah@risesocial.org",
+      "phone": "+62-812-3456-7894",
+      "password": "password123",
+      "avatar": "https://i.pravatar.cc/150?u=sarah@risesocial.org",
+      "role": "USER",
+      "email_verified_at": true,
+      "phone_verified_at": true,
+      "gender": "FEMALE",
+      "country": "Indonesia",
+      "province": "Jawa Timur",
+      "city": "Surabaya",
+      "last_education": "S1 Environmental Science",
+      "current_job": "ESG Analyst",
+      "current_company": "Green Corp",
+      "skills": ["ESG Analysis", "Sustainability Reporting", "Carbon Footprint", "Climate Change"],
+      "user_setting": {
+        "job_notification": true,
+        "program_notification": true,
+        "promo_notification": false
+      }
+    }
+  ]
+} 
