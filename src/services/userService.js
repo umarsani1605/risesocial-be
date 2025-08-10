@@ -56,6 +56,11 @@ export class UserService {
       userData.username = await this.generateUniqueUsername(userData.first_name, userData.last_name);
     }
 
+    // Ensure role uppercase as DB enum
+    if (userData.role) {
+      userData.role = String(userData.role).toUpperCase();
+    }
+
     // Hash password
     if (userData.password) {
       userData.password = await bcrypt.hash(userData.password, 12);
@@ -81,6 +86,11 @@ export class UserService {
       const error = new Error('User not found');
       error.statusCode = 404;
       throw error;
+    }
+
+    // Ensure role uppercase as DB enum if provided
+    if (updateData.role) {
+      updateData.role = String(updateData.role).toUpperCase();
     }
 
     // Hash password if provided
@@ -186,7 +196,7 @@ export class UserService {
         ...userData,
         username,
         password: hashedPassword,
-        role: 'USER', // Must match enum case in Prisma schema
+        role: 'USER',
       };
       console.log('📝 [UserService] Prepared user data for creation');
 

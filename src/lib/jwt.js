@@ -64,8 +64,7 @@ export function hasRole(decodedToken, allowedRoles) {
   if (!decodedToken || !decodedToken.role) {
     return false;
   }
-
-  return allowedRoles.includes(decodedToken.role);
+  return (allowedRoles || []).includes(decodedToken.role);
 }
 
 /**

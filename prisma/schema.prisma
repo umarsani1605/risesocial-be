@@ -646,3 +646,181 @@ enum ProgramStatus {
   INACTIVE
   DRAFT
 }
+
+// ==========================================
+// RYLS REGISTRATION ENUMS
+// ==========================================
+
+enum RylsRegistrationStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
+enum RylsGender {
+  MALE
+  FEMALE
+  PREFER_NOT_TO_SAY
+}
+
+enum RylsDiscoverSource {
+  RISE_INSTAGRAM
+  OTHER_INSTAGRAM
+  FRIENDS
+  OTHER
+}
+
+enum RylsScholarshipType {
+  FULLY_FUNDED
+  SELF_FUNDED
+}
+
+enum FileUploadType {
+  ESSAY
+  HEADSHOT
+}
+
+enum MidtransTransactionStatus {
+  pending
+  capture
+  settlement
+  deny
+  cancel
+  expire
+  refund
+  chargeback
+}
+
+enum MidtransFraudStatus {
+  accept
+  challenge
+  deny
+}
+
+// ==========================================
+// RYLS REGISTRATION DOMAIN
+// ==========================================
+
+/// Main RYLS registration form data
+model RylsRegistration {
+  id                  Int                    @id @default(autoincrement())
+  full_name           String                 @db.VarChar(255)
+  email               String                 @unique @db.VarChar(255)
+  residence           String                 @db.VarChar(255)
+  nationality         String                 @db.VarChar(255)
+  second_nationality  String?                @db.VarChar(255)
+  whatsapp            String                 @db.VarChar(50)
+  institution         String                 @db.VarChar(255)
+  date_of_birth       DateTime               @db.Date
+  gender              RylsGender
+  discover_source     RylsDiscoverSource
+  discover_other_text String?                @db.Text
+  scholarship_type    RylsScholarshipType
+  status              RylsRegistrationStatus @default(PENDING)
+  submission_id       String?                @unique @db.VarChar(100)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationships
+  fully_funded_submission RylsFullyFundedSubmission?
+  self_funded_submission  RylsSelfFundedSubmission?
+  ryls_payments           RylsPayment[]
+
+  // Indexes
+  @@index([status])
+  @@index([scholarship_type])
+  @@index([created_at(sort: Desc)])
+  @@map("ryls_registrations")
+}
+
+/// File upload metadata
+model FileUpload {
+  id            Int            @id @default(autoincrement())
+  original_name String         @db.VarChar(255)
+  file_path     String         @db.VarChar(500)
+  file_size     Int
+  mime_type     String         @db.VarChar(100)
+  upload_type   FileUploadType
+
+  created_at DateTime @default(now())
+
+  // Relationships
+  fully_funded_essays   RylsFullyFundedSubmission[]
+  self_funded_headshots RylsSelfFundedSubmission[]
+
+  // Indexes
+  @@index([upload_type])
+  @@index([created_at(sort: Desc)])
+  @@map("file_uploads")
+}
+
+/// Fully funded scholarship submissions
+model RylsFullyFundedSubmission {
+  id                Int     @id @default(autoincrement())
+  registration_id   Int     @unique
+  essay_topic       String  @db.Text
+  essay_file_id     Int
+  essay_description String? @db.Text
+
+  created_at DateTime @default(now())
+
+  // Relationships
+  registration RylsRegistration @relation(fields: [registration_id], references: [id], onDelete: Cascade)
+  essay_file   FileUpload       @relation(fields: [essay_file_id], references: [id])
+
+  @@map("ryls_fully_funded_submissions")
+}
+
+/// Self funded submissions
+model RylsSelfFundedSubmission {
+  id               Int     @id @default(autoincrement())
+  registration_id  Int     @unique
+  passport_number  String  @db.VarChar(100)
+  need_visa        Boolean
+  headshot_file_id Int
+  read_policies    Boolean
+
+  created_at DateTime @default(now())
+
+  // Relationships
+  registration  RylsRegistration @relation(fields: [registration_id], references: [id], onDelete: Cascade)
+  headshot_file FileUpload       @relation(fields: [headshot_file_id], references: [id])
+
+  @@map("ryls_self_funded_submissions")
+}
+
+/// RYLS Payment transactions with Midtrans integration
+model RylsPayment {
+  id               Int     @id @default(autoincrement())
+  registration_id  Int
+  order_id         String  @unique
+  snap_token       String
+  redirect_url     String?
+  transaction_id   String?
+  payment_type     String?
+  gross_amount_idr Int
+  currency         String  @default("IDR")
+
+  transaction_status MidtransTransactionStatus @default(pending)
+  fraud_status       MidtransFraudStatus?
+
+  payment_details   Json?
+  last_notification Json?
+  notified_at       DateTime?
+  paid_at           DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relationships
+  registration RylsRegistration @relation(fields: [registration_id], references: [id])
+
+  // Indexes
+  @@index([registration_id])
+  @@index([transaction_status])
+  @@index([payment_type])
+  @@index([order_id])
+  @@map("ryls_payments")
+}

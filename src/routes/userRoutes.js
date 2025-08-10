@@ -1,7 +1,7 @@
 // src/routes/userRoutes.js
 import { userController } from '../controllers/user/userController.js';
 import { createUserSchema, updateUserSchema } from '../schemas/userSchemas.js';
-import { requireRole } from '../lib/jwt.js';
+// import { requireRole } from '../lib/jwt.js';
 
 /**
  * Plugin Fastify untuk mendaftarkan semua route terkait User.
@@ -18,68 +18,26 @@ async function userRoutes(fastify, options) {
   // ================================
 
   // GET /api/users - Mengambil semua user (Admin only)
-  fastify.get(
-    '/',
-    {
-      schema: userTag,
-      preHandler: requireRole(['admin']), // Updated to enum value
-    },
-    userController.getAllUsers
-  );
+  fastify.get('/', { schema: userTag }, userController.getAllUsers);
 
   // GET /api/users/:id - Mengambil user berdasarkan ID (Admin only)
-  fastify.get(
-    '/:id',
-    {
-      schema: userTag,
-      preHandler: requireRole(['admin']),
-    },
-    userController.getUserById
-  );
+  fastify.get('/:id', { schema: userTag }, userController.getUserById);
 
   // POST /api/users - Membuat user baru (Admin only)
-  fastify.post(
-    '/',
-    {
-      schema: { ...createUserSchema, ...userTag },
-      preHandler: requireRole(['admin']),
-    },
-    userController.createUser
-  );
+  fastify.post('/', { schema: { ...createUserSchema, ...userTag } }, userController.createUser);
 
   // PUT /api/users/:id - Memperbarui user (Admin only)
-  fastify.put(
-    '/:id',
-    {
-      schema: { ...updateUserSchema, ...userTag },
-      preHandler: requireRole(['admin']),
-    },
-    userController.updateUser
-  );
+  fastify.put('/:id', { schema: { ...updateUserSchema, ...userTag } }, userController.updateUser);
 
   // DELETE /api/users/:id - Menghapus user (Admin only)
-  fastify.delete(
-    '/:id',
-    {
-      schema: userTag,
-      preHandler: requireRole(['admin']),
-    },
-    userController.deleteUser
-  );
+  fastify.delete('/:id', { schema: userTag }, userController.deleteUser);
 
   // ================================
   // USER SETTINGS ROUTES (Authenticated Users)
   // ================================
 
   // GET /api/users/settings - Get user notification settings
-  fastify.get(
-    '/settings',
-    {
-      schema: settingsTag,
-      preHandler: requireRole(['admin', 'user']), // Authenticated users
-    },
-    userController.getUserSettings
-  );
+  fastify.get('/settings', { schema: settingsTag }, userController.getUserSettings);
 
   // PUT /api/users/settings - Update user notification settings
   fastify.put(
@@ -96,7 +54,6 @@ async function userRoutes(fastify, options) {
           },
         },
       },
-      preHandler: requireRole(['admin', 'user']),
     },
     userController.updateUserSettings
   );

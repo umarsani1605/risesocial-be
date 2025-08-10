@@ -43,13 +43,13 @@ export class UserSettingsRepository extends BaseRepository {
    * @param {string} userRole - User role for default settings
    * @returns {Promise<Object>} Created settings
    */
-  async createDefault(userId, userRole = 'user') {
+  async createDefault(userId, userRole = 'USER') {
     return await this.model.create({
       data: {
         user_id: userId,
-        job_notification: userRole === 'user',
+        job_notification: userRole === 'USER',
         program_notification: true,
-        promo_notification: userRole === 'user',
+        promo_notification: userRole === 'USER',
       },
     });
   }

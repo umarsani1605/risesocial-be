@@ -55,9 +55,9 @@ export class UserRepository extends BaseRepository {
         await tx.userSetting.create({
           data: {
             user_id: user.id,
-            job_notification: user.role === 'user',
+            job_notification: user.role === 'USER',
             program_notification: true,
-            promo_notification: user.role === 'user',
+            promo_notification: user.role === 'USER',
           },
         });
 

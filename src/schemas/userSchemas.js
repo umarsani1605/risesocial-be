@@ -5,7 +5,7 @@
 export const userResponseSchema = {
   type: 'object',
   properties: {
-    id: { type: 'string' },
+    id: { type: 'number' },
     first_name: { type: 'string' },
     last_name: { type: 'string' },
     email: { type: 'string', format: 'email' },
@@ -32,6 +32,7 @@ export const createUserSchema = {
       phone: { type: 'string' },
       password: { type: 'string', minLength: 6 },
       avatar: { type: 'string' },
+      role: { type: 'string', enum: ['USER', 'ADMIN'] },
     },
   },
   response: {
@@ -58,6 +59,8 @@ export const updateUserSchema = {
       email: { type: 'string', format: 'email' },
       phone: { type: 'string' },
       avatar: { type: 'string' },
+      role: { type: 'string', enum: ['USER', 'ADMIN'] },
+      password: { type: 'string', minLength: 6 },
     },
   },
   response: {

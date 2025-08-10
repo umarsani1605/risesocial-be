@@ -12,6 +12,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import multipart from '@fastify/multipart';
 import dotenv from 'dotenv';
 import { disconnectDatabase } from './lib/prisma.js';
 
@@ -32,6 +33,9 @@ import enrollmentRoutes from './routes/enrollment/index.js';
 import { jobsRoutes } from './routes/jobs/index.js';
 import { programsRoutes } from './routes/programs/index.js';
 import { testimonialsRoutes } from './routes/testimonials/index.js';
+import { fileUploadRoutes } from './routes/upload/fileUploadRoutes.js';
+import { rylsRegistrationRoutes } from './routes/registration/rylsRegistrationRoutes.js';
+import rylsPaymentRoutes from './routes/payments/rylsPaymentRoutes.js';
 
 // Load environment variables dari file .env
 dotenv.config();
@@ -59,6 +63,13 @@ await fastify.register(cors, {
   credentials: true,
 });
 
+// Daftarkan Multipart plugin untuk file uploads
+await fastify.register(multipart, {
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+});
+
 // Daftarkan JWT plugin
 await fastify.register(jwt, {
   secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-for-development',
@@ -84,7 +95,7 @@ await fastify.register(swagger, {
       url: 'https://swagger.io',
       description: 'Find more info here',
     },
-    host: `localhost:${process.env.PORT || 3001}`,
+    host: `localhost:${process.env.PORT || 8000}`,
     schemes: ['http'],
     consumes: ['application/json'],
     produces: ['application/json'],
@@ -99,6 +110,9 @@ await fastify.register(swagger, {
       { name: 'Jobs', description: 'Job-related endpoints' },
       { name: 'Programs', description: 'Program-related endpoints' },
       { name: 'Testimonials', description: 'Testimonial-related endpoints' },
+      { name: 'File Upload', description: 'File upload and management endpoints' },
+      { name: 'RYLS Registration', description: 'Rise Young Leaders Summit registration endpoints' },
+      { name: 'RYLS Payments', description: 'Rise Young Leaders Summit payment endpoints' },
     ],
   },
 });
@@ -155,6 +169,15 @@ fastify.register(programsRoutes, { prefix: '/api/programs' });
 
 // Daftarkan testimonialsRoutes dengan prefix /api/testimonials
 fastify.register(testimonialsRoutes, { prefix: '/api/testimonials' });
+
+// Daftarkan fileUploadRoutes dengan prefix /api/uploads
+fastify.register(fileUploadRoutes, { prefix: '/api/uploads' });
+
+// Daftarkan rylsRegistrationRoutes dengan prefix /api/registrations
+fastify.register(rylsRegistrationRoutes, { prefix: '/api/registrations' });
+
+// Daftarkan rylsPaymentRoutes dengan prefix /api/payments
+fastify.register(rylsPaymentRoutes, { prefix: '/api/payments' });
 
 // --- 3. Pengaturan Server (Startup & Shutdown) ---
 
