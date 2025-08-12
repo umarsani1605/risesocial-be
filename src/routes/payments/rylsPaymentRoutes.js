@@ -31,13 +31,13 @@ async function rylsPaymentRoutes(fastify, options) {
   fastify.post('/ryls/transactions', {
     schema: createTransactionSchema,
     handler: async (request, reply) => {
-      console.log('🔵 [PaymentRoutes] POST /api/payments/ryls/transactions called');
-      console.log('📝 [PaymentRoutes] Request body:', JSON.stringify(request.body, null, 2));
+      console.log('[PaymentRoutes] POST /api/payments/ryls/transactions called');
+      console.log('[PaymentRoutes] Request body:', JSON.stringify(request.body, null, 2));
 
       try {
         return await paymentController.createTransaction(request, reply);
       } catch (error) {
-        console.error('❌ [PaymentRoutes] Error in createTransaction route:', error);
+        console.error('[PaymentRoutes] Error in createTransaction route:', error);
         throw error;
       }
     },

@@ -18,29 +18,24 @@ export class RylsPaymentController {
    * @param {Object} reply - Fastify reply object
    */
   async createTransaction(request, reply) {
-    console.log('🔵 [PaymentController] createTransaction called');
-    console.log('📝 [PaymentController] Request body:', JSON.stringify(request.body, null, 2));
+    console.log('[PaymentController] createTransaction called');
+    console.log('[PaymentController] Request body:', JSON.stringify(request.body, null, 2));
 
     try {
-      const { registrationId } = request.body;
+      const data = request.body;
 
-      console.log('⚙️ [PaymentController] Processing registration ID:', registrationId);
+      console.log('[PaymentController] Processing registration for:', data.fullName);
 
-      // Call payment service to create transaction
-      console.log('🔄 [PaymentController] Calling paymentService.createTransaction...');
-      const transactionData = await this.paymentService.createTransaction(registrationId);
+      console.log('[PaymentController] Calling paymentService.createTransaction...');
 
-      console.log('✅ [PaymentController] Transaction created successfully');
-      console.log('📊 [PaymentController] Transaction data:', {
-        orderId: transactionData.orderId,
-        amount: transactionData.amount,
-        currency: transactionData.currency,
-        tokenLength: transactionData.token?.length || 0,
-      });
+      const transactionData = await this.paymentService.createTransaction(data);
+
+      console.log('[PaymentController] Transaction created successfully');
+      console.log('[PaymentController] Transaction data:', transactionData);
 
       return reply.status(200).send(successResponse(transactionData, 'Payment transaction created successfully'));
     } catch (error) {
-      console.error('❌ [PaymentController] Error creating transaction:', error);
+      console.error('[PaymentController] Error creating transaction:', error);
 
       // Handle specific error types
       if (error.message.includes('Registration not found')) {

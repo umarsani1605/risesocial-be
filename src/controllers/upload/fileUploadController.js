@@ -1,4 +1,5 @@
 import { FileUploadService } from '../../services/fileUploadService.js';
+import { RylsPaymentService } from '../../services/rylsPaymentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 import fs from 'fs-extra';
 import path from 'path';
@@ -10,6 +11,7 @@ import path from 'path';
 export class FileUploadController {
   constructor() {
     this.fileUploadService = new FileUploadService();
+    this.rylsPaymentService = new RylsPaymentService();
   }
 
   /**
@@ -18,12 +20,10 @@ export class FileUploadController {
    */
   async uploadEssay(request, reply) {
     try {
-      // File is already processed by middleware and attached to request.uploadedFile
       if (!request.uploadedFile) {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
       }
 
-      // Process file upload
       const uploadResult = await this.fileUploadService.processFileUpload(request.uploadedFile, 'ESSAY');
 
       return reply.status(201).send(successResponse(uploadResult, 'Essay file uploaded successfully'));
@@ -39,18 +39,36 @@ export class FileUploadController {
    */
   async uploadHeadshot(request, reply) {
     try {
-      // File is already processed by middleware and attached to request.uploadedFile
       if (!request.uploadedFile) {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
       }
-
-      // Process file upload
       const uploadResult = await this.fileUploadService.processFileUpload(request.uploadedFile, 'HEADSHOT');
 
       return reply.status(201).send(successResponse(uploadResult, 'Headshot file uploaded successfully'));
     } catch (error) {
       console.error('Error uploading headshot:', error);
       return reply.status(500).send(errorResponse('Failed to upload headshot file', 500, error.message));
+    }
+  }
+
+  /**
+   * Upload payment proof file (Images only)
+   * POST /api/uploads/payment-proof
+   */
+  async uploadPaymentProof(request, reply) {
+    try {
+      if (!request.uploadedFile) {
+        return reply.status(400).send(errorResponse('No file uploaded', 400));
+      }
+
+      const uploadResult = await this.fileUploadService.processFileUpload(request.uploadedFile, 'PAYMENT_PROOF');
+
+      console.log('Payment proof uploaded successfully:', uploadResult);
+
+      return reply.status(201).send(successResponse(uploadResult, 'Payment proof file uploaded successfully'));
+    } catch (error) {
+      console.error('Error uploading payment proof:', error);
+      return reply.status(500).send(errorResponse('Failed to upload payment proof file', 500, error.message));
     }
   }
 
@@ -62,25 +80,22 @@ export class FileUploadController {
     try {
       const { id } = request.params;
 
+      console.log('Downloading file with ID:', id);
+
       if (!id || isNaN(parseInt(id))) {
         return reply.status(400).send(errorResponse('Invalid file ID provided', 400));
       }
 
-      // Get file download info
       const fileInfo = await this.fileUploadService.getFileDownloadInfo(parseInt(id));
-
-      // Check if file exists on disk
       const fileExists = await fs.pathExists(fileInfo.filePath);
       if (!fileExists) {
         return reply.status(404).send(errorResponse('File not found on disk', 404));
       }
 
-      // Set appropriate headers
       reply.type(fileInfo.mimeType);
       reply.header('Content-Disposition', `inline; filename="${fileInfo.originalName}"`);
       reply.header('Content-Length', fileInfo.fileSize);
 
-      // Stream file
       const fileStream = fs.createReadStream(fileInfo.filePath);
       return reply.send(fileStream);
     } catch (error) {
@@ -158,7 +173,6 @@ export class FileUploadController {
       const { uploadType } = request.params;
       const { page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc' } = request.query;
 
-      // Validate upload type
       if (!['ESSAY', 'HEADSHOT'].includes(uploadType)) {
         return reply.status(400).send(errorResponse('Invalid upload type. Must be ESSAY or HEADSHOT', 400));
       }

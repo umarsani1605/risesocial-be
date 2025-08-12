@@ -22,7 +22,7 @@ export function errorHandler(error, request, reply) {
 
   // Handle Fastify validation errors
   if (error.validation) {
-    return reply.status(400).send(errorResponse('Validation Error', 400, error.validation));
+    return reply.status(400).send(errorResponse('Validation Error ' + JSON.stringify(error.validation), 400, error.validation));
   }
 
   // Handle Prisma errors

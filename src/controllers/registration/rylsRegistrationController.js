@@ -10,6 +10,29 @@ export class RylsRegistrationController {
     this.registrationService = new RylsRegistrationService();
   }
 
+  async createRegistration(request, reply) {
+    try {
+      const formData = request.body;
+      console.log('Backend received data:', JSON.stringify(formData, null, 2));
+
+      if (!formData.step1) {
+        return reply.status(400).send(errorResponse('Missing required form data', 400, 'Incomplete form submission'));
+      }
+
+      const result = await this.registrationService.createRegistration(formData);
+
+      return reply.status(201).send(successResponse(result, 'Registration created successfully'));
+    } catch (error) {
+      console.error('Error creating registration:', error);
+
+      if (error.message.includes('Missing required fields') || error.message.includes('Invalid')) {
+        return reply.status(400).send(errorResponse('Validation failed', 400, error.message));
+      }
+
+      return reply.status(500).send(errorResponse('Failed to create registration', 500, error.message));
+    }
+  }
+
   /**
    * Submit fully funded registration
    * POST /api/registrations/fully-funded

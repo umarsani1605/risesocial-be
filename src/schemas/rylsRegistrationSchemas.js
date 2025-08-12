@@ -14,7 +14,7 @@ const personalInfoSchema = {
     secondNationality: { type: 'string' },
     whatsapp: { type: 'string' },
     institution: { type: 'string' },
-    dateOfBirth: { type: 'string', format: 'date-time' },
+    dateOfBirth: { type: 'string', format: 'date' },
     age: { type: 'integer' },
     gender: { type: 'string', enum: ['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY'] },
   },
@@ -24,10 +24,10 @@ const personalInfoSchema = {
 const applicationInfoSchema = {
   type: 'object',
   properties: {
-    discoverSource: { type: 'string', enum: ['RISE_INSTAGRAM', 'OTHER_INSTAGRAM', 'FRIENDS_COLLEAGUES', 'OTHER'] },
+    discoverSource: { type: 'string', enum: ['RISE_INSTAGRAM', 'OTHER_INSTAGRAM', 'FRIENDS', 'OTHER'] },
     discoverOtherText: { type: 'string' },
     scholarshipType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'] },
-    status: { type: 'string', enum: ['PENDING', 'APPROVED', 'REJECTED'] },
+    status: { type: 'string', enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'] },
   },
   required: ['discoverSource', 'scholarshipType', 'status'],
 };
@@ -106,7 +106,7 @@ const step1DataSchema = {
     institution: { type: 'string', minLength: 2, maxLength: 255 },
     dateOfBirth: { type: 'string', format: 'date' },
     gender: { type: 'string', enum: ['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY'] },
-    discoverSource: { type: 'string', enum: ['RISE_INSTAGRAM', 'OTHER_INSTAGRAM', 'FRIENDS_COLLEAGUES', 'OTHER'] },
+    discoverSource: { type: 'string', enum: ['RISE_INSTAGRAM', 'OTHER_INSTAGRAM', 'FRIENDS', 'OTHER'] },
     discoverOtherText: { type: 'string', maxLength: 500 },
     scholarshipType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'] },
   },
@@ -130,16 +130,10 @@ const fullyFundedRequestSchema = {
     step1: step1DataSchema,
     essayTopic: {
       type: 'string',
-      enum: [
-        'Green Climate – Urban solutions to adapt and thrive in a changing climate',
-        'Green Curriculum – Embedding climate literacy in education',
-        'Green Innovation – Tech-driven tools for climate resilience',
-        'Green Action – Youth-led movements for climate justice',
-        'Green Transition – Shifting to low-carbon, renewable energy',
-      ],
+      enum: ['GREEN_CLIMATE', 'GREEN_CURRICULUM', 'GREEN_INNOVATION', 'GREEN_ACTION', 'GREEN_TRANSITION'],
     },
     essayFileId: { type: 'integer', minimum: 1 },
-    essayDescription: { type: 'string', maxLength: 1000 },
+    essayDescription: { type: 'string' },
   },
   required: ['step1', 'essayTopic', 'essayFileId'],
 };
@@ -165,7 +159,7 @@ const submissionResponseSchema = {
     email: { type: 'string' },
     fullName: { type: 'string' },
     scholarshipType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'] },
-    status: { type: 'string', enum: ['PENDING', 'APPROVED', 'REJECTED'] },
+    status: { type: 'string', enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'] },
     createdAt: { type: 'string', format: 'date-time' },
     submission: { type: 'object' },
   },
@@ -201,10 +195,11 @@ const statisticsResponseSchema = {
       type: 'object',
       properties: {
         pending: { type: 'integer' },
-        approved: { type: 'integer' },
-        rejected: { type: 'integer' },
+        paid: { type: 'integer' },
+        failed: { type: 'integer' },
+        expired: { type: 'integer' },
       },
-      required: ['pending', 'approved', 'rejected'],
+      required: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'],
     },
     scholarshipBreakdown: {
       type: 'object',
@@ -300,8 +295,8 @@ const registrationQuerySchema = {
     },
     status: {
       type: 'string',
-      enum: ['PENDING', 'APPROVED', 'REJECTED'],
-      description: 'Filter by status',
+      enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'],
+      description: 'Filter by payment status',
     },
     scholarshipType: {
       type: 'string',
@@ -342,8 +337,8 @@ const dateRangeQuerySchema = {
     },
     status: {
       type: 'string',
-      enum: ['PENDING', 'APPROVED', 'REJECTED'],
-      description: 'Filter by status',
+      enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'],
+      description: 'Filter by payment status',
     },
     scholarshipType: {
       type: 'string',
@@ -371,8 +366,8 @@ const statusUpdateSchema = {
   properties: {
     status: {
       type: 'string',
-      enum: ['PENDING', 'APPROVED', 'REJECTED'],
-      description: 'New status for the registration',
+      enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'],
+      description: 'New payment status for the registration',
     },
   },
   required: ['status'],
@@ -408,18 +403,83 @@ const createSuccessResponseSchema = (dataSchema) => ({
 
 // Complete route schemas
 export const rylsRegistrationSchemas = {
+  // POST /api/ryls/registrations
+  createRegistration: {
+    summary: 'Create registration',
+    description: 'Create a new registration with all required information',
+    tags: ['RYLS Registration'],
+    body: {
+      type: 'object',
+      properties: {
+        step1: {
+          type: 'object',
+          properties: {
+            fullName: { type: 'string', minLength: 1 },
+            email: { type: 'string', format: 'email' },
+            residence: { type: 'string', minLength: 1 },
+            nationality: { type: 'string', minLength: 1 },
+            secondNationality: { type: 'string' },
+            whatsapp: { type: 'string', minLength: 1 },
+            institution: { type: 'string', minLength: 1 },
+            dateOfBirth: { type: 'string', format: 'date' },
+            gender: {
+              type: 'string',
+              enum: ['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY'],
+            },
+            discoverSource: { type: 'string' },
+            discoverOtherText: { type: 'string' },
+            scholarshipType: {
+              type: 'string',
+              enum: ['FULLY_FUNDED', 'SELF_FUNDED'],
+            },
+          },
+          required: ['fullName', 'email', 'residence', 'nationality', 'whatsapp', 'institution', 'dateOfBirth', 'gender', 'scholarshipType'],
+        },
+        // Fields for FULLY_FUNDED
+        essayTopic: { type: 'string' },
+        essayFile: { type: 'string' }, // file ID
+        essayDescription: { type: 'string' },
+
+        // Fields for SELF_FUNDED
+        passportNumber: { type: 'string' },
+        needVisa: {
+          type: 'string',
+          enum: ['YES', 'NO', ''],
+        },
+        headshotFile: { type: 'string' }, // file ID
+        readPolicies: {
+          type: 'string',
+          enum: ['YES', 'NO', ''],
+        },
+
+        // Payment information
+        payment: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            type: {
+              type: 'string',
+              enum: ['PAYPAL', 'MIDTRANS'],
+            },
+            status: {
+              type: 'string',
+              enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'],
+            },
+            proof: { type: 'string' }, // file ID for payment proof
+            transactionData: { type: 'object' },
+          },
+        },
+      },
+      required: ['step1', 'payment'],
+    },
+  },
+
   // POST /api/registrations/fully-funded
   submitFullyFundedRegistration: {
     summary: 'Submit fully funded registration',
     description: 'Submit a complete fully funded scholarship registration',
     tags: ['RYLS Registration'],
     body: fullyFundedRequestSchema,
-    response: {
-      201: createSuccessResponseSchema(submissionResponseSchema),
-      400: errorResponseSchema,
-      409: errorResponseSchema,
-      500: errorResponseSchema,
-    },
   },
 
   // POST /api/registrations/self-funded
@@ -428,12 +488,6 @@ export const rylsRegistrationSchemas = {
     description: 'Submit a complete self funded registration',
     tags: ['RYLS Registration'],
     body: selfFundedRequestSchema,
-    response: {
-      201: createSuccessResponseSchema(submissionResponseSchema),
-      400: errorResponseSchema,
-      409: errorResponseSchema,
-      500: errorResponseSchema,
-    },
   },
 
   // GET /api/registrations/submission/:submissionId
@@ -442,12 +496,6 @@ export const rylsRegistrationSchemas = {
     description: 'Retrieve registration details using submission ID',
     tags: ['RYLS Registration'],
     params: submissionIdParamSchema,
-    response: {
-      200: createSuccessResponseSchema(registrationResponseSchema),
-      400: errorResponseSchema,
-      404: errorResponseSchema,
-      500: errorResponseSchema,
-    },
   },
 
   // GET /api/registrations/:id
@@ -456,12 +504,6 @@ export const rylsRegistrationSchemas = {
     description: 'Retrieve registration details by registration ID',
     tags: ['RYLS Registration'],
     params: registrationIdParamSchema,
-    response: {
-      200: createSuccessResponseSchema(registrationResponseSchema),
-      400: errorResponseSchema,
-      404: errorResponseSchema,
-      500: errorResponseSchema,
-    },
   },
 
   // GET /api/registrations
@@ -470,10 +512,6 @@ export const rylsRegistrationSchemas = {
     description: 'Retrieve paginated list of registrations with optional filters',
     tags: ['RYLS Registration'],
     querystring: registrationQuerySchema,
-    response: {
-      200: createSuccessResponseSchema(registrationListResponseSchema),
-      500: errorResponseSchema,
-    },
   },
 
   // PATCH /api/registrations/:id/status
@@ -483,11 +521,6 @@ export const rylsRegistrationSchemas = {
     tags: ['RYLS Registration'],
     params: registrationIdParamSchema,
     body: statusUpdateSchema,
-    response: {
-      200: createSuccessResponseSchema(registrationResponseSchema),
-      400: errorResponseSchema,
-      500: errorResponseSchema,
-    },
   },
 
   // GET /api/registrations/stats
@@ -495,10 +528,6 @@ export const rylsRegistrationSchemas = {
     summary: 'Get registration statistics',
     description: 'Retrieve comprehensive registration statistics',
     tags: ['RYLS Registration'],
-    response: {
-      200: createSuccessResponseSchema(statisticsResponseSchema),
-      500: errorResponseSchema,
-    },
   },
 
   // GET /api/registrations/date-range
@@ -596,9 +625,9 @@ export const rylsRegistrationSchemas = {
     querystring: {
       type: 'object',
       properties: {
-        status: {
+        paymentStatus: {
           type: 'string',
-          enum: ['PENDING', 'APPROVED', 'REJECTED'],
+          enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'],
           description: 'Filter by status',
         },
         scholarshipType: {

@@ -8,7 +8,6 @@ import {
   getItemTemplate,
   mapTransactionStatus,
   mapFraudStatus,
-  PAYMENT_EXPIRY,
   WEBHOOK_CONFIG,
 } from '../constants/payments.js';
 
@@ -25,112 +24,120 @@ export class RylsPaymentService {
 
   /**
    * Create payment transaction for registration
-   * @param {number} registrationId - Registration ID
+   * @param {Object} registrationData - Basic registration data needed for payment
    * @returns {Promise<Object>} Payment transaction data
    */
-  async createTransaction(registrationId) {
-    console.log('🔵 [PaymentService] createTransaction called');
-    console.log('📝 [PaymentService] Registration ID:', registrationId);
+  async createTransaction(data) {
+    console.log('[PaymentService] createTransaction called');
+
+    const type = data.type;
+    const registrationData = data.data;
+
+    console.log('[PaymentService] Payment type:', type);
+    console.log('[PaymentService] Registration data:', registrationData);
 
     try {
-      // 1. Get registration data
-      const registration = await this.registrationRepository.findById(registrationId);
-      if (!registration) {
-        throw new Error('Registration not found');
-      }
-
-      console.log('📊 [PaymentService] Registration found:', registration.full_name);
-      console.log('📊 [PaymentService] Scholarship type:', registration.scholarship_type);
-      console.log('📊 [PaymentService] Current status:', registration.status);
-
-      // 2. Check if there's already an active pending payment
-      const existingPendingPayment = await this.paymentRepository.findActivePendingPayment(registrationId);
-      if (existingPendingPayment) {
-        console.log('♻️ [PaymentService] Found existing pending payment, reusing token');
-        console.log('📊 [PaymentService] Existing order ID:', existingPendingPayment.order_id);
-
-        return {
-          token: existingPendingPayment.snap_token,
-          redirect_url: existingPendingPayment.redirect_url,
-          orderId: existingPendingPayment.order_id,
-          amount: existingPendingPayment.gross_amount_idr,
-          currency: existingPendingPayment.currency,
-        };
-      }
-
-      // 3. Generate order ID and get payment amount
       const sequenceNumber = await this.paymentRepository.getNextSequenceNumber();
       const orderId = generateOrderId(sequenceNumber);
-      const amountIdr = getPaymentAmountIdr(registration.scholarship_type);
-      const itemTemplate = getItemTemplate(registration.scholarship_type);
+      const amountIdr = await getPaymentAmountIdr(registrationData.scholarshipType);
+      const itemTemplate = getItemTemplate(registrationData.scholarshipType);
 
-      console.log('🔢 [PaymentService] Generated order ID:', orderId);
-      console.log('💰 [PaymentService] Payment amount:', amountIdr.toLocaleString('id-ID'), 'IDR');
+      console.log('[PaymentService] Generated order ID:', orderId);
+      console.log('[PaymentService] Payment amount:', amountIdr.toLocaleString('id-ID'), 'IDR');
 
-      // 4. Prepare Midtrans transaction parameters
-      const transactionParams = {
-        transaction_details: {
-          order_id: orderId,
-          gross_amount: amountIdr,
-        },
-        customer_details: {
-          first_name: registration.full_name.split(' ')[0],
-          last_name: registration.full_name.split(' ').slice(1).join(' ') || '',
-          email: registration.email,
-          phone: registration.whatsapp,
-        },
-        item_details: [
-          {
-            id: itemTemplate.id,
-            price: amountIdr,
-            quantity: 1,
-            name: itemTemplate.name,
-            category: itemTemplate.category,
+      let rylsPayment;
+      let snapTransaction;
+
+      if (type == 'MIDTRANS') {
+        const transactionParams = {
+          transaction_details: {
+            order_id: orderId,
+            gross_amount: amountIdr,
           },
-        ],
-        custom_expiry: {
-          expiry_duration: PAYMENT_EXPIRY.DURATION,
-          unit: PAYMENT_EXPIRY.UNIT,
-        },
-      };
+          customer_details: {
+            first_name: registrationData.fullName?.split(' ')[0] || 'Customer',
+            last_name: registrationData.fullName?.split(' ').slice(1).join(' ') || '',
+            email: registrationData.email,
+            phone: registrationData.whatsapp || '',
+            billing_address: {
+              first_name: registrationData.fullName?.split(' ')[0] || 'Customer',
+              last_name: registrationData.fullName?.split(' ').slice(1).join(' ') || '',
+              email: registrationData.email,
+              phone: registrationData.whatsapp || '',
+              address: registrationData.residence,
+              city: registrationData.residence,
+              country_code: 'IDN',
+            },
+          },
+          item_details: [
+            {
+              id: itemTemplate.id,
+              price: amountIdr,
+              quantity: 1,
+              name: itemTemplate.name,
+              category: itemTemplate.category,
+            },
+          ],
+        };
 
-      console.log('📝 [PaymentService] Midtrans transaction params:', JSON.stringify(transactionParams, null, 2));
+        console.log('[PaymentService] Midtrans transaction params:', JSON.stringify(transactionParams, null, 2));
 
-      // 5. Create transaction with Midtrans
-      console.log('🔄 [PaymentService] Creating Midtrans transaction...');
-      const snapTransaction = await snap.createTransaction(transactionParams);
+        console.log('[PaymentService] Creating Midtrans transaction...');
 
-      console.log('✅ [PaymentService] Midtrans transaction created successfully');
-      console.log('🎫 [PaymentService] Snap token:', snapTransaction.token.substring(0, 20) + '...');
-      console.log('🔗 [PaymentService] Redirect URL:', snapTransaction.redirect_url);
+        snapTransaction = await snap.createTransaction(transactionParams);
 
-      // 6. Save payment record to database
-      const paymentData = {
-        registration_id: registrationId,
-        order_id: orderId,
-        snap_token: snapTransaction.token,
-        redirect_url: snapTransaction.redirect_url,
-        gross_amount_idr: amountIdr,
-        currency: 'IDR',
-        transaction_status: 'pending',
-      };
+        console.log('[PaymentService] Midtrans transaction created successfully');
+        console.log('[PaymentService] Midtrans response:', snapTransaction);
 
-      const savedPayment = await this.paymentRepository.create(paymentData);
-      console.log('💾 [PaymentService] Payment record saved with ID:', savedPayment.id);
+        const midtransPaymentData = {
+          order_id: orderId,
+          snap_token: snapTransaction.token,
+          redirect_url: snapTransaction.redirect_url,
+          gross_amount_idr: amountIdr,
+          currency: 'IDR',
+          transaction_status: 'pending',
+        };
 
-      // 7. Update registration status to PENDING
-      await this.registrationRepository.updateStatus(registrationId, 'PENDING');
-      console.log('📊 [PaymentService] Registration status updated to PENDING');
+        const savedMidtransPayment = await this.paymentRepository.createMidtransPayment(midtransPaymentData);
+
+        console.log('[PaymentService] Midtrans payment record:', savedMidtransPayment);
+
+        const rylsPaymentData = {
+          type: 'MIDTRANS',
+          status: 'PENDING',
+          amount: amountIdr,
+          midtrans_id: savedMidtransPayment.id,
+        };
+
+        rylsPayment = await this.paymentRepository.createRylsPayment(rylsPaymentData);
+
+        console.log('[PaymentService] Ryls payment record:', rylsPayment);
+      }
+
+      if (type == 'PAYPAL') {
+        const rylsPaymentData = {
+          type: 'PAYPAL',
+          status: 'PAID',
+          amount: amountIdr,
+          payment_proof_id: registrationData.paymentProof,
+          paid_at: new Date(),
+        };
+
+        rylsPayment = await this.paymentRepository.createRylsPayment(rylsPaymentData);
+
+        console.log('[PaymentService] Ryls payment record:', rylsPayment);
+      }
 
       return {
-        token: snapTransaction.token,
-        redirect_url: snapTransaction.redirect_url,
-        orderId: orderId,
+        payment_id: rylsPayment.id,
+        order_id: orderId,
         amount: amountIdr,
         currency: 'IDR',
+        token: snapTransaction?.token || null,
+        redirect_url: snapTransaction?.redirect_url || null,
       };
     } catch (error) {
-      console.error('❌ [PaymentService] Error creating transaction:', error);
+      console.error('[PaymentService] Error creating transaction:', error);
       throw new Error(`Failed to create payment transaction: ${error.message}`);
     }
   }
@@ -147,7 +154,6 @@ export class RylsPaymentService {
     try {
       const { order_id, transaction_status, fraud_status, transaction_id, payment_type } = notificationData;
 
-      // 1. Verify notification authenticity
       const isValidSignature = this.verifyNotificationSignature(notificationData);
       if (!isValidSignature) {
         throw new Error('Invalid notification signature');
@@ -187,7 +193,7 @@ export class RylsPaymentService {
       const newRegistrationStatus = mapTransactionStatus(transaction_status);
       if (newRegistrationStatus !== 'UNKNOWN') {
         await this.registrationRepository.updateStatus(payment.registration_id, newRegistrationStatus);
-        console.log('📊 [PaymentService] Registration status updated to:', newRegistrationStatus);
+        console.log('📊 [PaymentService] Registration payment_status updated to:', newRegistrationStatus);
       }
 
       // 5. Handle fraud status for credit card payments

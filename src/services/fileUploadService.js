@@ -20,21 +20,11 @@ export class FileUploadService {
    */
   async processFileUpload(fileData, uploadType) {
     try {
-      // Validate upload type
-      const validTypes = ['ESSAY', 'HEADSHOT'];
+      const validTypes = ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF'];
       if (!validTypes.includes(uploadType)) {
         throw new Error(`Invalid upload type: ${uploadType}`);
       }
 
-      // Validate file data
-      if (!fileData || !fileData.originalname || !fileData.path) {
-        throw new Error('Invalid file data provided');
-      }
-
-      // Additional validation based on upload type
-      this.validateFileByType(fileData, uploadType);
-
-      // Create file upload record in database
       const fileUploadData = {
         originalName: fileData.originalname,
         path: fileData.path,
@@ -56,7 +46,6 @@ export class FileUploadService {
         fileUrl: this.generateFileUrl(savedFile.id),
       };
     } catch (error) {
-      // Clean up uploaded file if database save fails
       if (fileData && fileData.path) {
         await deleteFile(fileData.path);
       }
@@ -193,47 +182,13 @@ export class FileUploadService {
   }
 
   /**
-   * Validate file based on upload type
-   * @private
-   * @param {Object} fileData - File data
-   * @param {string} uploadType - Upload type
-   */
-  validateFileByType(fileData, uploadType) {
-    const maxSize = 10 * 1024 * 1024; // 10MB
-
-    // Check file size
-    if (fileData.size > maxSize) {
-      throw new Error('File size exceeds maximum limit of 10MB');
-    }
-
-    // Validate by upload type
-    switch (uploadType) {
-      case 'ESSAY':
-        if (fileData.mimetype !== 'application/pdf') {
-          throw new Error('Essay files must be PDF format');
-        }
-        break;
-
-      case 'HEADSHOT':
-        const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-        if (!allowedImageTypes.includes(fileData.mimetype)) {
-          throw new Error('Headshot files must be JPG, JPEG, or PNG format');
-        }
-        break;
-
-      default:
-        throw new Error(`Unsupported upload type: ${uploadType}`);
-    }
-  }
-
-  /**
    * Generate file URL
    * @private
    * @param {number} fileId - File ID
    * @returns {string} File URL
    */
   generateFileUrl(fileId) {
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
     return `${baseUrl}/api/uploads/${fileId}`;
   }
 

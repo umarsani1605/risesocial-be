@@ -11,11 +11,12 @@ export class RylsRegistrationRepository extends BaseRepository {
   }
 
   /**
-   * Create a new RYLS registration
+   * Create a new RYLS registration with optional payment linking
    * @param {Object} registrationData - Registration data
-   * @returns {Promise<Object>} Created registration record
+   * @param {number} [paymentId] - Optional payment ID to link to this registration
+   * @returns {Promise<Object>} Created registration record with included payment if linked
    */
-  async createRegistration(registrationData) {
+  async createRegistration(registrationData, paymentId = null) {
     try {
       const registration = await this.model.create({
         data: {
@@ -31,15 +32,27 @@ export class RylsRegistrationRepository extends BaseRepository {
           discover_source: registrationData.discoverSource,
           discover_other_text: registrationData.discoverOtherText || null,
           scholarship_type: registrationData.scholarshipType,
-          status: 'PENDING',
-          submission_id: this.generateSubmissionId(),
+          ryls_payment_id: parseInt(paymentId),
         },
       });
+
+      console.log('[RegistrationRepository] New registration created with ID:', registration.id);
+
+      const payment = await prisma.rylsPayment.update({
+        where: { id: parseInt(paymentId) },
+        data: { registration: { connect: { id: registration.id } } },
+      });
+
+      if (!payment) {
+        throw new Error('Failed to link payment to registration');
+      }
+
+      console.log(`   Linked to payment ID: ${paymentId}`);
 
       return registration;
     } catch (error) {
       console.error('Error creating RYLS registration:', error);
-      throw new Error('Failed to create registration');
+      throw new Error('Failed to process registration');
     }
   }
 
@@ -53,13 +66,14 @@ export class RylsRegistrationRepository extends BaseRepository {
     try {
       const submission = await prisma.rylsFullyFundedSubmission.create({
         data: {
-          registration_id: registrationId,
-          essay_topic: submissionData.essayTopic,
-          essay_file_id: submissionData.essayFileId,
+          essay_topic: submissionData.essayTopic || null,
           essay_description: submissionData.essayDescription || null,
+          registration: {
+            connect: { id: parseInt(registrationId) },
+          },
         },
       });
-
+      console.log('[RegistrationRepository] New fully funded submission created with ID:', submission.id);
       return submission;
     } catch (error) {
       console.error('Error creating fully funded submission:', error);
@@ -77,14 +91,14 @@ export class RylsRegistrationRepository extends BaseRepository {
     try {
       const submission = await prisma.rylsSelfFundedSubmission.create({
         data: {
-          registration_id: registrationId,
+          registration_id: parseInt(registrationId),
           passport_number: submissionData.passportNumber,
           need_visa: submissionData.needVisa === 'YES',
-          headshot_file_id: submissionData.headshotFileId,
+          headshot_file_id: parseInt(submissionData.headshotFile),
           read_policies: submissionData.readPolicies === 'YES',
         },
       });
-
+      console.log('[RegistrationRepository] New self funded submission created with ID:', submission.id);
       return submission;
     } catch (error) {
       console.error('Error creating self funded submission:', error);
@@ -93,32 +107,94 @@ export class RylsRegistrationRepository extends BaseRepository {
   }
 
   /**
-   * Find registration by ID with related data
+   * Get registration by ID with related data
    * @param {number} id - Registration ID
-   * @returns {Promise<Object|null>} Registration record with relations
+   * @returns {Promise<Object>} Registration record with related data
    */
-  async findByIdWithRelations(id) {
+  async getRegistrationById(id) {
     try {
-      const registration = await this.model.findUnique({
-        where: { id: parseInt(id) },
+      return await this.model.findUnique({
+        where: { id },
         include: {
-          fully_funded_submission: {
+          fully_funded_submission: true,
+          self_funded_submission: true,
+          payments: {
             include: {
-              essay_file: true,
+              midtrans: true,
+              payment_proof: true,
             },
-          },
-          self_funded_submission: {
-            include: {
-              headshot_file: true,
+            orderBy: {
+              created_at: 'desc',
             },
           },
         },
       });
-
-      return registration;
     } catch (error) {
-      console.error('Error finding registration by ID with relations:', error);
-      throw new Error('Failed to find registration');
+      console.error('Error getting registration by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get registration with payments
+   * @param {number} id - Registration ID
+   * @returns {Promise<Object>} Registration with payments
+   */
+  async getRegistrationWithPayments(id) {
+    try {
+      return await this.model.findUnique({
+        where: { id },
+        include: {
+          payments: {
+            include: {
+              midtrans: true,
+              payment_proof: true,
+            },
+            orderBy: {
+              created_at: 'desc',
+            },
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error getting registration with payments:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find registration by ID with payments and related data
+   * @param {number} id - Registration ID
+   * @param {Object} [options] - Additional options
+   * @param {boolean} [options.includePayments=true] - Whether to include payment details
+   * @returns {Promise<Object|null>} Registration record with requested relations
+   */
+  async findByIdWithPayments(id, { includePayments = true } = {}) {
+    try {
+      const include = {
+        fully_funded_submission: true,
+        self_funded_submission: true,
+      };
+
+      if (includePayments) {
+        include.payments = {
+          include: {
+            midtrans: true,
+            payment_proof: true,
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
+        };
+      }
+
+      return await this.model.findUnique({
+        where: { id: parseInt(id) },
+        include,
+      });
+    } catch (error) {
+      console.error('Error finding registration by ID with payments:', error);
+      throw new Error('Failed to find registration with payments');
     }
   }
 
@@ -133,6 +209,17 @@ export class RylsRegistrationRepository extends BaseRepository {
         where: {
           email: email.toLowerCase(),
         },
+        include: {
+          payments: {
+            include: {
+              midtrans: true,
+              payment_proof: true,
+            },
+            orderBy: {
+              created_at: 'desc',
+            },
+          },
+        },
       });
 
       return registration;
@@ -143,34 +230,31 @@ export class RylsRegistrationRepository extends BaseRepository {
   }
 
   /**
-   * Find registration by submission ID
-   * @param {string} submissionId - Submission ID
-   * @returns {Promise<Object|null>} Registration record
+   * Find registration by ID
+   * @param {number} id - Registration ID
+   * @returns {Promise<Object|null>} Registration record with relations
    */
-  async findBySubmissionId(submissionId) {
+  async findById(id) {
     try {
-      const registration = await this.model.findUnique({
-        where: {
-          submission_id: submissionId,
-        },
+      return await this.model.findUnique({
+        where: { id },
         include: {
-          fully_funded_submission: {
+          fully_funded_submission: true,
+          self_funded_submission: true,
+          payments: {
             include: {
-              essay_file: true,
+              midtrans: true,
+              payment_proof: true,
             },
-          },
-          self_funded_submission: {
-            include: {
-              headshot_file: true,
+            orderBy: {
+              created_at: 'desc',
             },
           },
         },
       });
-
-      return registration;
     } catch (error) {
-      console.error('Error finding registration by submission ID:', error);
-      throw new Error('Failed to find registration by submission ID');
+      console.error('Error finding registration by ID:', error);
+      throw new Error('Failed to find registration by ID');
     }
   }
 
@@ -181,24 +265,24 @@ export class RylsRegistrationRepository extends BaseRepository {
    */
   async getRegistrations(options = {}) {
     try {
-      console.log('🔵 [RylsRepository] getRegistrations called');
-      console.log('📝 [RylsRepository] Options received:', JSON.stringify(options, null, 2));
+      console.log('[RylsRepository] getRegistrations called');
+      console.log('[RylsRepository] Options received:', JSON.stringify(options, null, 2));
 
       const { page = 1, limit = 10, status, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search } = options;
 
       const skip = (page - 1) * limit;
       const whereClause = {};
 
-      // Filter by status
+      // Filter by status if provided
       if (status) {
         whereClause.status = status;
-        console.log('🔍 [RylsRepository] Added status filter:', status);
+        console.log('[RylsRepository] Added status filter:', status);
       }
 
       // Filter by scholarship type
       if (scholarshipType) {
         whereClause.scholarship_type = scholarshipType;
-        console.log('🔍 [RylsRepository] Added scholarshipType filter:', scholarshipType);
+        console.log('[RylsRepository] Added scholarshipType filter:', scholarshipType);
       }
 
       // Search by name or email
@@ -217,13 +301,13 @@ export class RylsRegistrationRepository extends BaseRepository {
             },
           },
         ];
-        console.log('🔍 [RylsRepository] Added search filter:', search);
+        console.log('[RylsRepository] Added search filter:', search);
       }
 
-      console.log('🔧 [RylsRepository] Final whereClause:', JSON.stringify(whereClause, null, 2));
-      console.log('📊 [RylsRepository] Query params:', { skip, limit, sortBy, sortOrder });
+      console.log('[RylsRepository] Final whereClause:', JSON.stringify(whereClause, null, 2));
+      console.log('[RylsRepository] Query params:', { skip, limit, sortBy, sortOrder });
 
-      console.log('🔄 [RylsRepository] Executing Prisma queries...');
+      console.log('[RylsRepository] Executing Prisma queries...');
       const [registrations, total] = await Promise.all([
         this.model.findMany({
           where: whereClause,
@@ -235,13 +319,18 @@ export class RylsRegistrationRepository extends BaseRepository {
           include: {
             fully_funded_submission: true,
             self_funded_submission: true,
+            payments: {
+              include: {
+                midtrans: true,
+              },
+            },
           },
         }),
         this.model.count({ where: whereClause }),
       ]);
 
-      console.log('✅ [RylsRepository] Prisma queries completed');
-      console.log('📊 [RylsRepository] Query results:', {
+      console.log('[RylsRepository] Prisma queries completed');
+      console.log('[RylsRepository] Query results:', {
         registrationsFound: registrations.length,
         totalCount: total,
         firstRegistrationId: registrations[0]?.id || 'none',
@@ -257,15 +346,15 @@ export class RylsRegistrationRepository extends BaseRepository {
         },
       };
 
-      console.log('🎯 [RylsRepository] Final result prepared:', {
+      console.log('[RylsRepository] Final result prepared:', {
         registrationsCount: result.registrations.length,
         pagination: result.pagination,
       });
 
       return result;
     } catch (error) {
-      console.error('❌ [RylsRepository] Error getting registrations:', error);
-      console.error('❌ [RylsRepository] Error details:', {
+      console.error('[RylsRepository] Error getting registrations:', error);
+      console.error('[RylsRepository] Error details:', {
         message: error.message,
         code: error.code,
         stack: error.stack,
@@ -284,7 +373,7 @@ export class RylsRegistrationRepository extends BaseRepository {
     try {
       const updatedRegistration = await this.model.update({
         where: { id: parseInt(id) },
-        data: { status },
+        data: { payment_status: status },
       });
 
       return updatedRegistration;
@@ -303,8 +392,9 @@ export class RylsRegistrationRepository extends BaseRepository {
       const [
         totalRegistrations,
         pendingRegistrations,
-        approvedRegistrations,
-        rejectedRegistrations,
+        paidRegistrations,
+        failedRegistrations,
+        expiredRegistrations,
         fullyFundedCount,
         selfFundedCount,
         recentRegistrations,
@@ -314,17 +404,22 @@ export class RylsRegistrationRepository extends BaseRepository {
 
         // Pending registrations
         this.model.count({
-          where: { status: 'PENDING' },
+          where: { payment_status: 'PENDING' },
         }),
 
-        // Approved registrations
+        // Paid registrations
         this.model.count({
-          where: { status: 'APPROVED' },
+          where: { payment_status: 'PAID' },
         }),
 
-        // Rejected registrations
+        // Failed registrations
         this.model.count({
-          where: { status: 'REJECTED' },
+          where: { payment_status: 'FAILED' },
+        }),
+
+        // Expired registrations
+        this.model.count({
+          where: { payment_status: 'EXPIRED' },
         }),
 
         // Fully funded registrations
@@ -351,8 +446,9 @@ export class RylsRegistrationRepository extends BaseRepository {
         totalRegistrations,
         statusBreakdown: {
           pending: pendingRegistrations,
-          approved: approvedRegistrations,
-          rejected: rejectedRegistrations,
+          paid: paidRegistrations,
+          failed: failedRegistrations,
+          expired: expiredRegistrations,
         },
         scholarshipBreakdown: {
           fullyFunded: fullyFundedCount,
@@ -385,7 +481,7 @@ export class RylsRegistrationRepository extends BaseRepository {
       };
 
       if (status) {
-        whereClause.status = status;
+        whereClause.payment_status = status;
       }
 
       if (scholarshipType) {

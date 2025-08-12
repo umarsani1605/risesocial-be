@@ -12,20 +12,14 @@ import midtrans from 'midtrans-client';
  * - MIDTRANS_CLIENT_KEY: Production client key
  */
 
-const isProduction = process.env.MIDTRANS_MODE === 'production';
+const mode = process.env.MIDTRANS_MODE;
 
-// Get appropriate keys based on environment
-const serverKey = isProduction ? process.env.MIDTRANS_SERVER_KEY : process.env.MIDTRANS_SANDBOX_SERVER_KEY;
+const serverKey = mode === 'PRODUCTION' ? process.env.MIDTRANS_SERVER_KEY : process.env.MIDTRANS_SANDBOX_SERVER_KEY;
 
-const clientKey = isProduction ? process.env.MIDTRANS_CLIENT_KEY : process.env.MIDTRANS_SANDBOX_CLIENT_KEY;
+console.log('🔧 [MidtransClient] Server Key:', serverKey);
 
-// Validate required environment variables
 if (!serverKey) {
-  throw new Error(`Missing ${isProduction ? 'MIDTRANS_SERVER_KEY' : 'MIDTRANS_SANDBOX_SERVER_KEY'} environment variable`);
-}
-
-if (!clientKey) {
-  throw new Error(`Missing ${isProduction ? 'MIDTRANS_CLIENT_KEY' : 'MIDTRANS_SANDBOX_CLIENT_KEY'} environment variable`);
+  throw new Error(`Missing ${mode === 'PRODUCTION' ? 'MIDTRANS_SERVER_KEY' : 'MIDTRANS_SANDBOX_SERVER_KEY'} environment variable`);
 }
 
 /**
@@ -33,26 +27,9 @@ if (!clientKey) {
  * Used for server-side transaction creation
  */
 export const snap = new midtrans.Snap({
-  isProduction,
+  mode,
   serverKey,
-  clientKey,
 });
-
-/**
- * Midtrans Core API instance for transaction status queries
- * Used for webhook verification and status polling
- */
-export const coreApi = new midtrans.CoreApi({
-  isProduction,
-  serverKey,
-  clientKey,
-});
-
-/**
- * Get client key for frontend usage
- * @returns {string} Client key for current environment
- */
-export const getClientKey = () => clientKey;
 
 /**
  * Get server key for webhook verification
@@ -64,20 +41,18 @@ export const getServerKey = () => serverKey;
  * Get current environment mode
  * @returns {boolean} True if production, false if sandbox
  */
-export const isProductionMode = () => isProduction;
+export const isProductionMode = () => mode === 'PRODUCTION';
 
 /**
  * Get Midtrans base URL for current environment
  * @returns {string} Base URL for API calls
  */
 export const getBaseUrl = () => {
-  return isProduction
+  return mode === 'PRODUCTION'
     ? process.env.MIDTRANS_PRODUCTION_URL || 'https://api.midtrans.com'
     : process.env.MIDTRANS_SANDBOX_URL || 'https://api.sandbox.midtrans.com';
 };
 
-// Log configuration on startup (without exposing sensitive keys)
-console.log(`🔧 [MidtransClient] Initialized in ${isProduction ? 'PRODUCTION' : 'SANDBOX'} mode`);
+console.log(`🔧 [MidtransClient] Initialized in ${mode} mode`);
 console.log(`🔗 [MidtransClient] Base URL: ${getBaseUrl()}`);
 console.log(`🔑 [MidtransClient] Server Key: ${serverKey.substring(0, 10)}...`);
-console.log(`🔑 [MidtransClient] Client Key: ${clientKey.substring(0, 10)}...`);

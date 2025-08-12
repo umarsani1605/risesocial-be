@@ -1,87 +1,64 @@
-/**
- * Currency Converter Utility
- * Handles USD to IDR conversion with fixed rate
- * Future: Can be extended to support dynamic rates
- */
+const BASE_URL = process.env.API_PLUGIN_URL;
+const IS_DEV = process.env.NODE_ENV !== 'production';
 
-/**
- * Fixed exchange rate USD to IDR
- * @constant {number}
- */
-const FIXED_USD_TO_IDR_RATE = 15000;
+if (!BASE_URL) {
+  // Fail fast with clear logging
+  console.error('❌ [CurrencyConverter] Missing env API_PLUGIN_URL');
+  throw new Error('API_PLUGIN_URL is not set');
+}
 
-/**
- * Convert USD amount to IDR using fixed rate
- * @param {number} usdAmount - Amount in USD
- * @returns {number} Amount in IDR (integer)
- */
-export const convertUsdToIdr = (usdAmount) => {
-  if (typeof usdAmount !== 'number' || usdAmount < 0) {
-    throw new Error('USD amount must be a positive number');
+if (IS_DEV) {
+  console.log('🌐 [CurrencyConverter] BASE_URL configured');
+}
+
+export const convertUsdToIdr = async (usdAmount) => {
+  const startedAt = Date.now();
+  const url = `${BASE_URL}/convert?amount=${usdAmount}&from=USD&to=IDR`;
+
+  try {
+    console.log('🔵 [CurrencyConverter] Converting USD → IDR');
+    console.log('🔹 [CurrencyConverter] USD amount:', usdAmount);
+    console.log('🔗 [CurrencyConverter] Request URL:', url);
+
+    const response = await fetch(url, { method: 'GET' });
+    const status = response.status;
+    console.log('📥 [CurrencyConverter] HTTP status:', status);
+
+    const rawText = await response.text();
+    // Truncate raw response to avoid noisy logs
+    console.log('🧾 [CurrencyConverter] Raw response:', rawText.slice(0, 500));
+
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error('❌ [CurrencyConverter] JSON parse error:', parseErr.message);
+      throw new Error(`Invalid JSON from currency API: ${parseErr.message}`);
+    }
+
+    if (!response.ok) {
+      console.error('❌ [CurrencyConverter] Non-OK response body:', parsed);
+      throw new Error(`Currency API error: ${status}`);
+    }
+
+    const durationMs = Date.now() - startedAt;
+    console.log('✅ [CurrencyConverter] Conversion success');
+    console.log('💵 [CurrencyConverter] Rate:', parsed.rate);
+    console.log('💶 [CurrencyConverter] Result (IDR):', parsed.result);
+    console.log('⏱️ [CurrencyConverter] Duration:', `${durationMs}ms`);
+
+    return {
+      success: true,
+      amount: usdAmount,
+      result: parsed.result,
+      rate: parsed.rate,
+    };
+  } catch (error) {
+    console.error('❌ [CurrencyConverter] Conversion error:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      stack: error.stack,
+    };
   }
-
-  const idrAmount = Math.round(usdAmount * FIXED_USD_TO_IDR_RATE);
-
-  console.log(
-    `💱 [CurrencyConverter] ${usdAmount} USD → ${idrAmount.toLocaleString('id-ID')} IDR (rate: ${FIXED_USD_TO_IDR_RATE.toLocaleString('id-ID')})`
-  );
-
-  return idrAmount;
 };
-
-/**
- * Convert IDR amount to USD using fixed rate
- * @param {number} idrAmount - Amount in IDR
- * @returns {number} Amount in USD (rounded to 2 decimals)
- */
-export const convertIdrToUsd = (idrAmount) => {
-  if (typeof idrAmount !== 'number' || idrAmount < 0) {
-    throw new Error('IDR amount must be a positive number');
-  }
-
-  const usdAmount = Math.round((idrAmount / FIXED_USD_TO_IDR_RATE) * 100) / 100;
-
-  console.log(
-    `💱 [CurrencyConverter] ${idrAmount.toLocaleString('id-ID')} IDR → ${usdAmount} USD (rate: ${FIXED_USD_TO_IDR_RATE.toLocaleString('id-ID')})`
-  );
-
-  return usdAmount;
-};
-
-/**
- * Get current exchange rate
- * @returns {number} Current USD to IDR rate
- */
-export const getCurrentRate = () => FIXED_USD_TO_IDR_RATE;
-
-/**
- * Format IDR amount for display
- * @param {number} idrAmount - Amount in IDR
- * @returns {string} Formatted IDR string
- */
-export const formatIdr = (idrAmount) => {
-  return `Rp ${idrAmount.toLocaleString('id-ID')}`;
-};
-
-/**
- * Format USD amount for display
- * @param {number} usdAmount - Amount in USD
- * @returns {string} Formatted USD string
- */
-export const formatUsd = (usdAmount) => {
-  return `$${usdAmount.toFixed(2)}`;
-};
-
-/**
- * Validate Midtrans minimum amount (IDR 1,000)
- * @param {number} idrAmount - Amount in IDR
- * @returns {boolean} True if valid, false otherwise
- */
-export const isValidMidtransAmount = (idrAmount) => {
-  const MIDTRANS_MIN_AMOUNT = 1000; // IDR 1,000
-  return idrAmount >= MIDTRANS_MIN_AMOUNT;
-};
-
-// Log current configuration
-console.log(`💱 [CurrencyConverter] Fixed rate: 1 USD = ${FIXED_USD_TO_IDR_RATE.toLocaleString('id-ID')} IDR`);
-console.log(`💱 [CurrencyConverter] Midtrans minimum: ${formatIdr(1000)}`);

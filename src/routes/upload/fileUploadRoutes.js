@@ -1,6 +1,6 @@
 import { FileUploadController } from '../../controllers/upload/fileUploadController.js';
 import { fileUploadSchemas } from '../../schemas/fileUploadSchemas.js';
-import { uploadEssay, uploadHeadshot } from '../../middleware/fileUploadMiddleware.js';
+import { uploadEssay, uploadHeadshot, uploadPaymentProof } from '../../middleware/fileUploadMiddleware.js';
 import { authMiddleware } from '../../middleware/auth.js';
 
 /**
@@ -38,11 +38,22 @@ export async function fileUploadRoutes(fastify) {
   });
 
   /**
+   * Upload headshot file (Images only)
+   * POST /api/uploads/headshot
+   */
+  fastify.post('/payment-proof', {
+    schema: fileUploadSchemas.uploadPaymentProof,
+    preHandler: [uploadPaymentProof],
+    handler: async (request, reply) => {
+      return fileUploadController.uploadPaymentProof(request, reply);
+    },
+  });
+
+  /**
    * Download/view file by ID
    * GET /api/uploads/:id
    */
   fastify.get('/:id', {
-    schema: fileUploadSchemas.downloadFile,
     handler: async (request, reply) => {
       return fileUploadController.downloadFile(request, reply);
     },

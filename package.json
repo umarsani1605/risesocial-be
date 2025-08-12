@@ -13,7 +13,9 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:reset": "prisma migrate reset",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "fastify",
@@ -39,7 +41,8 @@
     "prisma": "^6.10.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "vitest": "^3.2.4"
   },
   "prisma": {
     "seed": "node prisma/seeds/index.js"

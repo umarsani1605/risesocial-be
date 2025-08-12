@@ -269,11 +269,14 @@ export const fileUploadSchemas = {
     description: 'Upload an image file for headshot',
     tags: ['File Upload'],
     consumes: ['multipart/form-data'],
-    response: {
-      201: fileUploadResponseSchema,
-      400: errorResponseSchema,
-      500: errorResponseSchema,
-    },
+  },
+
+  // POST /api/uploads/payment-proof
+  uploadPaymentProof: {
+    summary: 'Upload payment proof file',
+    description: 'Upload an image file for payment proof',
+    tags: ['File Upload'],
+    consumes: ['multipart/form-data'],
   },
 
   // GET /api/uploads/:id

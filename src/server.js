@@ -173,8 +173,8 @@ fastify.register(testimonialsRoutes, { prefix: '/api/testimonials' });
 // Daftarkan fileUploadRoutes dengan prefix /api/uploads
 fastify.register(fileUploadRoutes, { prefix: '/api/uploads' });
 
-// Daftarkan rylsRegistrationRoutes dengan prefix /api/registrations
-fastify.register(rylsRegistrationRoutes, { prefix: '/api/registrations' });
+// Daftarkan rylsRegistrationRoutes dengan prefix /api/ryls/registrations
+fastify.register(rylsRegistrationRoutes, { prefix: '/api/ryls/registrations' });
 
 // Daftarkan rylsPaymentRoutes dengan prefix /api/payments
 fastify.register(rylsPaymentRoutes, { prefix: '/api/payments' });

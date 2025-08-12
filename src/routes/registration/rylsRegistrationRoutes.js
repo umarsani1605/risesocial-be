@@ -10,11 +10,22 @@ export async function rylsRegistrationRoutes(fastify) {
   const registrationController = new RylsRegistrationController();
 
   /**
+   * Create registration
+   * POST /api/registrations
+   */
+  fastify.post('/', {
+    schema: rylsRegistrationSchemas.createRegistration,
+    handler: async (request, reply) => {
+      return registrationController.createRegistration(request, reply);
+    },
+  });
+
+  /**
    * Submit fully funded registration
    * POST /api/registrations/fully-funded
    */
   fastify.post('/fully-funded', {
-    // schema: rylsRegistrationSchemas.submitFullyFundedRegistration, // Temporarily disabled for debugging
+    schema: rylsRegistrationSchemas.submitFullyFundedRegistration,
     handler: async (request, reply) => {
       return registrationController.submitFullyFundedRegistration(request, reply);
     },
@@ -25,7 +36,7 @@ export async function rylsRegistrationRoutes(fastify) {
    * POST /api/registrations/self-funded
    */
   fastify.post('/self-funded', {
-    // schema: rylsRegistrationSchemas.submitSelfFundedRegistration,
+    schema: rylsRegistrationSchemas.submitSelfFundedRegistration,
     handler: async (request, reply) => {
       return registrationController.submitSelfFundedRegistration(request, reply);
     },
@@ -39,17 +50,6 @@ export async function rylsRegistrationRoutes(fastify) {
     schema: rylsRegistrationSchemas.getRegistrationBySubmissionId,
     handler: async (request, reply) => {
       return registrationController.getRegistrationBySubmissionId(request, reply);
-    },
-  });
-
-  /**
-   * Check if email exists
-   * GET /api/registrations/check-email/:email
-   */
-  fastify.get('/check-email/:email', {
-    schema: rylsRegistrationSchemas.checkEmailExists,
-    handler: async (request, reply) => {
-      return registrationController.checkEmailExists(request, reply);
     },
   });
 
@@ -112,14 +112,14 @@ export async function rylsRegistrationRoutes(fastify) {
     // schema: rylsRegistrationSchemas.getRegistrations, // Temporarily disabled for debugging
     // preHandler: [authMiddleware], // Add admin role check
     handler: async (request, reply) => {
-      console.log('🔵 [RylsRoutes] GET /api/registrations called');
-      console.log('📝 [RylsRoutes] Request query params:', request.query);
+      console.log('[RylsRoutes] GET /api/registrations called');
+      console.log('[RylsRoutes] Request query params:', request.query);
       try {
         const result = await registrationController.getRegistrations(request, reply);
-        console.log('✅ [RylsRoutes] Controller completed successfully');
+        console.log('[RylsRoutes] Controller completed successfully');
         return result;
       } catch (error) {
-        console.error('❌ [RylsRoutes] Route handler error:', error);
+        console.error('[RylsRoutes] Route handler error:', error);
         throw error;
       }
     },

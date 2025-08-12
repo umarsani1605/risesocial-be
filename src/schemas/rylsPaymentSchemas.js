@@ -1,7 +1,6 @@
 /**
  * RYLS Payment Schemas for Fastify Validation
  * Defines request/response schemas for payment endpoints
- * Follows the same pattern as rylsRegistrationSchemas.js
  */
 
 /**
@@ -36,17 +35,6 @@ const createSuccessResponseSchema = (dataSchema) => ({
 /**
  * Payment-specific schemas
  */
-const paymentTransactionDataSchema = {
-  type: 'object',
-  required: ['token', 'redirect_url', 'orderId', 'amount', 'currency'],
-  properties: {
-    token: { type: 'string' },
-    redirect_url: { type: 'string', format: 'uri' },
-    orderId: { type: 'string' },
-    amount: { type: 'number' },
-    currency: { type: 'string' },
-  },
-};
 
 const paymentStatusDataSchema = {
   type: 'object',
@@ -89,18 +77,6 @@ const webhookProcessingDataSchema = {
     registrationStatus: { type: 'string' },
     paymentId: { type: 'number' },
   },
-};
-
-/**
- * Request schemas
- */
-export const createTransactionRequestSchema = {
-  type: 'object',
-  required: ['registrationId'],
-  properties: {
-    registrationId: { type: 'number', minimum: 1 },
-  },
-  additionalProperties: false,
 };
 
 export const webhookNotificationRequestSchema = {
@@ -157,7 +133,6 @@ export const paymentStatisticsRequestSchema = {
 /**
  * Response schemas
  */
-export const createTransactionResponseSchema = createSuccessResponseSchema(paymentTransactionDataSchema);
 
 export const paymentStatusResponseSchema = createSuccessResponseSchema(paymentStatusDataSchema);
 
@@ -209,12 +184,51 @@ export const paymentStatusQuerySchema = {
  * Complete route schemas for Fastify
  */
 export const createTransactionSchema = {
-  body: createTransactionRequestSchema,
-  response: {
-    200: createTransactionResponseSchema,
-    400: paymentErrorResponseSchema,
-    404: paymentErrorResponseSchema,
-    500: paymentErrorResponseSchema,
+  body: {
+    type: 'object',
+    required: ['type', 'data'],
+    properties: {
+      type: {
+        type: 'string',
+        enum: ['PAYPAL', 'MIDTRANS'],
+        description: 'The type of payment method being used',
+      },
+      data: {
+        type: 'object',
+        required: [
+          'fullName',
+          'email',
+          'residence',
+          'nationality',
+          'whatsapp',
+          'institution',
+          'dateOfBirth',
+          'gender',
+          'discoverSource',
+          'scholarshipType',
+        ],
+        properties: {
+          fullName: { type: 'string', minLength: 1 },
+          email: { type: 'string', format: 'email' },
+          residence: { type: 'string', minLength: 1 },
+          nationality: { type: 'string', minLength: 1 },
+          secondNationality: { type: 'string' },
+          whatsapp: { type: 'string', minLength: 1 },
+          institution: { type: 'string', minLength: 1 },
+          dateOfBirth: { type: 'string', format: 'date' },
+          gender: { type: 'string', enum: ['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY'] },
+          discoverSource: { type: 'string', enum: ['RISE_INSTAGRAM', 'OTHER_INSTAGRAM', 'FRIENDS', 'OTHER'] },
+          discoverOtherText: { type: 'string' },
+          scholarshipType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'] },
+          paymentProof: {
+            type: 'string',
+            description: 'Required for PAYPAL payments',
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+    additionalProperties: false,
   },
 };
 

@@ -10,7 +10,6 @@ const __dirname = path.dirname(__filename);
  * Uses @fastify/multipart plugin instead of multer
  */
 
-// Ensure upload directories exist
 const uploadsBaseDir = path.join(__dirname, '../../uploads');
 const documentsDir = path.join(uploadsBaseDir, 'documents');
 const imagesDir = path.join(uploadsBaseDir, 'images');
@@ -27,37 +26,44 @@ fs.ensureDirSync(imagesDir);
  * @returns {Object} Processed file info
  */
 const processUploadedFile = async (file, allowedTypes, maxSize, uploadType) => {
+  console.log('[FileUploadMiddleware] Processing file upload');
+  console.log(`[FileUploadMiddleware] Original filename: ${file.filename}, Type: ${file.mimetype}, Size: ${file.file?.bytesRead || 'unknown'} bytes`);
+
   if (!file) {
+    console.error('[FileUploadMiddleware] No file uploaded');
     throw new Error('No file uploaded');
   }
 
-  // Validate file type
   if (!allowedTypes.includes(file.mimetype)) {
+    console.error(`[FileUploadMiddleware] Invalid file type: ${file.mimetype}. Allowed: ${allowedTypes.join(', ')}`);
     throw new Error(`Invalid file type. Allowed types: ${allowedTypes.join(', ')}`);
   }
 
-  // Determine upload directory based on type
-  const targetDir = uploadType === 'ESSAY' ? documentsDir : imagesDir;
-  const relativeFolderName = uploadType === 'ESSAY' ? 'documents' : 'images';
+  const isPdf = file.mimetype === 'application/pdf';
+  const targetDir = isPdf ? documentsDir : imagesDir;
+  const relativeFolderName = isPdf ? 'documents' : 'images';
+  console.log(`[FileUploadMiddleware] File type: ${isPdf ? 'PDF' : 'Image'}, Target directory: ${targetDir}`);
 
-  // Generate unique filename
   const timestamp = Date.now();
-  const random = Math.round(Math.random() * 1e9);
   const extension = path.extname(file.filename);
   const basename = path.basename(file.filename, extension);
-  const uniqueFilename = `${timestamp}-${random}-${basename}${extension}`;
-
+  const uniqueFilename = `${timestamp}-${basename}${extension}`;
   const filePath = path.join(targetDir, uniqueFilename);
 
-  // Save file to disk
-  const buffer = await file.toBuffer();
+  console.log(`[FileUploadMiddleware] Generated unique filename: ${uniqueFilename}`);
 
-  // Validate file size
+  const buffer = await file.toBuffer();
+  console.log(`[FileUploadMiddleware] File buffer size: ${buffer.length} bytes`);
+
   if (buffer.length > maxSize) {
-    throw new Error(`File too large. Maximum size: ${Math.round(maxSize / (1024 * 1024))}MB`);
+    const errorMsg = `File too large: ${Math.round(buffer.length / (1024 * 1024))}MB. Maximum size: ${Math.round(maxSize / (1024 * 1024))}MB`;
+    console.error(`[FileUploadMiddleware] ${errorMsg}`);
+    throw new Error(errorMsg);
   }
 
+  console.log(`[FileUploadMiddleware] Writing file to: ${filePath}`);
   await fs.writeFile(filePath, buffer);
+  console.log('[FileUploadMiddleware] File successfully written to disk');
 
   return {
     filename: uniqueFilename,
@@ -83,7 +89,6 @@ export const uploadEssay = async (request, reply) => {
 
     const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'ESSAY');
 
-    // Attach processed file to request for controller
     request.uploadedFile = processedFile;
   } catch (error) {
     reply.status(400).send({
@@ -107,7 +112,29 @@ export const uploadHeadshot = async (request, reply) => {
 
     const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'HEADSHOT');
 
-    // Attach processed file to request for controller
+    request.uploadedFile = processedFile;
+  } catch (error) {
+    reply.status(400).send({
+      success: false,
+      message: error.message || 'File upload failed',
+    });
+  }
+};
+
+/**
+ * Payment proof upload handler (Images only)
+ * @param {Object} request - Fastify request
+ * @param {Object} reply - Fastify reply
+ */
+export const uploadPaymentProof = async (request, reply) => {
+  try {
+    const file = await request.file();
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 10 * 1024 * 1024; // 10MB
+
+    const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'PAYMENT_PROOF');
+
     request.uploadedFile = processedFile;
   } catch (error) {
     reply.status(400).send({

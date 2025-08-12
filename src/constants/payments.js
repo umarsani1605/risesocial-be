@@ -10,17 +10,8 @@ import { convertUsdToIdr } from '../integrations/currencyConverter.js';
  * @constant {Object}
  */
 export const RYLS_PAYMENT_AMOUNTS_USD = {
-  FULLY_FUNDED: 15, // $15 USD
-  SELF_FUNDED: 600, // $600 USD
-};
-
-/**
- * RYLS Payment Amounts in IDR (converted from USD)
- * @constant {Object}
- */
-export const RYLS_PAYMENT_AMOUNTS_IDR = {
-  FULLY_FUNDED: convertUsdToIdr(RYLS_PAYMENT_AMOUNTS_USD.FULLY_FUNDED), // 225,000 IDR
-  SELF_FUNDED: convertUsdToIdr(RYLS_PAYMENT_AMOUNTS_USD.SELF_FUNDED), // 9,000,000 IDR
+  FULLY_FUNDED: 15,
+  SELF_FUNDED: 750,
 };
 
 /**
@@ -29,7 +20,7 @@ export const RYLS_PAYMENT_AMOUNTS_IDR = {
  */
 export const ORDER_ID_CONFIG = {
   PREFIX: 'RYLS',
-  PADDING: 4, // RYLS0001, RYLS0002, etc.
+  PADDING: 2, // RYLS0001, RYLS0002, etc.
   START_NUMBER: 1, // Start from 1
 };
 
@@ -84,12 +75,12 @@ export const FRAUD_STATUS_MAPPING = {
 export const PAYMENT_ITEM_TEMPLATES = {
   FULLY_FUNDED: {
     id: 'ryls-fully-funded-fee',
-    name: 'RYLS Fully Funded Registration Fee',
+    name: 'Rise Young Leaders Scholarship Fully Funded',
     category: 'registration',
   },
   SELF_FUNDED: {
     id: 'ryls-self-funded-fee',
-    name: 'RYLS Self Funded Program Fee',
+    name: 'Rise Young Leaders Scholarship Self Funded',
     category: 'registration',
   },
 };
@@ -121,24 +112,14 @@ export const VALIDATION_RULES = {
  * @returns {string} Formatted order ID (e.g., RYLS0001)
  */
 export const generateOrderId = (sequenceNumber) => {
-  const paddedNumber = sequenceNumber.toString().padStart(ORDER_ID_CONFIG.PADDING, '0');
-  return `${ORDER_ID_CONFIG.PREFIX}${paddedNumber}`;
-};
+  const randomStr = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+    .map((b) => b.toString(36).toUpperCase())
+    .join('')
+    .replace(/[^A-Z]/g, '')
+    .substring(0, 8);
 
-/**
- * Get payment amount in IDR based on scholarship type
- * @param {string} scholarshipType - FULLY_FUNDED or SELF_FUNDED
- * @returns {number} Amount in IDR
- */
-export const getPaymentAmountIdr = (scholarshipType) => {
-  switch (scholarshipType) {
-    case 'FULLY_FUNDED':
-      return RYLS_PAYMENT_AMOUNTS_IDR.FULLY_FUNDED;
-    case 'SELF_FUNDED':
-      return RYLS_PAYMENT_AMOUNTS_IDR.SELF_FUNDED;
-    default:
-      throw new Error(`Invalid scholarship type: ${scholarshipType}`);
-  }
+  const paddedNumber = sequenceNumber.toString().padStart(ORDER_ID_CONFIG.PADDING, '0');
+  return ORDER_ID_CONFIG.PREFIX + paddedNumber + randomStr;
 };
 
 /**
@@ -182,6 +163,22 @@ export const mapTransactionStatus = (transactionStatus) => {
   return PAYMENT_STATUS_MAPPING[transactionStatus] || 'UNKNOWN';
 };
 
+// New async helper to get IDR amount using currency API
+export const getPaymentAmountIdr = async (scholarshipType) => {
+  console.log('[Payments] getPaymentAmountIdr called');
+  console.log('[Payments] Scholarship type:', scholarshipType);
+  const usd = getPaymentAmountUsd(scholarshipType);
+  console.log('[Payments] USD amount:', usd);
+  const conv = await convertUsdToIdr(usd);
+  if (!conv?.success) {
+    console.error('[Payments] Currency conversion failed:', conv?.error);
+    throw new Error(conv?.error || 'Currency conversion failed');
+  }
+  console.log('[Payments] Conversion rate:', conv.rate);
+  console.log('[Payments] Conversion result (IDR):', conv.result);
+  return Math.round(conv.result);
+};
+
 /**
  * Map Midtrans fraud status to payment decision
  * @param {string} fraudStatus - Midtrans fraud_status
@@ -192,9 +189,9 @@ export const mapFraudStatus = (fraudStatus) => {
 };
 
 // Log configuration on startup
-console.log(`💰 [PaymentConstants] RYLS Payment Amounts:`);
-console.log(`   💰 Fully Funded: $${RYLS_PAYMENT_AMOUNTS_USD.FULLY_FUNDED} (${RYLS_PAYMENT_AMOUNTS_IDR.FULLY_FUNDED.toLocaleString('id-ID')} IDR)`);
-console.log(`   💰 Self Funded: $${RYLS_PAYMENT_AMOUNTS_USD.SELF_FUNDED} (${RYLS_PAYMENT_AMOUNTS_IDR.SELF_FUNDED.toLocaleString('id-ID')} IDR)`);
+console.log(`💰 [PaymentConstants] RYLS Payment Amounts (USD):`);
+console.log(`   💰 Fully Funded: $${RYLS_PAYMENT_AMOUNTS_USD.FULLY_FUNDED}`);
+console.log(`   💰 Self Funded: $${RYLS_PAYMENT_AMOUNTS_USD.SELF_FUNDED}`);
 console.log(
   `🔢 [PaymentConstants] Order ID Format: ${ORDER_ID_CONFIG.PREFIX}${ORDER_ID_CONFIG.START_NUMBER.toString().padStart(ORDER_ID_CONFIG.PADDING, '0')}`
 );
