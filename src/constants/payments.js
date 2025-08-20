@@ -164,12 +164,12 @@ export const mapTransactionStatus = (transactionStatus) => {
 };
 
 // New async helper to get IDR amount using currency API
-export const getPaymentAmountIdr = async (scholarshipType) => {
+export const getPaymentAmountIdr = async (scholarshipType, fastify) => {
   console.log('[Payments] getPaymentAmountIdr called');
   console.log('[Payments] Scholarship type:', scholarshipType);
   const usd = getPaymentAmountUsd(scholarshipType);
   console.log('[Payments] USD amount:', usd);
-  const conv = await convertUsdToIdr(usd);
+  const conv = await convertUsdToIdr(usd, fastify);
   if (!conv?.success) {
     console.error('[Payments] Currency conversion failed:', conv?.error);
     throw new Error(conv?.error || 'Currency conversion failed');

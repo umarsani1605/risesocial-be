@@ -26,6 +26,8 @@
   "author": "Rise Social Team",
   "license": "MIT",
   "dependencies": {
+    "@everapi/freecurrencyapi-js": "^1.0.1",
+    "@fastify/caching": "^9.0.3",
     "@fastify/cors": "^11.0.1",
     "@fastify/jwt": "^9.1.0",
     "@fastify/multipart": "^9.0.3",
