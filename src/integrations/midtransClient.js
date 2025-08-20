@@ -15,8 +15,10 @@ import midtrans from 'midtrans-client';
 const mode = process.env.MIDTRANS_MODE;
 
 const serverKey = mode === 'PRODUCTION' ? process.env.MIDTRANS_SERVER_KEY : process.env.MIDTRANS_SANDBOX_SERVER_KEY;
+const clientKey = mode === 'PRODUCTION' ? process.env.MIDTRANS_CLIENT_KEY : process.env.MIDTRANS_SANDBOX_CLIENT_KEY;
 
 console.log('🔧 [MidtransClient] Server Key:', serverKey);
+console.log('🔧 [MidtransClient] Client Key:', clientKey);
 
 if (!serverKey) {
   throw new Error(`Missing ${mode === 'PRODUCTION' ? 'MIDTRANS_SERVER_KEY' : 'MIDTRANS_SANDBOX_SERVER_KEY'} environment variable`);
@@ -27,15 +29,21 @@ if (!serverKey) {
  * Used for server-side transaction creation
  */
 export const snap = new midtrans.Snap({
-  mode,
-  serverKey,
+  isProduction: mode === 'PRODUCTION',
+  serverKey: serverKey,
+  clientKey: clientKey,
 });
 
 /**
  * Get server key for webhook verification
  * @returns {string} Server key for current environment
  */
-export const getServerKey = () => serverKey;
+export const getServerKey = () => {
+    console.log(`[MidtransClient] Initialized in ${mode} mode`);
+    console.log(`[MidtransClient] Base URL: ${getBaseUrl()}`);
+    console.log(`[MidtransClient] Server Key: ${serverKey}`);
+    return serverKey
+};
 
 /**
  * Get current environment mode
@@ -52,7 +60,3 @@ export const getBaseUrl = () => {
     ? process.env.MIDTRANS_PRODUCTION_URL || 'https://api.midtrans.com'
     : process.env.MIDTRANS_SANDBOX_URL || 'https://api.sandbox.midtrans.com';
 };
-
-console.log(`🔧 [MidtransClient] Initialized in ${mode} mode`);
-console.log(`🔗 [MidtransClient] Base URL: ${getBaseUrl()}`);
-console.log(`🔑 [MidtransClient] Server Key: ${serverKey.substring(0, 10)}...`);

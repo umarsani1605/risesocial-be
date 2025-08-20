@@ -450,9 +450,8 @@ model RylsRegistration {
   updated_at              DateTime                   @updatedAt
   ryls_payment_id         Int?
   fully_funded_submission RylsFullyFundedSubmission? @relation("RegistrationToFullyFunded")
-  payment                 RylsPayment?               @relation(fields: [ryls_payment_id], references: [id])
+  payments                RylsPayment[] 
   self_funded_submission  RylsSelfFundedSubmission?  @relation("RegistrationToSelfFunded")
-  RylsPayment             RylsPayment[]
 
   @@index([scholarship_type])
   @@index([created_at(sort: Desc)])
@@ -550,8 +549,7 @@ model RylsPayment {
   type             String             @db.VarChar(50)
   midtrans         MidtransPayment?   @relation("PaymentToMidtrans", fields: [midtrans_id], references: [id])
   payment_proof    FileUpload?        @relation("PaymentToFileUpload", fields: [payment_proof_id], references: [id])
-  registration     RylsRegistration?  @relation("PaymentToRegistration", fields: [registration_id], references: [id])
-  RylsRegistration RylsRegistration[]
+  registration     RylsRegistration?  @relation(fields: [registration_id], references: [id])
 
   @@index([status])
   @@index([type])

@@ -47,6 +47,7 @@ export class RylsPaymentService {
 
       let rylsPayment;
       let snapTransaction;
+      const serverKey = getServerKey();
 
       if (type == 'MIDTRANS') {
         const transactionParams = {

@@ -17,6 +17,7 @@ export class FileUploadRepository extends BaseRepository {
    */
   async createFileUpload(fileData) {
     try {
+      console.log('Available models:', Object.keys(prisma));
       const fileUpload = await this.model.create({
         data: {
           original_name: fileData.originalName,
