@@ -15,8 +15,10 @@ import midtrans from 'midtrans-client';
 const mode = process.env.MIDTRANS_MODE;
 
 const serverKey = mode === 'PRODUCTION' ? process.env.MIDTRANS_SERVER_KEY : process.env.MIDTRANS_SANDBOX_SERVER_KEY;
+const clientKey = mode === 'PRODUCTION' ? process.env.MIDTRANS_CLIENT_KEY : process.env.MIDTRANS_SANDBOX_CLIENT_KEY;
 
 console.log('🔧 [MidtransClient] Server Key:', serverKey);
+console.log('🔧 [MidtransClient] Client Key:', clientKey);
 
 if (!serverKey) {
   throw new Error(`Missing ${mode === 'PRODUCTION' ? 'MIDTRANS_SERVER_KEY' : 'MIDTRANS_SANDBOX_SERVER_KEY'} environment variable`);
@@ -27,8 +29,9 @@ if (!serverKey) {
  * Used for server-side transaction creation
  */
 export const snap = new midtrans.Snap({
-  mode,
-  serverKey,
+  isProduction: mode === 'PRODUCTION',
+  serverKey: serverKey,
+  clientKey: clientKey,
 });
 
 /**

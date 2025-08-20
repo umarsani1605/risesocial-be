@@ -453,6 +453,7 @@ model RylsRegistration {
   payment                 RylsPayment?               @relation(fields: [ryls_payment_id], references: [id])
   self_funded_submission  RylsSelfFundedSubmission?  @relation("RegistrationToSelfFunded")
   RylsPayment             RylsPayment[]
+  RylsPayment             RylsPayment[]
 
   @@index([scholarship_type])
   @@index([created_at(sort: Desc)])

@@ -1,60 +1,71 @@
-const BASE_URL = process.env.API_PLUGIN_URL;
-const IS_DEV = process.env.NODE_ENV !== 'production';
+import { CacheHelper } from '../lib/CacheHelper.js';
+import Freecurrencyapi from '@everapi/freecurrencyapi-js';
 
-if (!BASE_URL) {
-  // Fail fast with clear logging
-  console.error('❌ [CurrencyConverter] Missing env API_PLUGIN_URL');
-  throw new Error('API_PLUGIN_URL is not set');
+const API_KEY = process.env.CURRENCY_API_KEY;
+
+if (!API_KEY) {
+  console.error('[CurrencyConverter] Missing env CURRENCY_API_KEY');
+  throw new Error('CURRENCY_API_KEY is not set');
 }
 
-if (IS_DEV) {
-  console.log('🌐 [CurrencyConverter] BASE_URL configured');
-}
+const currencyapi = new Freecurrencyapi(API_KEY);
 
-export const convertUsdToIdr = async (usdAmount) => {
-  const startedAt = Date.now();
-  const url = `${BASE_URL}/convert?amount=${usdAmount}&from=USD&to=IDR`;
+export const convertUsdToIdr = async (usdAmount, fastify) => {
+  const cacheKey = `currency:usd_to_idr:${usdAmount}`;
 
   try {
-    console.log('🔵 [CurrencyConverter] Converting USD → IDR');
-    console.log('🔹 [CurrencyConverter] USD amount:', usdAmount);
-    console.log('🔗 [CurrencyConverter] Request URL:', url);
-
-    const response = await fetch(url, { method: 'GET' });
-    const status = response.status;
-    console.log('📥 [CurrencyConverter] HTTP status:', status);
-
-    const rawText = await response.text();
-    // Truncate raw response to avoid noisy logs
-    console.log('🧾 [CurrencyConverter] Raw response:', rawText.slice(0, 500));
-
-    let parsed;
-    try {
-      parsed = JSON.parse(rawText);
-    } catch (parseErr) {
-      console.error('❌ [CurrencyConverter] JSON parse error:', parseErr.message);
-      throw new Error(`Invalid JSON from currency API: ${parseErr.message}`);
+    if (typeof usdAmount !== 'number' || !isFinite(usdAmount) || usdAmount <= 0) {
+      throw new Error('Invalid amount');
     }
 
-    if (!response.ok) {
-      console.error('❌ [CurrencyConverter] Non-OK response body:', parsed);
-      throw new Error(`Currency API error: ${status}`);
+    if (fastify && fastify.cache) {
+      const cached = await CacheHelper.get(fastify, cacheKey);
+      if (cached) {
+        console.log('[CurrencyConverter] Cache HIT for amount:', usdAmount);
+        return cached;
+      }
+      console.log('[CurrencyConverter] Cache MISS for amount:', usdAmount);
     }
+
+    const startedAt = Date.now();
+    console.log('[CurrencyConverter] Converting USD → IDR');
+    console.log('[CurrencyConverter] USD amount:', usdAmount);
+
+    const res = await currencyapi.latest({ base_currency: 'USD', currencies: 'IDR' });
+    const idrRate = res?.data?.IDR;
+
+    if (typeof idrRate !== 'number' || !isFinite(idrRate) || idrRate <= 0) {
+      throw new Error('Invalid rate from currency API');
+    }
+
+    const resultValue = usdAmount * idrRate;
 
     const durationMs = Date.now() - startedAt;
-    console.log('✅ [CurrencyConverter] Conversion success');
-    console.log('💵 [CurrencyConverter] Rate:', parsed.rate);
-    console.log('💶 [CurrencyConverter] Result (IDR):', parsed.result);
+
+    console.log('[CurrencyConverter] Conversion success');
+    console.log('[CurrencyConverter] Rate:', idrRate);
+    console.log('[CurrencyConverter] Result (IDR):', resultValue);
     console.log('⏱️ [CurrencyConverter] Duration:', `${durationMs}ms`);
 
-    return {
+    const result = {
       success: true,
       amount: usdAmount,
-      result: parsed.result,
-      rate: parsed.rate,
+      result: resultValue,
+      rate: idrRate,
     };
+
+    if (fastify && fastify.cache) {
+      try {
+        await CacheHelper.set(fastify, cacheKey, result, 3600000); // 1 jam TTL
+        console.log('[CurrencyConverter] Cached result for amount:', usdAmount);
+      } catch (cacheError) {
+        console.warn('[CurrencyConverter] Cache set failed:', cacheError.message);
+      }
+    }
+
+    return result;
   } catch (error) {
-    console.error('❌ [CurrencyConverter] Conversion error:', error.message);
+    console.error('[CurrencyConverter] Conversion error:', error.message);
     return {
       success: false,
       error: error.message,
