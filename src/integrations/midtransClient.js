@@ -38,7 +38,12 @@ export const snap = new midtrans.Snap({
  * Get server key for webhook verification
  * @returns {string} Server key for current environment
  */
-export const getServerKey = () => serverKey;
+export const getServerKey = () => {
+  console.log(`[MidtransClient] Initialized in ${mode} mode`);
+  console.log(`[MidtransClient] Base URL: ${getBaseUrl()}`);
+  console.log(`[MidtransClient] Server Key: ${serverKey}`);
+  return serverKey;
+};
 
 /**
  * Get current environment mode

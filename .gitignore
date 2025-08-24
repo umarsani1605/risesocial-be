@@ -15,5 +15,14 @@ logs
 .env.*
 !.env.example
 
-# uploads
-uploads
+adminer.php
+
+# File uploads - exclude all content but keep folder structure
+uploads/*
+!uploads/.gitkeep
+!uploads/images/
+uploads/images/*
+!uploads/images/.gitkeep
+!uploads/documents/
+uploads/documents/*
+!uploads/documents/.gitkeep

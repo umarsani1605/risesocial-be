@@ -12,7 +12,7 @@ const __dirname = dirname(__filename);
 // Load LinkedIn Jobs data
 const loadJobsData = () => {
   try {
-    const dataPath = join(__dirname, '../../../frontend/data/jobs.json');
+    const dataPath = join(__dirname, '../../../risesocial-fe/data/jobs.json');
     const rawData = readFileSync(dataPath, 'utf8');
     return JSON.parse(rawData);
   } catch (error) {
