@@ -11,6 +11,15 @@ export class RylsRegistrationService {
     this.fileUploadService = new FileUploadService();
   }
 
+  /**
+   * Get base URL for file uploads
+   * @private
+   * @returns {string} Base URL
+   */
+  getBaseUrl() {
+    return process.env.BACKEND_URL || 'http://localhost:8000';
+  }
+
   async createRegistration(formData) {
     try {
       const step1 = formData.step1;
@@ -448,8 +457,8 @@ export class RylsRegistrationService {
           reg.self_funded_submission.passport_number || '',
           reg.self_funded_submission.need_visa ? 'Yes' : 'No',
           reg.self_funded_submission.headshot_file_id || '',
-          reg.self_funded_submission.headshot_file?.file_path
-            ? `http://127.0.0.1:8000/uploads/${this.extractUploadPath(reg.self_funded_submission.headshot_file.file_path)}`
+          reg.self_funded_submission.headshot_file?.id
+            ? `${this.getBaseUrl()}/api/uploads/${reg.self_funded_submission.headshot_file.id}`
             : 'No file uploaded',
           reg.self_funded_submission.read_policies ? 'Yes' : 'No',
           reg.self_funded_submission.created_at ? new Date(reg.self_funded_submission.created_at).toLocaleString() : '',
@@ -479,7 +488,7 @@ export class RylsRegistrationService {
           reg.fully_funded_submission.essay_topic || '',
           reg.fully_funded_submission.essay_file_id || '',
           reg.fully_funded_submission.essay_file?.file_path
-            ? `http://127.0.0.1:8000/uploads/${this.extractUploadPath(reg.fully_funded_submission.essay_file.file_path)}`
+            ? `${this.getBaseUrl()}/uploads/${this.extractUploadPath(reg.fully_funded_submission.essay_file.file_path)}`
             : 'No file uploaded',
           reg.fully_funded_submission.essay_description || '',
           reg.fully_funded_submission.created_at ? new Date(reg.fully_funded_submission.created_at).toLocaleString() : '',
@@ -529,7 +538,7 @@ export class RylsRegistrationService {
             payment.midtrans_id || '',
             payment.payment_proof_id || '',
             payment.payment_proof?.file_path
-              ? `http://127.0.0.1:8000/uploads/${this.extractUploadPath(payment.payment_proof.file_path)}`
+              ? `${this.getBaseUrl()}/uploads/${this.extractUploadPath(payment.payment_proof.file_path)}`
               : 'No proof uploaded',
           ];
           rows.push(row);
