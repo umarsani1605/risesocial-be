@@ -347,26 +347,26 @@ export class RylsRegistrationService {
 
       // Prepare data for each sheet
       const mainSheetData = this.prepareMainSheetData(registrations);
-      const selfFundedSheetData = this.prepareSelfFundedSheetData(registrations);
       const fullyFundedSheetData = this.prepareFullyFundedSheetData(registrations);
+      const selfFundedSheetData = this.prepareSelfFundedSheetData(registrations);
       const paymentsSheetData = this.preparePaymentsSheetData(registrations);
 
       // Create worksheets
       const mainSheet = XLSX.utils.aoa_to_sheet(mainSheetData);
-      const selfFundedSheet = XLSX.utils.aoa_to_sheet(selfFundedSheetData);
       const fullyFundedSheet = XLSX.utils.aoa_to_sheet(fullyFundedSheetData);
+      const selfFundedSheet = XLSX.utils.aoa_to_sheet(selfFundedSheetData);
       const paymentsSheet = XLSX.utils.aoa_to_sheet(paymentsSheetData);
 
       // Apply auto-width to all sheets
       mainSheet['!cols'] = this.calculateColumnWidths(mainSheetData);
-      selfFundedSheet['!cols'] = this.calculateColumnWidths(selfFundedSheetData);
       fullyFundedSheet['!cols'] = this.calculateColumnWidths(fullyFundedSheetData);
+      selfFundedSheet['!cols'] = this.calculateColumnWidths(selfFundedSheetData);
       paymentsSheet['!cols'] = this.calculateColumnWidths(paymentsSheetData);
 
       // Add worksheets to workbook
       XLSX.utils.book_append_sheet(workbook, mainSheet, 'Registrations');
-      XLSX.utils.book_append_sheet(workbook, selfFundedSheet, 'Self Funded');
       XLSX.utils.book_append_sheet(workbook, fullyFundedSheet, 'Fully Funded');
+      XLSX.utils.book_append_sheet(workbook, selfFundedSheet, 'Self Funded');
       XLSX.utils.book_append_sheet(workbook, paymentsSheet, 'Payments');
 
       // Generate buffer
@@ -400,7 +400,6 @@ export class RylsRegistrationService {
       'Discover Other Text',
       'Scholarship Type',
       'Created At',
-      'Updated At',
     ];
 
     const rows = [headers];
@@ -421,7 +420,6 @@ export class RylsRegistrationService {
         reg.discover_other_text || '',
         reg.scholarship_type || '',
         reg.created_at ? new Date(reg.created_at).toLocaleString() : '',
-        reg.updated_at ? new Date(reg.updated_at).toLocaleString() : '',
       ];
       rows.push(row);
     });
@@ -457,9 +455,7 @@ export class RylsRegistrationService {
           reg.self_funded_submission.passport_number || '',
           reg.self_funded_submission.need_visa ? 'Yes' : 'No',
           reg.self_funded_submission.headshot_file_id || '',
-          reg.self_funded_submission.headshot_file?.id
-            ? `${this.getBaseUrl()}/api/uploads/${reg.self_funded_submission.headshot_file.id}`
-            : 'No file uploaded',
+          reg.self_funded_submission.headshot_file?.id ? `${this.getBaseUrl()}/api/uploads/${reg.self_funded_submission.headshot_file.id}` : '',
           reg.self_funded_submission.read_policies ? 'Yes' : 'No',
           reg.self_funded_submission.created_at ? new Date(reg.self_funded_submission.created_at).toLocaleString() : '',
         ];
@@ -475,7 +471,7 @@ export class RylsRegistrationService {
    * @private
    */
   prepareFullyFundedSheetData(registrations) {
-    const headers = ['Registration ID', 'Full Name', 'Email', 'Essay Topic', 'Essay File ID', 'Essay File URL', 'Essay Description', 'Created At'];
+    const headers = ['Registration ID', 'Full Name', 'Essay Topic', 'Essay File ID', 'Essay File URL', 'Essay Description'];
 
     const rows = [headers];
 
@@ -484,14 +480,12 @@ export class RylsRegistrationService {
         const row = [
           reg.id,
           reg.full_name || '',
-          reg.email || '',
           reg.fully_funded_submission.essay_topic || '',
           reg.fully_funded_submission.essay_file_id || '',
           reg.fully_funded_submission.essay_file?.file_path
             ? `${this.getBaseUrl()}/uploads/${this.extractUploadPath(reg.fully_funded_submission.essay_file.file_path)}`
-            : 'No file uploaded',
+            : '',
           reg.fully_funded_submission.essay_description || '',
-          reg.fully_funded_submission.created_at ? new Date(reg.fully_funded_submission.created_at).toLocaleString() : '',
         ];
         rows.push(row);
       }
@@ -505,20 +499,7 @@ export class RylsRegistrationService {
    * @private
    */
   preparePaymentsSheetData(registrations) {
-    const headers = [
-      'Registration ID',
-      'Full Name',
-      'Email',
-      'Payment ID',
-      'Amount',
-      'Status',
-      'Type',
-      'Paid At',
-      'Created At',
-      'Midtrans ID',
-      'Payment Proof ID',
-      'Payment Proof URL',
-    ];
+    const headers = ['Registration ID', 'Full Name', 'Amount', 'Type', 'PayPal Payment Proof', 'Midtrans Order ID', 'Paid At'];
 
     const rows = [headers];
 
@@ -528,18 +509,11 @@ export class RylsRegistrationService {
           const row = [
             reg.id,
             reg.full_name || '',
-            reg.email || '',
-            payment.id || '',
             payment.amount || '',
-            payment.status || '',
             payment.type || '',
+            payment.payment_proof?.file_path ? `${this.getBaseUrl()}/uploads/${this.extractUploadPath(payment.payment_proof.file_path)}` : '',
+            payment.midtrans?.order_id || '',
             payment.paid_at ? new Date(payment.paid_at).toLocaleString() : '',
-            payment.created_at ? new Date(payment.created_at).toLocaleString() : '',
-            payment.midtrans_id || '',
-            payment.payment_proof_id || '',
-            payment.payment_proof?.file_path
-              ? `${this.getBaseUrl()}/uploads/${this.extractUploadPath(payment.payment_proof.file_path)}`
-              : 'No proof uploaded',
           ];
           rows.push(row);
         });
