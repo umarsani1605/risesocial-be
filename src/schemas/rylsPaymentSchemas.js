@@ -279,6 +279,6 @@ export const cancelPaymentSchema = {
 };
 
 // Log schema configuration
-console.log('📋 [PaymentSchemas] Payment validation schemas loaded');
-console.log('📋 [PaymentSchemas] Available schemas: createTransaction, webhookNotification, paymentStatus, paymentStatistics, cancelPayment');
-console.log('📋 [PaymentSchemas] Webhook accepts additional Midtrans fields for flexibility');
+console.log('[PaymentSchemas] Payment validation schemas loaded');
+console.log('[PaymentSchemas] Available schemas: createTransaction, webhookNotification, paymentStatus, paymentStatistics, cancelPayment');
+console.log('[PaymentSchemas] Webhook accepts additional Midtrans fields for flexibility');

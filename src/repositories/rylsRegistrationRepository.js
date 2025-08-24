@@ -317,11 +317,20 @@ export class RylsRegistrationRepository extends BaseRepository {
           skip,
           take: limit,
           include: {
-            fully_funded_submission: true,
-            self_funded_submission: true,
+            fully_funded_submission: {
+              include: {
+                essay_file: true,
+              },
+            },
+            self_funded_submission: {
+              include: {
+                headshot_file: true,
+              },
+            },
             payments: {
               include: {
                 midtrans: true,
+                payment_proof: true,
               },
             },
           },

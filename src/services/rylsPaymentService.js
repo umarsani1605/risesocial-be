@@ -148,8 +148,8 @@ export class RylsPaymentService {
    * @returns {Promise<Object>} Processing result
    */
   async handleWebhookNotification(notificationData) {
-    console.log('🔵 [PaymentService] handleWebhookNotification called');
-    console.log('📝 [PaymentService] Notification data:', JSON.stringify(notificationData, null, 2));
+    console.log('[PaymentService] handleWebhookNotification called');
+    console.log('[PaymentService] Notification data:', JSON.stringify(notificationData, null, 2));
 
     try {
       const { order_id, transaction_status, fraud_status, transaction_id, payment_type } = notificationData;
@@ -159,7 +159,7 @@ export class RylsPaymentService {
         throw new Error('Invalid notification signature');
       }
 
-      console.log('✅ [PaymentService] Notification signature verified');
+      console.log('[PaymentService] Notification signature verified');
 
       // 2. Find payment record
       const payment = await this.paymentRepository.findByOrderId(order_id);
@@ -167,9 +167,9 @@ export class RylsPaymentService {
         throw new Error(`Payment not found for order_id: ${order_id}`);
       }
 
-      console.log('📊 [PaymentService] Payment found:', payment.id);
-      console.log('📊 [PaymentService] Current status:', payment.transaction_status);
-      console.log('📊 [PaymentService] New status:', transaction_status);
+      console.log('[PaymentService] Payment found:', payment.id);
+      console.log('[PaymentService] Current status:', payment.transaction_status);
+      console.log('[PaymentService] New status:', transaction_status);
 
       // 3. Update payment record
       const updateData = {
@@ -184,7 +184,7 @@ export class RylsPaymentService {
       // Set paid_at for successful payments
       if (['settlement', 'capture'].includes(transaction_status)) {
         updateData.paid_at = new Date();
-        console.log('💰 [PaymentService] Payment marked as paid');
+        console.log('[PaymentService] Payment marked as paid');
       }
 
       const updatedPayment = await this.paymentRepository.updateByOrderId(order_id, updateData);
@@ -193,18 +193,18 @@ export class RylsPaymentService {
       const newRegistrationStatus = mapTransactionStatus(transaction_status);
       if (newRegistrationStatus !== 'UNKNOWN') {
         await this.registrationRepository.updateStatus(payment.registration_id, newRegistrationStatus);
-        console.log('📊 [PaymentService] Registration payment_status updated to:', newRegistrationStatus);
+        console.log('[PaymentService] Registration payment_status updated to:', newRegistrationStatus);
       }
 
       // 5. Handle fraud status for credit card payments
       if (payment_type === 'credit_card' && fraud_status) {
         const fraudDecision = mapFraudStatus(fraud_status);
-        console.log('🔒 [PaymentService] Fraud status:', fraud_status, '→', fraudDecision);
+        console.log('[PaymentService] Fraud status:', fraud_status, '→', fraudDecision);
 
         // Additional fraud handling logic can be added here
       }
 
-      console.log('✅ [PaymentService] Webhook notification processed successfully');
+      console.log('[PaymentService] Webhook notification processed successfully');
 
       return {
         success: true,
@@ -214,7 +214,7 @@ export class RylsPaymentService {
         paymentId: updatedPayment.id,
       };
     } catch (error) {
-      console.error('❌ [PaymentService] Error handling webhook notification:', error);
+      console.error('[PaymentService] Error handling webhook notification:', error);
       throw new Error(`Failed to process webhook notification: ${error.message}`);
     }
   }
@@ -225,7 +225,7 @@ export class RylsPaymentService {
    * @returns {boolean} True if signature is valid
    */
   verifyNotificationSignature(notificationData) {
-    console.log('🔵 [PaymentService] verifyNotificationSignature called');
+    console.log('[PaymentService] verifyNotificationSignature called');
 
     try {
       const { order_id, status_code, gross_amount, signature_key } = notificationData;
@@ -239,15 +239,15 @@ export class RylsPaymentService {
 
       const isValid = calculatedSignature === signature_key;
 
-      console.log('🔐 [PaymentService] Signature verification:', isValid ? 'VALID' : 'INVALID');
+      console.log('[PaymentService] Signature verification:', isValid ? 'VALID' : 'INVALID');
       if (!isValid) {
-        console.log('🔐 [PaymentService] Expected signature:', calculatedSignature);
-        console.log('🔐 [PaymentService] Received signature:', signature_key);
+        console.log('[PaymentService] Expected signature:', calculatedSignature);
+        console.log('[PaymentService] Received signature:', signature_key);
       }
 
       return isValid;
     } catch (error) {
-      console.error('❌ [PaymentService] Error verifying signature:', error);
+      console.error('[PaymentService] Error verifying signature:', error);
       return false;
     }
   }
@@ -258,8 +258,8 @@ export class RylsPaymentService {
    * @returns {Promise<Object>} Payment status information
    */
   async getPaymentStatus(registrationId) {
-    console.log('🔵 [PaymentService] getPaymentStatus called');
-    console.log('📝 [PaymentService] Registration ID:', registrationId);
+    console.log('[PaymentService] getPaymentStatus called');
+    console.log('[PaymentService] Registration ID:', registrationId);
 
     try {
       const payments = await this.paymentRepository.findByRegistrationId(registrationId, { limit: 1 });
@@ -275,8 +275,8 @@ export class RylsPaymentService {
 
       const latestPayment = payments[0];
 
-      console.log('📊 [PaymentService] Latest payment status:', latestPayment.transaction_status);
-      console.log('📊 [PaymentService] Order ID:', latestPayment.order_id);
+      console.log('[PaymentService] Latest payment status:', latestPayment.transaction_status);
+      console.log('[PaymentService] Order ID:', latestPayment.order_id);
 
       return {
         hasPayment: true,
@@ -289,7 +289,7 @@ export class RylsPaymentService {
         createdAt: latestPayment.created_at,
       };
     } catch (error) {
-      console.error('❌ [PaymentService] Error getting payment status:', error);
+      console.error('[PaymentService] Error getting payment status:', error);
       throw new Error(`Failed to get payment status: ${error.message}`);
     }
   }
@@ -300,17 +300,17 @@ export class RylsPaymentService {
    * @returns {Promise<Object>} Payment statistics
    */
   async getPaymentStatistics(filters = {}) {
-    console.log('🔵 [PaymentService] getPaymentStatistics called');
-    console.log('📝 [PaymentService] Filters:', JSON.stringify(filters, null, 2));
+    console.log('[PaymentService] getPaymentStatistics called');
+    console.log('[PaymentService] Filters:', JSON.stringify(filters, null, 2));
 
     try {
       const statistics = await this.paymentRepository.getStatistics(filters);
 
-      console.log('📊 [PaymentService] Statistics retrieved:', JSON.stringify(statistics, null, 2));
+      console.log('[PaymentService] Statistics retrieved:', JSON.stringify(statistics, null, 2));
 
       return statistics;
     } catch (error) {
-      console.error('❌ [PaymentService] Error getting statistics:', error);
+      console.error('[PaymentService] Error getting statistics:', error);
       throw new Error(`Failed to get payment statistics: ${error.message}`);
     }
   }
@@ -321,8 +321,8 @@ export class RylsPaymentService {
    * @returns {Promise<Object>} Cancellation result
    */
   async cancelPayment(orderId) {
-    console.log('🔵 [PaymentService] cancelPayment called');
-    console.log('📝 [PaymentService] Order ID:', orderId);
+    console.log('[PaymentService] cancelPayment called');
+    console.log('[PaymentService] Order ID:', orderId);
 
     try {
       const payment = await this.paymentRepository.findByOrderId(orderId);
@@ -348,7 +348,7 @@ export class RylsPaymentService {
       // Update registration status
       await this.registrationRepository.updateStatus(payment.registration_id, 'FAILED');
 
-      console.log('✅ [PaymentService] Payment cancelled successfully');
+      console.log('[PaymentService] Payment cancelled successfully');
 
       return {
         success: true,
@@ -357,7 +357,7 @@ export class RylsPaymentService {
         newStatus: 'cancel',
       };
     } catch (error) {
-      console.error('❌ [PaymentService] Error cancelling payment:', error);
+      console.error('[PaymentService] Error cancelling payment:', error);
       throw new Error(`Failed to cancel payment: ${error.message}`);
     }
   }

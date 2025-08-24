@@ -93,6 +93,19 @@ export async function rylsRegistrationRoutes(fastify) {
   });
 
   /**
+   * Export registrations to Excel with multiple sheets
+   * GET /api/registrations/export-excel
+   * Note: Should be protected with admin authentication in production
+   */
+  fastify.get('/export-excel', {
+    schema: rylsRegistrationSchemas.exportRegistrationsExcel,
+    // preHandler: [authMiddleware], // Add admin role check
+    handler: async (request, reply) => {
+      return registrationController.exportRegistrationsExcel(request, reply);
+    },
+  });
+
+  /**
    * Registration service health check
    * GET /api/registrations/health
    */
@@ -134,14 +147,14 @@ export async function rylsRegistrationRoutes(fastify) {
     // schema: rylsRegistrationSchemas.getRegistrationById,
     // preHandler: [authMiddleware], // Add admin role check
     handler: async (request, reply) => {
-      console.log('🔵 [RylsRoutes] GET /api/registrations/:id called');
-      console.log('📝 [RylsRoutes] Registration ID:', request.params.id);
+      console.log('[RylsRoutes] GET /api/registrations/:id called');
+      console.log('[RylsRoutes] Registration ID:', request.params.id);
       try {
         const result = await registrationController.getRegistrationById(request, reply);
-        console.log('✅ [RylsRoutes] Controller completed successfully');
+        console.log('[RylsRoutes] Controller completed successfully');
         return result;
       } catch (error) {
-        console.error('❌ [RylsRoutes] Route handler error:', error);
+        console.error('[RylsRoutes] Route handler error:', error);
         throw error;
       }
     },
@@ -175,6 +188,6 @@ export async function rylsRegistrationRoutes(fastify) {
 
   // Add route logging
   fastify.addHook('onRoute', (routeOptions) => {
-    console.log(`📋 Registration Route: ${routeOptions.method} ${routeOptions.url}`);
+    console.log(`[RYLS Registration Route] ${routeOptions.method} ${routeOptions.url}`);
   });
 }

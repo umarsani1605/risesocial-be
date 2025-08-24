@@ -656,4 +656,19 @@ export const rylsRegistrationSchemas = {
       500: errorResponseSchema,
     },
   },
+
+  // GET /api/registrations/export-excel
+  exportRegistrationsExcel: {
+    summary: 'Export registrations to Excel with multiple sheets',
+    description: 'Export registrations data in Excel format with 4 sheets: Main, Self Funded, Fully Funded, and Payments (admin only)',
+    tags: ['RYLS Registration'],
+    response: {
+      200: {
+        description: 'Excel file download (.xlsx)',
+        type: 'string',
+        format: 'binary',
+      },
+      500: errorResponseSchema,
+    },
+  },
 };

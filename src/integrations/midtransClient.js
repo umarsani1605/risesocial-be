@@ -17,8 +17,8 @@ const mode = process.env.MIDTRANS_MODE;
 const serverKey = mode === 'PRODUCTION' ? process.env.MIDTRANS_SERVER_KEY : process.env.MIDTRANS_SANDBOX_SERVER_KEY;
 const clientKey = mode === 'PRODUCTION' ? process.env.MIDTRANS_CLIENT_KEY : process.env.MIDTRANS_SANDBOX_CLIENT_KEY;
 
-console.log('🔧 [MidtransClient] Server Key:', serverKey);
-console.log('🔧 [MidtransClient] Client Key:', clientKey);
+console.log('[MidtransClient] Server Key:', serverKey);
+console.log('[MidtransClient] Client Key:', clientKey);
 
 if (!serverKey) {
   throw new Error(`Missing ${mode === 'PRODUCTION' ? 'MIDTRANS_SERVER_KEY' : 'MIDTRANS_SANDBOX_SERVER_KEY'} environment variable`);
@@ -56,6 +56,6 @@ export const getBaseUrl = () => {
     : process.env.MIDTRANS_SANDBOX_URL || 'https://api.sandbox.midtrans.com';
 };
 
-console.log(`🔧 [MidtransClient] Initialized in ${mode} mode`);
-console.log(`🔗 [MidtransClient] Base URL: ${getBaseUrl()}`);
-console.log(`🔑 [MidtransClient] Server Key: ${serverKey.substring(0, 10)}...`);
+console.log(`[MidtransClient] Initialized in ${mode} mode`);
+console.log(`[MidtransClient] Base URL: ${getBaseUrl()}`);
+console.log(`[MidtransClient] Server Key: ${serverKey.substring(0, 10)}...`);

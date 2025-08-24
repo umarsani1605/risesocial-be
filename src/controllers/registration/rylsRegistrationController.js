@@ -124,21 +124,27 @@ export class RylsRegistrationController {
    */
   async getRegistrationById(request, reply) {
     try {
-      const { id } = request.params;
+      console.log('[RylsController] getRegistrationById called');
+      console.log('[RylsController] Registration ID:', request.params.id);
 
-      if (!id || isNaN(parseInt(id))) {
-        return reply.status(400).send(errorResponse('Valid registration ID is required', 400));
+      const registrationId = parseInt(request.params.id, 10);
+
+      if (isNaN(registrationId)) {
+        return reply.status(400).send(errorResponse('Invalid registration ID', 400));
       }
 
-      const registration = await this.registrationService.getRegistrationById(parseInt(id));
+      console.log('[RylsController] Calling registrationService.getRegistrationById...');
+      const result = await this.registrationService.getRegistrationById(registrationId);
 
-      if (!registration) {
+      if (!result) {
         return reply.status(404).send(errorResponse('Registration not found', 404));
       }
 
-      return reply.status(200).send(successResponse(registration, 'Registration retrieved successfully'));
+      console.log('[RylsController] Service returned result');
+      return reply.status(200).send(successResponse(result, 'Registration retrieved successfully'));
     } catch (error) {
-      console.error('Error getting registration by ID:', error);
+      console.error('[RylsController] Error getting registration by ID:', error);
+      console.error('[RylsController] Error stack:', error.stack);
       return reply.status(500).send(errorResponse('Failed to retrieve registration', 500, error.message));
     }
   }
@@ -149,8 +155,8 @@ export class RylsRegistrationController {
    */
   async getRegistrations(request, reply) {
     try {
-      console.log('🔵 [RylsController] getRegistrations called');
-      console.log('📝 [RylsController] Request query:', JSON.stringify(request.query, null, 2));
+      console.log('[RylsController] getRegistrations called');
+      console.log('[RylsController] Request query:', JSON.stringify(request.query, null, 2));
 
       const { page = 1, limit = 10, status, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search } = request.query;
 
@@ -164,13 +170,13 @@ export class RylsRegistrationController {
         search,
       };
 
-      console.log('⚙️ [RylsController] Processed options:', JSON.stringify(options, null, 2));
-      console.log('🔄 [RylsController] Calling registrationService.getRegistrations...');
+      console.log('[RylsController] Processed options:', JSON.stringify(options, null, 2));
+      console.log('[RylsController] Calling registrationService.getRegistrations...');
 
       const result = await this.registrationService.getRegistrations(options);
 
-      console.log('✅ [RylsController] Service returned result');
-      console.log('📊 [RylsController] Result structure:', {
+      console.log('[RylsController] Service returned result');
+      console.log('[RylsController] Result structure:', {
         registrationsCount: result?.registrations?.length || 0,
         pagination: result?.pagination || 'missing',
       });
@@ -183,40 +189,9 @@ export class RylsRegistrationController {
         })
       );
     } catch (error) {
-      console.error('❌ [RylsController] Error getting registrations:', error);
-      console.error('❌ [RylsController] Error stack:', error.stack);
+      console.error('[RylsController] Error getting registrations:', error);
+      console.error('[RylsController] Error stack:', error.stack);
       return reply.status(500).send(errorResponse('Failed to retrieve registrations', 500, error.message));
-    }
-  }
-
-  /**
-   * Get registration by ID
-   * GET /api/registrations/:id
-   */
-  async getRegistrationById(request, reply) {
-    try {
-      console.log('🔵 [RylsController] getRegistrationById called');
-      console.log('📝 [RylsController] Registration ID:', request.params.id);
-
-      const registrationId = parseInt(request.params.id, 10);
-
-      if (isNaN(registrationId)) {
-        return reply.status(400).send(errorResponse('Invalid registration ID', 400));
-      }
-
-      console.log('🔄 [RylsController] Calling registrationService.getRegistrationById...');
-      const result = await this.registrationService.getRegistrationById(registrationId);
-
-      if (!result) {
-        return reply.status(404).send(errorResponse('Registration not found', 404));
-      }
-
-      console.log('✅ [RylsController] Service returned result');
-      return reply.status(200).send(successResponse(result, 'Registration retrieved successfully'));
-    } catch (error) {
-      console.error('❌ [RylsController] Error getting registration by ID:', error);
-      console.error('❌ [RylsController] Error stack:', error.stack);
-      return reply.status(500).send(errorResponse('Failed to retrieve registration', 500, error.message));
     }
   }
 
@@ -451,6 +426,45 @@ export class RylsRegistrationController {
     } catch (error) {
       console.error('Error exporting registrations:', error);
       return reply.status(500).send(errorResponse('Failed to export registrations', 500, error.message));
+    }
+  }
+
+  /**
+   * Export registrations to Excel with multiple sheets (for admin use)
+   * GET /api/registrations/export-excel
+   */
+  async exportRegistrationsExcel(request, reply) {
+    try {
+      console.log('[RylsController] exportRegistrationsExcel called');
+
+      // Get all registrations with relations (max 1000)
+      const result = await this.registrationService.getRegistrations({
+        limit: 1000,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+      });
+
+      if (!result || !result.registrations) {
+        throw new Error('No registrations found');
+      }
+
+      console.log(`[RylsController] Found ${result.registrations.length} registrations for export`);
+
+      // Generate Excel file with multiple sheets
+      const excelBuffer = await this.registrationService.generateExcelFile(result.registrations);
+
+      // Set Excel headers
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `ryls-registrations-${timestamp}.xlsx`;
+
+      reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+      reply.header('Content-Length', excelBuffer.length);
+
+      return reply.send(excelBuffer);
+    } catch (error) {
+      console.error('[RylsController] Error exporting registrations to Excel:', error);
+      return reply.status(500).send(errorResponse('Failed to export registrations to Excel', 500, error.message));
     }
   }
 

@@ -173,23 +173,23 @@ export class UserService {
    * @throws {Error} If validation fails or user exists
    */
   async register(userData, server) {
-    console.log('🔵 [UserService] Starting user registration', { email: userData.email });
+    console.log('[UserService] Starting user registration', { email: userData.email });
 
     try {
       // Validate registration data
-      console.log('🔍 [UserService] Validating registration data...');
+      console.log('[UserService] Validating registration data...');
       await this.validateUserRegistration(userData);
-      console.log('✅ [UserService] Registration data validated');
+      console.log('[UserService] Registration data validated');
 
       // Generate unique username
       console.log('🔠 [UserService] Generating unique username...');
       const username = await this.generateUniqueUsername(userData.first_name, userData.last_name);
-      console.log('✅ [UserService] Generated username:', username);
+      console.log('[UserService] Generated username:', username);
 
       // Hash password
       console.log('🔑 [UserService] Hashing password...');
       const hashedPassword = await bcrypt.hash(userData.password, 12);
-      console.log('✅ [UserService] Password hashed');
+      console.log('[UserService] Password hashed');
 
       // Prepare user data
       const userDataWithHashedPassword = {
@@ -198,19 +198,19 @@ export class UserService {
         password: hashedPassword,
         role: 'USER',
       };
-      console.log('📝 [UserService] Prepared user data for creation');
+      console.log('[UserService] Prepared user data for creation');
 
       // Create user with settings
       console.log('👤 [UserService] Creating user in database...');
       const user = await userRepository.createWithSettings(userDataWithHashedPassword);
-      console.log('✅ [UserService] User created successfully', { userId: user.id });
+      console.log('[UserService] User created successfully', { userId: user.id });
 
       // Generate JWT token
       console.log('🔐 [UserService] Generating JWT token...');
       const token = generateToken(server, user, false);
-      console.log('✅ [UserService] JWT token generated');
+      console.log('[UserService] JWT token generated');
 
-      console.log('🎉 [UserService] Registration completed successfully', {
+      console.log('[UserService] Registration completed successfully', {
         userId: user.id,
         email: user.email,
       });
@@ -221,7 +221,7 @@ export class UserService {
         expiresIn: '1 day',
       };
     } catch (error) {
-      console.error('❌ [UserService] Registration failed', {
+      console.error('[UserService] Registration failed', {
         error: error.message,
         stack: error.stack,
         userData: { email: userData.email },

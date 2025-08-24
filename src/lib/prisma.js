@@ -40,8 +40,8 @@ export default prisma;
 export async function disconnectDatabase() {
   try {
     await prisma.$disconnect();
-    console.log('✅ Database disconnected successfully');
+    console.log('Database disconnected successfully');
   } catch (error) {
-    console.error('❌ Error disconnecting database:', error);
+    console.error('Error disconnecting database:', error);
   }
 }

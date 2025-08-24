@@ -3,8 +3,12 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import fastifyCaching from '@fastify/caching';
+import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
 import { disconnectDatabase } from './lib/prisma.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs-extra';
 
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -50,6 +54,28 @@ await fastify.register(multipart, {
   },
 });
 
+// Register static file serving for uploads folder
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsPath = path.join(__dirname, '..', 'uploads');
+
+console.log('[Server] Static file serving setup:');
+console.log('[Server] __dirname:', __dirname);
+console.log('[Server] Uploads path:', uploadsPath);
+console.log('[Server] Uploads path exists:', await fs.pathExists(uploadsPath));
+
+await fastify.register(fastifyStatic, {
+  root: uploadsPath,
+  prefix: '/uploads/',
+  decorateReply: false,
+  // Remove host constraints to allow all hosts
+  // constraints: {
+  //   host: 'localhost',
+  // },
+});
+
+console.log('[Server] Static file serving registered for /uploads/');
+
 await fastify.register(jwt, {
   secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-for-development',
   sign: {
@@ -64,7 +90,7 @@ await fastify.register(jwt, {
 
 await fastify.register(fastifyCaching, {
   privacy: fastifyCaching.privacy.PUBLIC,
-  expiresIn: 3600, // 1 hour
+  expiresIn: 60, // 1 hour
   cacheSegment: 'rise-social',
 });
 
@@ -136,15 +162,15 @@ fastify.register(rylsRegistrationRoutes, { prefix: '/api/ryls/registrations' });
 fastify.register(rylsPaymentRoutes, { prefix: '/api/payments' });
 
 const gracefulShutdown = async (signal) => {
-  console.log(`\n⚠️  Received ${signal}. Starting graceful shutdown...`);
+  console.log(`\nReceived ${signal}. Starting graceful shutdown...`);
 
   try {
     await fastify.close();
     await disconnectDatabase();
-    console.log('✅ Graceful shutdown completed.');
+    console.log('Graceful shutdown completed.');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error during shutdown:', error);
+    console.error('Error during shutdown:', error);
     process.exit(1);
   }
 };
@@ -159,11 +185,11 @@ const start = async () => {
 
     await fastify.listen({ port: Number(port), host });
 
-    console.log('🚀 Rise Social Backend Server Started!');
+    console.log('Rise Social Backend Server Started!');
     console.log(`📡 Server running on http://localhost:${port}`);
   } catch (err) {
     fastify.log.error(err);
-    console.error('❌ Failed to start server:', err);
+    console.error('Failed to start server:', err);
     process.exit(1);
   }
 };

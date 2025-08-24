@@ -351,10 +351,10 @@ class InstructorService {
 
     const badges = {
       Junior: '🌱 Junior',
-      'Mid-Level': '💼 Mid-Level',
+      'Mid-Level': 'Mid-Level',
       Senior: '⭐ Senior',
       Executive: '👑 Executive',
-      Unknown: '💡 Instructor',
+      Unknown: 'Instructor',
     };
 
     return badges[experienceLevel] || badges['Unknown'];
@@ -457,7 +457,7 @@ class InstructorService {
       DRAFT: '🟡 Draft',
       ARCHIVED: '🔴 Archived',
     };
-    return badges[status] || `📋 ${status}`;
+    return badges[status] || `${status}`;
   }
 
   /**

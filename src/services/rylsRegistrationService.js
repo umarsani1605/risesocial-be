@@ -167,22 +167,22 @@ export class RylsRegistrationService {
    */
   async getRegistrations(options = {}) {
     try {
-      console.log('🔵 [RylsService] getRegistrations called');
-      console.log('📝 [RylsService] Options received:', JSON.stringify(options, null, 2));
-      console.log('🔄 [RylsService] Calling repository.getRegistrations...');
+      console.log('[RylsService] getRegistrations called');
+      console.log('[RylsService] Options received:', JSON.stringify(options, null, 2));
+      console.log('[RylsService] Calling repository.getRegistrations...');
 
       const result = await this.registrationRepository.getRegistrations(options);
 
-      console.log('✅ [RylsService] Repository returned result');
-      console.log('📊 [RylsService] Result structure:', {
+      console.log('[RylsService] Repository returned result');
+      console.log('[RylsService] Result structure:', {
         registrationsCount: result?.registrations?.length || 0,
         pagination: result?.pagination || 'missing',
       });
 
       return result;
     } catch (error) {
-      console.error('❌ [RylsService] Error getting registrations:', error);
-      console.error('❌ [RylsService] Error stack:', error.stack);
+      console.error('[RylsService] Error getting registrations:', error);
+      console.error('[RylsService] Error stack:', error.stack);
       throw new Error('Failed to retrieve registrations');
     }
   }
@@ -193,21 +193,21 @@ export class RylsRegistrationService {
    * @returns {Object|null} Raw registration object or null if not found
    */
   async getRegistrationById(id) {
-    console.log('🔵 [RylsService] getRegistrationById called for ID:', id);
+    console.log('[RylsService] getRegistrationById called for ID:', id);
 
     try {
       const registration = await this.registrationRepository.findByIdWithRelations(id);
 
       if (!registration) {
-        console.log('❌ [RylsService] Registration not found for ID:', id);
+        console.log('[RylsService] Registration not found for ID:', id);
         return null;
       }
 
-      console.log('✅ [RylsService] Registration found for ID:', id);
+      console.log('[RylsService] Registration found for ID:', id);
       return registration;
     } catch (error) {
-      console.error('❌ [RylsService] Error getting registration by ID:', error);
-      console.error('❌ [RylsService] Error stack:', error.stack);
+      console.error('[RylsService] Error getting registration by ID:', error);
+      console.error('[RylsService] Error stack:', error.stack);
       throw new Error('Failed to get registration');
     }
   }
@@ -318,5 +318,282 @@ export class RylsRegistrationService {
       console.error('Error deleting registration:', error);
       throw error;
     }
+  }
+
+  /**
+   * Generate Excel file with multiple sheets for RYLS registrations
+   * @param {Array} registrations - Array of registration objects with relations
+   * @returns {Promise<Buffer>} Excel file buffer
+   */
+  async generateExcelFile(registrations) {
+    try {
+      console.log('[RylsService] generateExcelFile called');
+      console.log(`[RylsService] Processing ${registrations.length} registrations`);
+
+      // Import xlsx library
+      const XLSX = await import('xlsx');
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+
+      // Prepare data for each sheet
+      const mainSheetData = this.prepareMainSheetData(registrations);
+      const selfFundedSheetData = this.prepareSelfFundedSheetData(registrations);
+      const fullyFundedSheetData = this.prepareFullyFundedSheetData(registrations);
+      const paymentsSheetData = this.preparePaymentsSheetData(registrations);
+
+      // Create worksheets
+      const mainSheet = XLSX.utils.aoa_to_sheet(mainSheetData);
+      const selfFundedSheet = XLSX.utils.aoa_to_sheet(selfFundedSheetData);
+      const fullyFundedSheet = XLSX.utils.aoa_to_sheet(fullyFundedSheetData);
+      const paymentsSheet = XLSX.utils.aoa_to_sheet(paymentsSheetData);
+
+      // Apply auto-width to all sheets
+      mainSheet['!cols'] = this.calculateColumnWidths(mainSheetData);
+      selfFundedSheet['!cols'] = this.calculateColumnWidths(selfFundedSheetData);
+      fullyFundedSheet['!cols'] = this.calculateColumnWidths(fullyFundedSheetData);
+      paymentsSheet['!cols'] = this.calculateColumnWidths(paymentsSheetData);
+
+      // Add worksheets to workbook
+      XLSX.utils.book_append_sheet(workbook, mainSheet, 'Registrations');
+      XLSX.utils.book_append_sheet(workbook, selfFundedSheet, 'Self Funded');
+      XLSX.utils.book_append_sheet(workbook, fullyFundedSheet, 'Fully Funded');
+      XLSX.utils.book_append_sheet(workbook, paymentsSheet, 'Payments');
+
+      // Generate buffer
+      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+      console.log('[RylsService] Excel file generated successfully');
+      return excelBuffer;
+    } catch (error) {
+      console.error('[RylsService] Error generating Excel file:', error);
+      throw new Error('Failed to generate Excel file');
+    }
+  }
+
+  /**
+   * Prepare data for main registrations sheet
+   * @private
+   */
+  prepareMainSheetData(registrations) {
+    const headers = [
+      'ID',
+      'Full Name',
+      'Email',
+      'Residence',
+      'Nationality',
+      'Second Nationality',
+      'WhatsApp',
+      'Institution',
+      'Date of Birth',
+      'Gender',
+      'Discover Source',
+      'Discover Other Text',
+      'Scholarship Type',
+      'Created At',
+      'Updated At',
+    ];
+
+    const rows = [headers];
+
+    registrations.forEach((reg) => {
+      const row = [
+        reg.id,
+        reg.full_name || '',
+        reg.email || '',
+        reg.residence || '',
+        reg.nationality || '',
+        reg.second_nationality || '',
+        reg.whatsapp || '',
+        reg.institution || '',
+        reg.date_of_birth ? new Date(reg.date_of_birth).toLocaleDateString() : '',
+        reg.gender || '',
+        reg.discover_source || '',
+        reg.discover_other_text || '',
+        reg.scholarship_type || '',
+        reg.created_at ? new Date(reg.created_at).toLocaleString() : '',
+        reg.updated_at ? new Date(reg.updated_at).toLocaleString() : '',
+      ];
+      rows.push(row);
+    });
+
+    return rows;
+  }
+
+  /**
+   * Prepare data for self funded submissions sheet
+   * @private
+   */
+  prepareSelfFundedSheetData(registrations) {
+    const headers = [
+      'Registration ID',
+      'Full Name',
+      'Email',
+      'Passport Number',
+      'Need Visa',
+      'Headshot File ID',
+      'Headshot File URL',
+      'Read Policies',
+      'Created At',
+    ];
+
+    const rows = [headers];
+
+    registrations.forEach((reg) => {
+      if (reg.self_funded_submission) {
+        const row = [
+          reg.id,
+          reg.full_name || '',
+          reg.email || '',
+          reg.self_funded_submission.passport_number || '',
+          reg.self_funded_submission.need_visa ? 'Yes' : 'No',
+          reg.self_funded_submission.headshot_file_id || '',
+          reg.self_funded_submission.headshot_file?.file_path
+            ? `http://127.0.0.1:8000/uploads/${this.extractUploadPath(reg.self_funded_submission.headshot_file.file_path)}`
+            : 'No file uploaded',
+          reg.self_funded_submission.read_policies ? 'Yes' : 'No',
+          reg.self_funded_submission.created_at ? new Date(reg.self_funded_submission.created_at).toLocaleString() : '',
+        ];
+        rows.push(row);
+      }
+    });
+
+    return rows;
+  }
+
+  /**
+   * Prepare data for fully funded submissions sheet
+   * @private
+   */
+  prepareFullyFundedSheetData(registrations) {
+    const headers = ['Registration ID', 'Full Name', 'Email', 'Essay Topic', 'Essay File ID', 'Essay File URL', 'Essay Description', 'Created At'];
+
+    const rows = [headers];
+
+    registrations.forEach((reg) => {
+      if (reg.fully_funded_submission) {
+        const row = [
+          reg.id,
+          reg.full_name || '',
+          reg.email || '',
+          reg.fully_funded_submission.essay_topic || '',
+          reg.fully_funded_submission.essay_file_id || '',
+          reg.fully_funded_submission.essay_file?.file_path
+            ? `http://127.0.0.1:8000/uploads/${this.extractUploadPath(reg.fully_funded_submission.essay_file.file_path)}`
+            : 'No file uploaded',
+          reg.fully_funded_submission.essay_description || '',
+          reg.fully_funded_submission.created_at ? new Date(reg.fully_funded_submission.created_at).toLocaleString() : '',
+        ];
+        rows.push(row);
+      }
+    });
+
+    return rows;
+  }
+
+  /**
+   * Prepare data for payments sheet
+   * @private
+   */
+  preparePaymentsSheetData(registrations) {
+    const headers = [
+      'Registration ID',
+      'Full Name',
+      'Email',
+      'Payment ID',
+      'Amount',
+      'Status',
+      'Type',
+      'Paid At',
+      'Created At',
+      'Midtrans ID',
+      'Payment Proof ID',
+      'Payment Proof URL',
+    ];
+
+    const rows = [headers];
+
+    registrations.forEach((reg) => {
+      if (reg.payments && reg.payments.length > 0) {
+        reg.payments.forEach((payment) => {
+          const row = [
+            reg.id,
+            reg.full_name || '',
+            reg.email || '',
+            payment.id || '',
+            payment.amount || '',
+            payment.status || '',
+            payment.type || '',
+            payment.paid_at ? new Date(payment.paid_at).toLocaleString() : '',
+            payment.created_at ? new Date(payment.created_at).toLocaleString() : '',
+            payment.midtrans_id || '',
+            payment.payment_proof_id || '',
+            payment.payment_proof?.file_path
+              ? `http://127.0.0.1:8000/uploads/${this.extractUploadPath(payment.payment_proof.file_path)}`
+              : 'No proof uploaded',
+          ];
+          rows.push(row);
+        });
+      }
+    });
+
+    return rows;
+  }
+
+  /**
+   * Extract upload path from full file path for URL generation
+   * @param {string} filePath - Full file path from database
+   * @returns {string|null} Upload path relative to uploads folder
+   * @private
+   */
+  extractUploadPath(filePath) {
+    if (!filePath) return null;
+
+    const uploadsIndex = filePath.indexOf('/uploads/');
+    if (uploadsIndex !== -1) {
+      return filePath.substring(uploadsIndex + 9); // +9 untuk skip '/uploads/'
+    }
+    return null;
+  }
+
+  /**
+   * Calculate optimal column widths based on content
+   * @param {Array} sheetData - 2D array of sheet data (headers + rows)
+   * @returns {Array} Array of column width objects
+   * @private
+   */
+  calculateColumnWidths(sheetData) {
+    if (!sheetData || sheetData.length === 0) return [];
+
+    const numColumns = sheetData[0].length;
+    const columnWidths = [];
+
+    // Calculate width for each column
+    for (let col = 0; col < numColumns; col++) {
+      let maxWidth = 0;
+
+      // Check header width
+      if (sheetData[0] && sheetData[0][col]) {
+        maxWidth = Math.max(maxWidth, String(sheetData[0][col]).length);
+      }
+
+      // Check data width in each row
+      for (let row = 1; row < sheetData.length; row++) {
+        if (sheetData[row] && sheetData[row][col]) {
+          const cellValue = String(sheetData[row][col]);
+          maxWidth = Math.max(maxWidth, cellValue.length);
+        }
+      }
+
+      // Add padding and set minimum/maximum width
+      const optimalWidth = Math.min(Math.max(maxWidth + 2, 8), 50);
+
+      columnWidths.push({
+        width: optimalWidth,
+        wch: optimalWidth, // Excel column width unit
+      });
+    }
+
+    return columnWidths;
   }
 }
