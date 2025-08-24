@@ -64,7 +64,7 @@ await fastify.register(jwt, {
 
 await fastify.register(fastifyCaching, {
   privacy: fastifyCaching.privacy.PUBLIC,
-  expiresIn: 3600, // 1 hour
+  expiresIn: 60,
   cacheSegment: 'rise-social',
 });
 
