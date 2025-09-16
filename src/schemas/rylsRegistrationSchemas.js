@@ -18,7 +18,7 @@ const personalInfoSchema = {
     age: { type: 'integer' },
     gender: { type: 'string', enum: ['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY'] },
   },
-  required: ['fullName', 'email', 'residence', 'nationality', 'whatsapp', 'institution', 'dateOfBirth', 'gender'],
+  
 };
 
 const applicationInfoSchema = {
@@ -29,7 +29,7 @@ const applicationInfoSchema = {
     scholarshipType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'] },
     status: { type: 'string', enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'] },
   },
-  required: ['discoverSource', 'scholarshipType', 'status'],
+  
 };
 
 const timestampsSchema = {
@@ -38,7 +38,7 @@ const timestampsSchema = {
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' },
   },
-  required: ['createdAt', 'updatedAt'],
+  
 };
 
 // File info schema
@@ -50,7 +50,7 @@ const fileInfoSchema = {
     fileSize: { type: 'integer' },
     uploadDate: { type: 'string', format: 'date-time' },
   },
-  required: ['id', 'originalName', 'fileSize', 'uploadDate'],
+  
 };
 
 // Submission details schemas
@@ -62,7 +62,7 @@ const fullyFundedSubmissionSchema = {
     essayDescription: { type: 'string' },
     essayFile: fileInfoSchema,
   },
-  required: ['type', 'essayTopic'],
+  
 };
 
 const selfFundedSubmissionSchema = {
@@ -74,7 +74,7 @@ const selfFundedSubmissionSchema = {
     readPolicies: { type: 'boolean' },
     headshotFile: fileInfoSchema,
   },
-  required: ['type', 'passportNumber', 'needVisa', 'readPolicies'],
+  
 };
 
 // Complete registration response schema
@@ -90,20 +90,20 @@ const registrationResponseSchema = {
       oneOf: [fullyFundedSubmissionSchema, selfFundedSubmissionSchema],
     },
   },
-  required: ['id', 'submissionId', 'personalInfo', 'applicationInfo', 'timestamps'],
+  
 };
 
 // Request body schemas
 const step1DataSchema = {
   type: 'object',
   properties: {
-    fullName: { type: 'string', minLength: 2, maxLength: 255 },
+    fullName: { type: 'string',  maxLength: 255 },
     email: { type: 'string', format: 'email', maxLength: 255 },
-    residence: { type: 'string', minLength: 2, maxLength: 255 },
-    nationality: { type: 'string', minLength: 2, maxLength: 255 },
+    residence: { type: 'string',  maxLength: 255 },
+    nationality: { type: 'string',  maxLength: 255 },
     secondNationality: { type: 'string', maxLength: 255 },
-    whatsapp: { type: 'string', minLength: 5, maxLength: 50 },
-    institution: { type: 'string', minLength: 2, maxLength: 255 },
+    whatsapp: { type: 'string',  maxLength: 50 },
+    institution: { type: 'string',  maxLength: 255 },
     dateOfBirth: { type: 'string', format: 'date' },
     gender: { type: 'string', enum: ['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY'] },
     discoverSource: { type: 'string', enum: ['RISE_INSTAGRAM', 'OTHER_INSTAGRAM', 'FRIENDS', 'OTHER'] },
@@ -135,19 +135,19 @@ const fullyFundedRequestSchema = {
     essayFileId: { type: 'integer', minimum: 1 },
     essayDescription: { type: 'string' },
   },
-  required: ['step1', 'essayTopic', 'essayFileId'],
+  
 };
 
 const selfFundedRequestSchema = {
   type: 'object',
   properties: {
     step1: step1DataSchema,
-    passportNumber: { type: 'string', minLength: 6, maxLength: 20 },
+    passportNumber: { type: 'string',  maxLength: 20 },
     needVisa: { type: 'string', enum: ['YES', 'NO'] },
     headshotFileId: { type: 'integer', minimum: 1 },
     readPolicies: { type: 'string', enum: ['YES', 'NO'] },
   },
-  required: ['step1', 'passportNumber', 'needVisa', 'headshotFileId', 'readPolicies'],
+  
 };
 
 // Response schemas
@@ -163,7 +163,7 @@ const submissionResponseSchema = {
     createdAt: { type: 'string', format: 'date-time' },
     submission: { type: 'object' },
   },
-  required: ['registrationId', 'submissionId', 'email', 'fullName', 'scholarshipType', 'status', 'createdAt'],
+  
 };
 
 const registrationListResponseSchema = {
@@ -181,10 +181,10 @@ const registrationListResponseSchema = {
         total: { type: 'integer' },
         totalPages: { type: 'integer' },
       },
-      required: ['page', 'limit', 'total', 'totalPages'],
+      
     },
   },
-  required: ['registrations', 'pagination'],
+  
 };
 
 const statisticsResponseSchema = {
@@ -199,7 +199,7 @@ const statisticsResponseSchema = {
         failed: { type: 'integer' },
         expired: { type: 'integer' },
       },
-      required: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'],
+      
     },
     scholarshipBreakdown: {
       type: 'object',
@@ -207,7 +207,7 @@ const statisticsResponseSchema = {
         fullyFunded: { type: 'integer' },
         selfFunded: { type: 'integer' },
       },
-      required: ['fullyFunded', 'selfFunded'],
+      
     },
     recentRegistrations: { type: 'integer' },
     demographicBreakdown: {
@@ -237,7 +237,7 @@ const statisticsResponseSchema = {
     },
     generatedAt: { type: 'string', format: 'date-time' },
   },
-  required: ['totalRegistrations', 'statusBreakdown', 'scholarshipBreakdown', 'recentRegistrations', 'generatedAt'],
+  
 };
 
 // Parameter schemas
@@ -250,7 +250,7 @@ const registrationIdParamSchema = {
       description: 'Registration ID (numeric)',
     },
   },
-  required: ['id'],
+  
 };
 
 const submissionIdParamSchema = {
@@ -262,7 +262,7 @@ const submissionIdParamSchema = {
       description: 'Submission ID (RYLS-XXXXX-XXXXX format)',
     },
   },
-  required: ['submissionId'],
+  
 };
 
 const emailParamSchema = {
@@ -274,7 +274,7 @@ const emailParamSchema = {
       description: 'Email address to check',
     },
   },
-  required: ['email'],
+  
 };
 
 // Query parameter schemas
@@ -358,7 +358,7 @@ const dateRangeQuerySchema = {
       description: 'Sort order',
     },
   },
-  required: ['startDate', 'endDate'],
+  
 };
 
 const statusUpdateSchema = {
@@ -370,7 +370,7 @@ const statusUpdateSchema = {
       description: 'New payment status for the registration',
     },
   },
-  required: ['status'],
+  
 };
 
 // Error response schema (matches errorResponse utility)
@@ -385,7 +385,7 @@ const errorResponseSchema = {
       oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }, { type: 'object' }],
     },
   },
-  required: ['success', 'message', 'statusCode', 'timestamp'],
+  
 };
 
 // Success response wrapper (matches successResponse utility)
@@ -398,7 +398,7 @@ const createSuccessResponseSchema = (dataSchema) => ({
     timestamp: { type: 'string', format: 'date-time' },
     meta: { type: 'object' },
   },
-  required: ['success', 'message', 'data', 'timestamp'],
+  
 });
 
 // Complete route schemas
@@ -433,7 +433,7 @@ export const rylsRegistrationSchemas = {
               enum: ['FULLY_FUNDED', 'SELF_FUNDED'],
             },
           },
-          required: ['fullName', 'email', 'residence', 'nationality', 'whatsapp', 'institution', 'dateOfBirth', 'gender', 'scholarshipType'],
+          
         },
         // Fields for FULLY_FUNDED
         essayTopic: { type: 'string' },
@@ -470,7 +470,7 @@ export const rylsRegistrationSchemas = {
           },
         },
       },
-      required: ['step1', 'payment'],
+      
     },
   },
 

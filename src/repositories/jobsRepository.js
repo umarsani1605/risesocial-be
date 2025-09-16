@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
 import { BaseRepository } from './base/BaseRepository.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * Jobs repository for data access operations
@@ -10,100 +11,93 @@ export class JobsRepository extends BaseRepository {
     super(prisma.job);
   }
 
+  get logger() {
+    return getLogger();
+  }
+
   /**
    * Full-text search jobs with advanced filtering
    * @param {Object} options - Search and filter options
    * @returns {Promise<Object>} Paginated result with data and meta
    */
   async searchJobs(options = {}) {
+    this.logger.info({ options }, '[jobsRepository] searchJobs start');
+
     const {
       page = 1,
       limit = 20,
-      query, // Full-text search query
-      location, // Location filter
-      jobType, // Job type filter
-      experienceLevel, // Experience level filter
-      salaryMin, // Minimum salary
-      salaryMax, // Maximum salary
-      company, // Company filter
-      skills, // Skills array
-      isRemote, // Remote work filter
-      sortBy = 'postedDate', // Sort by: postedDate, salary, relevance
-      sortOrder = 'desc', // asc or desc
+      query,
+      location,
+      jobType,
+      experienceLevel,
+      salaryMin,
+      salaryMax,
+      company,
+      companySlug,
+      jobSlug,
+      skills,
+      isRemote,
+      sortBy = 'postedDate',
+      sortOrder = 'desc',
     } = options;
 
     const skip = (page - 1) * limit;
 
-    // Build where conditions
     const where = {};
 
-    // Full-text search across multiple fields
     if (query) {
       where.OR = [
         { title: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } },
         { company: { contains: query, mode: 'insensitive' } },
-        { skills: { has: query } }, // Assuming skills is a JSON array
+        { skills: { has: query } },
         { location: { contains: query, mode: 'insensitive' } },
       ];
     }
 
-    // Location filter
     if (location) {
       where.location = { contains: location, mode: 'insensitive' };
     }
 
-    // Job type filter
     if (jobType && jobType !== 'all') {
       where.job_type = jobType;
     }
 
-    // Experience level filter
     if (experienceLevel && experienceLevel !== 'all') {
       where.experience_level = experienceLevel;
     }
 
-    // Salary range filter
     if (salaryMin || salaryMax) {
       where.salary_min = {};
       if (salaryMin) where.salary_min.gte = Number(salaryMin);
       if (salaryMax) where.salary_max = { lte: Number(salaryMax) };
     }
 
-    // Company filter
     if (company) {
       where.company = { contains: company, mode: 'insensitive' };
     }
 
-    // Skills filter (if skills is a JSON array field)
+    if (companySlug) {
+      where.company = {
+        slug: companySlug,
+      };
+    }
+
+    if (jobSlug) {
+      where.slug = jobSlug;
+    }
+
     if (skills && Array.isArray(skills) && skills.length > 0) {
       where.AND = skills.map((skill) => ({
         skills: { array_contains: skill },
       }));
     }
 
-    // Remote work filter
     if (isRemote !== undefined) {
       where.is_remote = Boolean(isRemote);
     }
 
-    // Build order by
-    let orderBy = {};
-    switch (sortBy) {
-      case 'salary':
-        orderBy = { salary_max: sortOrder };
-        break;
-      case 'company':
-        orderBy = { company: sortOrder };
-        break;
-      case 'title':
-        orderBy = { title: sortOrder };
-        break;
-      case 'postedDate':
-      default:
-        orderBy = { posted_date: sortOrder };
-        break;
-    }
+    const orderBy = { created_at: sortOrder };
 
     const [data, total] = await Promise.all([
       this.model.findMany({
@@ -112,7 +106,7 @@ export class JobsRepository extends BaseRepository {
         take: Number(limit),
         orderBy,
         include: {
-          company: true, // Include all company fields
+          company: true,
           location: {
             select: {
               id: true,
@@ -125,7 +119,7 @@ export class JobsRepository extends BaseRepository {
               raw_location_data: true,
               location_type: true,
               is_remote: true,
-            }
+            },
           },
           _count: {
             select: {
@@ -136,6 +130,8 @@ export class JobsRepository extends BaseRepository {
       }),
       this.model.count({ where }),
     ]);
+
+    this.logger.info({ data, total }, '[jobsRepository] searchJobs result');
 
     return {
       data,
@@ -153,6 +149,8 @@ export class JobsRepository extends BaseRepository {
           experienceLevel,
           salaryRange: salaryMin || salaryMax ? { min: salaryMin, max: salaryMax } : null,
           company,
+          companySlug,
+          jobSlug,
           skills,
           isRemote,
         },
@@ -171,19 +169,16 @@ export class JobsRepository extends BaseRepository {
 
     const where = {};
 
-    // Match skills (if user has skills)
     if (skills.length > 0) {
       where.OR = skills.map((skill) => ({
         skills: { array_contains: skill },
       }));
     }
 
-    // Preferred location
     if (preferredLocation) {
       where.location = { contains: preferredLocation, mode: 'insensitive' };
     }
 
-    // Experience level match
     if (experienceLevel) {
       where.experience_level = experienceLevel;
     }
@@ -193,8 +188,8 @@ export class JobsRepository extends BaseRepository {
       take: Number(limit),
       orderBy: [{ posted_date: 'desc' }, { salary_max: 'desc' }],
       include: {
-        company: true, 
-        location: true, 
+        company: true,
+        location: true,
         _count: {
           select: {
             applications: true,
@@ -202,152 +197,6 @@ export class JobsRepository extends BaseRepository {
         },
       },
     });
-  }
-
-  /**
-   * Get popular job categories with counts
-   * @returns {Promise<Array>} Job categories with counts
-   */
-  async getPopularCategories() {
-    const result = await this.model.groupBy({
-      by: ['job_type'],
-      _count: { job_type: true },
-      orderBy: {
-        _count: { job_type: 'desc' },
-      },
-    });
-
-    return result.map((item) => ({
-      category: item.job_type,
-      count: item._count.job_type,
-    }));
-  }
-
-  /**
-   * Get popular locations with job counts
-   * @returns {Promise<Array>} Locations with job counts
-   */
-  async getPopularLocations() {
-    const result = await this.model.groupBy({
-      by: ['location'],
-      _count: { location: true },
-      orderBy: {
-        _count: { location: 'desc' },
-      },
-      take: 10,
-    });
-
-    return result.map((item) => ({
-      location: item.location,
-      count: item._count.location,
-    }));
-  }
-
-  /**
-   * Get popular companies with job counts
-   * @returns {Promise<Array>} Companies with job counts
-   */
-  async getPopularCompanies() {
-    const result = await this.model.groupBy({
-      by: ['company'],
-      _count: { company: true },
-      orderBy: {
-        _count: { company: 'desc' },
-      },
-      take: 20,
-    });
-
-    return result.map((item) => ({
-      company: item.company,
-      count: item._count.company,
-    }));
-  }
-
-  /**
-   * Get trending skills from job postings
-   * @returns {Promise<Array>} Trending skills
-   */
-  async getTrendingSkills() {
-    // This would require a more complex query to extract skills from JSON arrays
-    // For now, return a simple aggregation based on recent jobs
-    const recentJobs = await this.model.findMany({
-      where: {
-        posted_date: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-        },
-      },
-      select: {
-        skills: true,
-      },
-    });
-
-    // Flatten and count skills
-    const skillCounts = {};
-    recentJobs.forEach((job) => {
-      if (job.skills && Array.isArray(job.skills)) {
-        job.skills.forEach((skill) => {
-          skillCounts[skill] = (skillCounts[skill] || 0) + 1;
-        });
-      }
-    });
-
-    // Sort by count and return top skills
-    return Object.entries(skillCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 20)
-      .map(([skill, count]) => ({ skill, count }));
-  }
-
-  /**
-   * Get job statistics
-   * @returns {Promise<Object>} Job statistics
-   */
-  async getStatistics() {
-    const [total, recentCount, averageSalary, remoteCount, topCompany] = await Promise.all([
-      this.model.count(),
-      this.model.count({
-        where: {
-          posted_date: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
-          },
-        },
-      }),
-      this.model.aggregate({
-        _avg: {
-          salary_max: true,
-          salary_min: true,
-        },
-      }),
-      this.model.count({
-        where: { is_remote: true },
-      }),
-      this.model.groupBy({
-        by: ['company'],
-        _count: { company: true },
-        orderBy: {
-          _count: { company: 'desc' },
-        },
-        take: 1,
-      }),
-    ]);
-
-    return {
-      total,
-      recent: recentCount,
-      averageSalary: {
-        min: Math.round(averageSalary._avg.salary_min || 0),
-        max: Math.round(averageSalary._avg.salary_max || 0),
-      },
-      remote: remoteCount,
-      remotePercentage: total > 0 ? Math.round((remoteCount / total) * 100) : 0,
-      topCompany:
-        topCompany.length > 0
-          ? {
-              name: topCompany[0].company,
-              jobCount: topCompany[0]._count.company,
-            }
-          : null,
-    };
   }
 
   /**
@@ -382,6 +231,188 @@ export class JobsRepository extends BaseRepository {
         },
       },
     });
+  }
+
+  /**
+   * Find job by ID
+   * @param {number} id - Job ID
+   * @returns {Promise<Object|null>} Job or null
+   */
+  async findById(id) {
+    return await this.model.findUnique({
+      where: { id },
+      include: {
+        company: true, // Include all company fields
+        location: true, // Include all location fields
+        _count: {
+          select: {
+            applications: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Find job by LinkedIn job ID
+   * @param {string} linkedinJobId - LinkedIn job ID
+   * @returns {Promise<Object|null>} Job or null
+   */
+  async findJobByLinkedInId(linkedinJobId) {
+    this.logger.debug({ linkedinJobId }, '[jobsRepository] findJobByLinkedInId');
+    const job = await this.model.findFirst({
+      where: { linkedin_job_id: linkedinJobId },
+    });
+    this.logger.debug({ found: !!job }, '[jobsRepository] findJobByLinkedInId result');
+    return job;
+  }
+
+  /**
+   * Create multiple jobs in batch
+   * @param {Array} jobsData - Array of job data
+   * @returns {Promise<Array>} Created jobs
+   */
+  async createManyJobs(jobsData) {
+    this.logger.info({ size: jobsData.length }, '[jobsRepository] createManyJobs');
+    return await this.model.createMany({
+      data: jobsData,
+      skipDuplicates: true, // Skip if linkedin_job_id already exists
+    });
+  }
+
+  /**
+   * Find location by details
+   * @param {Object} locationData - Location data
+   * @returns {Promise<Object|null>} Location or null
+   */
+  async findLocationByDetails(locationData) {
+    const { city, region, country } = locationData;
+    this.logger.debug({ city, region, country }, '[jobsRepository] findLocation');
+    return await prisma.jobLocation.findFirst({
+      where: {
+        city: city,
+        region: region,
+        country: country,
+      },
+    });
+  }
+
+  /**
+   * Create new location
+   * @param {Object} locationData - Location data
+   * @returns {Promise<Object>} Created location
+   */
+  async createLocation(locationData) {
+    this.logger.debug({ locationData }, '[jobsRepository] createLocation');
+    return await prisma.jobLocation.create({
+      data: locationData,
+    });
+  }
+
+  /**
+   * Search companies with filtering and pagination
+   * @param {Object} options - Search and filter options
+   * @returns {Promise<Object>} Paginated result with data and meta
+   */
+  async searchCompanies(options = {}) {
+    this.logger.info({ options }, '[jobsRepository] searchCompanies start');
+
+    const { page = 1, limit = 20, slug, name, headquarters, industry, linkedinSize, search, sortBy = 'name', sortOrder = 'asc' } = options;
+
+    const skip = (page - 1) * limit;
+    const where = {};
+
+    // Search across multiple fields
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { industry: { contains: search, mode: 'insensitive' } },
+        { headquarters: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Exact match filters
+    if (slug) {
+      where.slug = slug;
+    }
+
+    if (name) {
+      where.name = { contains: name, mode: 'insensitive' };
+    }
+
+    if (headquarters) {
+      where.headquarters = { contains: headquarters, mode: 'insensitive' };
+    }
+
+    if (industry) {
+      where.industry = { contains: industry, mode: 'insensitive' };
+    }
+
+    if (linkedinSize) {
+      where.linkedin_size = { contains: linkedinSize, mode: 'insensitive' };
+    }
+
+    // Sort options
+    let orderBy = {};
+    switch (sortBy) {
+      case 'created_at':
+        orderBy = { created_at: sortOrder };
+        break;
+      case 'linkedin_employees':
+        orderBy = { linkedin_employees: sortOrder };
+        break;
+      case 'linkedin_followers':
+        orderBy = { linkedin_followers: sortOrder };
+        break;
+      case 'name':
+      default:
+        orderBy = { name: sortOrder };
+        break;
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.company.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        orderBy,
+        include: {
+          _count: {
+            select: {
+              jobs: {
+                where: {
+                  status: 'active',
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.company.count({ where }),
+    ]);
+
+    this.logger.info({ data, total }, '[jobsRepository] searchCompanies result');
+
+    return {
+      data,
+      meta: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+        searchQuery: search || null,
+        appliedFilters: {
+          slug,
+          name,
+          headquarters,
+          industry,
+          linkedinSize,
+        },
+      },
+    };
   }
 }
 

@@ -259,6 +259,19 @@ model Company {
   @@map("companies")
 }
 
+/// System settings untuk menyimpan konfigurasi dan data sistem
+model SystemSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(100)
+  value       Json?
+  description String?  @db.VarChar(500)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([key])
+  @@map("system_settings")
+}
+
 /// Enhanced Locations table dengan koordinat GPS
 model JobLocation {
   id                Int      @id @default(autoincrement())
@@ -450,10 +463,8 @@ model RylsRegistration {
   updated_at              DateTime                   @updatedAt
   ryls_payment_id         Int?
   fully_funded_submission RylsFullyFundedSubmission? @relation("RegistrationToFullyFunded")
-  payment                 RylsPayment?               @relation(fields: [ryls_payment_id], references: [id])
+  payments                RylsPayment[]
   self_funded_submission  RylsSelfFundedSubmission?  @relation("RegistrationToSelfFunded")
-  RylsPayment             RylsPayment[]
-  RylsPayment             RylsPayment[]
 
   @@index([scholarship_type])
   @@index([created_at(sort: Desc)])
@@ -539,20 +550,19 @@ model MidtransPayment {
 
 /// RYLS payment information
 model RylsPayment {
-  id               Int                @id @default(autoincrement())
+  id               Int               @id @default(autoincrement())
   registration_id  Int?
   paid_at          DateTime?
-  created_at       DateTime           @default(now())
-  updated_at       DateTime           @updatedAt
-  midtrans_id      Int?               @unique
-  payment_proof_id Int?               @unique
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  midtrans_id      Int?              @unique
+  payment_proof_id Int?              @unique
   amount           Int
-  status           String             @default("PENDING") @db.VarChar(20)
-  type             String             @db.VarChar(50)
-  midtrans         MidtransPayment?   @relation("PaymentToMidtrans", fields: [midtrans_id], references: [id])
-  payment_proof    FileUpload?        @relation("PaymentToFileUpload", fields: [payment_proof_id], references: [id])
-  registration     RylsRegistration?  @relation("PaymentToRegistration", fields: [registration_id], references: [id])
-  RylsRegistration RylsRegistration[]
+  status           String            @default("PENDING") @db.VarChar(20)
+  type             String            @db.VarChar(50)
+  midtrans         MidtransPayment?  @relation("PaymentToMidtrans", fields: [midtrans_id], references: [id])
+  payment_proof    FileUpload?       @relation("PaymentToFileUpload", fields: [payment_proof_id], references: [id])
+  registration     RylsRegistration? @relation(fields: [registration_id], references: [id])
 
   @@index([status])
   @@index([type])

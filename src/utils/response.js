@@ -1,3 +1,5 @@
+import { getLogger } from '../lib/loggerContext.js';
+
 /**
  * Standardized API Response Utilities
  * Following KISS principle for consistent responses
@@ -15,10 +17,10 @@ export function successResponse(data, message = 'Success', meta = {}) {
     success: true,
     message,
     data,
-    timestamp: new Date().toISOString(),
   };
 
-  // Only add meta if it has content
+  getLogger().info({ response }, 'successResponse');
+
   if (Object.keys(meta).length > 0) {
     response.meta = meta;
   }
@@ -38,7 +40,6 @@ export function errorResponse(message, statusCode = 500, details = null) {
     success: false,
     message,
     statusCode,
-    timestamp: new Date().toISOString(),
   };
 
   // Only add details if provided (for security)

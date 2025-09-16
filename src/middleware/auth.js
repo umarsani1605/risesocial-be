@@ -8,21 +8,25 @@ import { errorResponse } from '../utils/response.js';
  */
 export async function authMiddleware(request, reply) {
   try {
-    // Extract token from Authorization header
+    request.log.info('[authMiddleware] start');
     const authHeader = request.headers.authorization;
+    request.log.debug({ hasAuthHeader: !!authHeader }, '[authMiddleware] header');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return reply.status(401).send(errorResponse('Access token required', 401));
     }
 
     const token = authHeader.substring(7);
+    request.log.debug({ tokenPrefix: token ? token.slice(0, 12) : '' }, '[authMiddleware] tokenPrefix');
 
-    // Verify JWT token using Fastify JWT plugin
-    const decoded = await request.jwtVerify(token);
+    request.log.info('[authMiddleware] verifying jwt');
+    const decoded = await request.jwtVerify();
+    request.log.info({ decoded }, '[authMiddleware] decoded payload');
 
-    // Attach user to request for use in routes
     request.user = decoded;
+    request.log.info({ userId: decoded?.userId, role: decoded?.role }, '[authMiddleware] verified');
   } catch (error) {
+    request.log.error({ err: error }, '[authMiddleware] verify error');
     return reply.status(401).send(errorResponse('Invalid or expired token', 401));
   }
 }
@@ -36,15 +40,48 @@ export async function authMiddleware(request, reply) {
 export async function optionalAuthMiddleware(request, reply) {
   try {
     const authHeader = request.headers.authorization;
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const decoded = await request.jwtVerify(token);
-      request.user = decoded;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return; // No token, proceed without user
     }
-    // Continue even if no token or invalid token
+
+    const token = authHeader.substring(7);
+    request.log.debug({ tokenPrefix: token ? token.slice(0, 12) : '' }, '[optionalAuth] tokenPrefix');
+    const decoded = await request.jwtVerify();
+    request.user = decoded;
+    request.log.info({ userId: decoded?.id, role: decoded?.role }, '[optionalAuth] verified');
   } catch (error) {
-    // Ignore auth errors for optional middleware
-    request.log.debug('Optional auth failed:', error.message);
+    request.log.warn({ err: error?.message }, '[optionalAuth] verify failed, continuing unauthenticated');
   }
+}
+
+/**
+ * Role authorization middleware factory
+ * Creates middleware that checks if user has required role(s)
+ * @param {Array<string>} requiredRoles - Array of required roles
+ * @returns {Function} Middleware function
+ */
+export function authorizeRoles(requiredRoles) {
+  return async (request, reply) => {
+    try {
+      request.log.info('[authorizeRoles] start', { requiredRoles });
+
+      if (!request.user) {
+        request.log.error('[authorizeRoles] no user in request');
+        return reply.status(401).send(errorResponse('Authentication required', 401));
+      }
+
+      const userRole = request.user.role;
+      request.log.debug({ userRole, requiredRoles }, '[authorizeRoles] checking');
+
+      if (!requiredRoles.includes(userRole)) {
+        request.log.warn({ userRole, requiredRoles }, '[authorizeRoles] insufficient permissions');
+        return reply.status(403).send(errorResponse('Insufficient permissions', 403));
+      }
+
+      request.log.info('[authorizeRoles] authorized', { userRole });
+    } catch (error) {
+      request.log.error({ err: error }, '[authorizeRoles] error');
+      return reply.status(500).send(errorResponse('Authorization check failed', 500));
+    }
+  };
 }

@@ -1,22 +1,27 @@
+import prisma from '../lib/prisma.js';
 import { BaseRepository } from './base/BaseRepository.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 class InstructorRepository extends BaseRepository {
   constructor() {
-    super('instructor');
+    super(prisma.instructor);
+    this.prisma = prisma;
+  }
+
+  get logger() {
+    return getLogger();
   }
 
   /**
    * Mendapatkan semua instructor dengan pagination
-   * @param {Object} options - Options untuk query
-   * @returns {Promise<Array>} Array instructor
    */
   async findManyWithPagination(options = {}) {
+    this.logger.info({ options }, '[instructorRepository] findManyWithPagination called');
     const { page = 1, limit = 10, search, includeBootcamps = false } = options;
     const skip = (page - 1) * limit;
 
     const whereClause = {};
 
-    // Add search functionality
     if (search) {
       whereClause.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -29,67 +34,41 @@ class InstructorRepository extends BaseRepository {
       ? {
           bootcamp_instructors: {
             include: {
-              bootcamp: {
-                select: {
-                  id: true,
-                  title: true,
-                  path_slug: true,
-                  category: true,
-                  status: true,
-                },
-              },
+              bootcamp: { select: { id: true, title: true, path_slug: true, category: true, status: true } },
             },
             orderBy: { instructor_order: 'asc' },
           },
         }
       : {};
 
+    console.log('[InstructorRepository] findManyWithPagination - whereClause:', JSON.stringify(whereClause, null, 2));
+    console.log('[InstructorRepository] findManyWithPagination - includeClause:', JSON.stringify(includeClause, null, 2));
+    console.log('[InstructorRepository] findManyWithPagination - calling count with:', { where: whereClause });
+
     const [instructors, total] = await Promise.all([
-      this.findMany({
-        where: whereClause,
-        include: includeClause,
-        orderBy: { created_at: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.count({ where: whereClause }),
+      this.findMany({ where: whereClause, include: includeClause, orderBy: { created_at: 'desc' }, skip, take: limit }),
+      this.count(whereClause),
     ]);
+
+    console.log('[InstructorRepository] findManyWithPagination - results:', { instructorsCount: instructors.length, total });
 
     return {
       data: instructors,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
-      },
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page * limit < total, hasPrev: page > 1 },
     };
   }
 
   /**
    * Mendapatkan instructor berdasarkan ID dengan bootcamp associations
-   * @param {number} id - ID instructor
-   * @param {boolean} includeBootcamps - Include bootcamp associations
-   * @returns {Promise<Object>} Instructor object
    */
   async findByIdWithBootcamps(id, includeBootcamps = false) {
+    this.logger.info({ id, includeBootcamps }, '[instructorRepository] findByIdWithBootcamps called');
     const includeClause = includeBootcamps
       ? {
           bootcamp_instructors: {
             include: {
               bootcamp: {
-                select: {
-                  id: true,
-                  title: true,
-                  path_slug: true,
-                  category: true,
-                  status: true,
-                  image_url: true,
-                  duration: true,
-                  rating: true,
-                },
+                select: { id: true, title: true, path_slug: true, category: true, status: true, image_url: true, duration: true, rating: true },
               },
             },
             orderBy: { instructor_order: 'asc' },
@@ -102,122 +81,73 @@ class InstructorRepository extends BaseRepository {
 
   /**
    * Mencari instructor berdasarkan nama
-   * @param {string} name - Nama instructor
-   * @returns {Promise<Array>} Array instructor
    */
   async findByName(name) {
-    return this.findMany({
-      where: {
-        name: { contains: name, mode: 'insensitive' },
-      },
-      orderBy: { name: 'asc' },
-    });
+    this.logger.info({ name }, '[instructorRepository] findByName called');
+    return this.findMany({ where: { name: { contains: name, mode: 'insensitive' } }, orderBy: { name: 'asc' } });
   }
 
   /**
    * Mendapatkan instructor berdasarkan job title
-   * @param {string} jobTitle - Job title
-   * @returns {Promise<Array>} Array instructor
    */
   async findByJobTitle(jobTitle) {
-    return this.findMany({
-      where: {
-        job_title: { contains: jobTitle, mode: 'insensitive' },
-      },
-      orderBy: { name: 'asc' },
-    });
+    this.logger.info({ jobTitle }, '[instructorRepository] findByJobTitle called');
+    return this.findMany({ where: { job_title: { contains: jobTitle, mode: 'insensitive' } }, orderBy: { name: 'asc' } });
   }
 
   /**
    * Mendapatkan instructor yang belum di-assign ke bootcamp tertentu
-   * @param {number} bootcampId - ID bootcamp
-   * @returns {Promise<Array>} Array instructor
    */
   async findAvailableForBootcamp(bootcampId) {
-    return this.findMany({
-      where: {
-        bootcamp_instructors: {
-          none: {
-            bootcamp_id: bootcampId,
-          },
-        },
-      },
-      orderBy: { name: 'asc' },
-    });
+    this.logger.info({ bootcampId }, '[instructorRepository] findAvailableForBootcamp called');
+    return this.findMany({ where: { bootcamp_instructors: { none: { bootcamp_id: bootcampId } } }, orderBy: { name: 'asc' } });
   }
 
   /**
    * Mendapatkan instructor yang sudah di-assign ke bootcamp tertentu
-   * @param {number} bootcampId - ID bootcamp
-   * @returns {Promise<Array>} Array instructor dengan order
    */
   async findByBootcampId(bootcampId) {
+    this.logger.info({ bootcampId }, '[instructorRepository] findByBootcampId called');
     const bootcampInstructors = await this.prisma.bootcampInstructor.findMany({
       where: { bootcamp_id: bootcampId },
-      include: {
-        instructor: true,
-      },
+      include: { instructor: true },
       orderBy: { instructor_order: 'asc' },
     });
 
-    return bootcampInstructors.map((bi) => ({
-      ...bi.instructor,
-      instructor_order: bi.instructor_order,
-      bootcamp_id: bi.bootcamp_id,
-    }));
+    return bootcampInstructors.map((bi) => ({ ...bi.instructor, instructor_order: bi.instructor_order, bootcamp_id: bi.bootcamp_id }));
   }
 
   /**
    * Mendapatkan bootcamp yang diajar oleh instructor tertentu
-   * @param {number} instructorId - ID instructor
-   * @returns {Promise<Array>} Array bootcamp
    */
   async findBootcampsByInstructorId(instructorId) {
+    this.logger.info({ instructorId }, '[instructorRepository] findBootcampsByInstructorId called');
     const bootcampInstructors = await this.prisma.bootcampInstructor.findMany({
       where: { instructor_id: instructorId },
-      include: {
-        bootcamp: true,
-      },
+      include: { bootcamp: true },
       orderBy: { instructor_order: 'asc' },
     });
 
-    return bootcampInstructors.map((bi) => ({
-      ...bi.bootcamp,
-      instructor_order: bi.instructor_order,
-      instructor_id: bi.instructor_id,
-    }));
+    return bootcampInstructors.map((bi) => ({ ...bi.bootcamp, instructor_order: bi.instructor_order, instructor_id: bi.instructor_id }));
   }
 
   /**
    * Mendapatkan instructor terpopuler berdasarkan jumlah bootcamp
-   * @param {number} limit - Limit hasil
-   * @returns {Promise<Array>} Array instructor dengan bootcamp count
    */
   async findPopularInstructors(limit = 10) {
+    this.logger.info({ limit }, '[instructorRepository] findPopularInstructors called');
     return this.findMany({
-      include: {
-        bootcamp_instructors: {
-          include: {
-            bootcamp: {
-              select: { id: true, title: true, status: true },
-            },
-          },
-        },
-      },
-      orderBy: {
-        bootcamp_instructors: {
-          _count: 'desc',
-        },
-      },
+      include: { bootcamp_instructors: { include: { bootcamp: { select: { id: true, title: true, status: true } } } } },
+      orderBy: { created_at: 'desc' },
       take: limit,
     });
   }
 
   /**
    * Mendapatkan statistik instructor
-   * @returns {Promise<Object>} Statistik instructor
    */
   async getInstructorStats() {
+    this.logger.info('[instructorRepository] getInstructorStats called');
     const [totalInstructors, instructorsWithAvatar, instructorsWithDescription, instructorsWithJobTitle, totalBootcampAssociations] =
       await Promise.all([
         this.count(),
@@ -227,20 +157,9 @@ class InstructorRepository extends BaseRepository {
         this.prisma.bootcampInstructor.count(),
       ]);
 
-    // Get instructor with most bootcamps
     const instructorWithMostBootcamps = await this.prisma.instructor.findFirst({
-      include: {
-        bootcamp_instructors: {
-          include: {
-            bootcamp: { select: { title: true } },
-          },
-        },
-      },
-      orderBy: {
-        bootcamp_instructors: {
-          _count: 'desc',
-        },
-      },
+      include: { bootcamp_instructors: { include: { bootcamp: { select: { title: true } } } } },
+      orderBy: { created_at: 'desc' },
     });
 
     return {
@@ -265,44 +184,28 @@ class InstructorRepository extends BaseRepository {
 
   /**
    * Membuat instructor baru dengan validasi
-   * @param {Object} data - Data instructor
-   * @returns {Promise<Object>} Instructor yang dibuat
    */
   async createInstructor(data) {
-    // Cek apakah nama sudah ada
-    const existingInstructor = await this.findFirst({
-      where: { name: data.name },
-    });
-
+    this.logger.info('[instructorRepository] createInstructor called');
+    const existingInstructor = await this.findFirst({ where: { name: data.name } });
     if (existingInstructor) {
       throw new Error('Instructor dengan nama tersebut sudah ada');
     }
-
     return this.create(data);
   }
 
   /**
    * Update instructor dengan validasi
-   * @param {number} id - ID instructor
-   * @param {Object} data - Data untuk update
-   * @returns {Promise<Object>} Instructor yang diupdate
    */
   async updateInstructor(id, data) {
-    // Cek apakah instructor exists
+    this.logger.info({ id }, '[instructorRepository] updateInstructor called');
     const instructor = await this.findById(id);
     if (!instructor) {
       throw new Error('Instructor tidak ditemukan');
     }
 
-    // Cek apakah nama baru sudah ada (jika nama diubah)
     if (data.name && data.name !== instructor.name) {
-      const existingInstructor = await this.findFirst({
-        where: {
-          name: data.name,
-          id: { not: id },
-        },
-      });
-
+      const existingInstructor = await this.findFirst({ where: { name: data.name, id: { not: id } } });
       if (existingInstructor) {
         throw new Error('Instructor dengan nama tersebut sudah ada');
       }
@@ -313,21 +216,15 @@ class InstructorRepository extends BaseRepository {
 
   /**
    * Menghapus instructor dengan validasi
-   * @param {number} id - ID instructor
-   * @returns {Promise<Object>} Instructor yang dihapus
    */
   async deleteInstructor(id) {
-    // Cek apakah instructor exists
+    this.logger.info({ id }, '[instructorRepository] deleteInstructor called');
     const instructor = await this.findById(id);
     if (!instructor) {
       throw new Error('Instructor tidak ditemukan');
     }
 
-    // Cek apakah instructor masih di-assign ke bootcamp
-    const bootcampAssociations = await this.prisma.bootcampInstructor.count({
-      where: { instructor_id: id },
-    });
-
+    const bootcampAssociations = await this.prisma.bootcampInstructor.count({ where: { instructor_id: id } });
     if (bootcampAssociations > 0) {
       throw new Error('Tidak dapat menghapus instructor yang masih di-assign ke bootcamp. Hapus assignment terlebih dahulu.');
     }

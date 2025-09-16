@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { fileURLToPath } from 'url';
+import { getLogger } from '../lib/loggerContext.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,27 +23,29 @@ fs.ensureDirSync(imagesDir);
  * @param {Object} file - File from request.file()
  * @param {Array} allowedTypes - Allowed MIME types
  * @param {number} maxSize - Maximum file size in bytes
- * @param {string} uploadType - Type of upload ('ESSAY' or 'HEADSHOT')
+ * @param {string} uploadType - Type of upload ('ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'BOOTCAMP_IMAGE')
  * @returns {Object} Processed file info
  */
 const processUploadedFile = async (file, allowedTypes, maxSize, uploadType) => {
-  console.log('[FileUploadMiddleware] Processing file upload');
-  console.log(`[FileUploadMiddleware] Original filename: ${file.filename}, Type: ${file.mimetype}, Size: ${file.file?.bytesRead || 'unknown'} bytes`);
+  const logger = getLogger();
+  logger.info('[fileUploadMiddleware] processUploadedFile start');
 
   if (!file) {
-    console.error('[FileUploadMiddleware] No file uploaded');
+    logger.error('[fileUploadMiddleware] no_file_uploaded');
     throw new Error('No file uploaded');
   }
 
+  logger.debug({ filename: file.filename, mimetype: file.mimetype }, '[fileUploadMiddleware] file_meta');
+
   if (!allowedTypes.includes(file.mimetype)) {
-    console.error(`[FileUploadMiddleware] Invalid file type: ${file.mimetype}. Allowed: ${allowedTypes.join(', ')}`);
+    logger.error({ mimetype: file.mimetype, allowed: allowedTypes }, '[fileUploadMiddleware] invalid_file_type');
     throw new Error(`Invalid file type. Allowed types: ${allowedTypes.join(', ')}`);
   }
 
   const isPdf = file.mimetype === 'application/pdf';
   const targetDir = isPdf ? documentsDir : imagesDir;
   const relativeFolderName = isPdf ? 'documents' : 'images';
-  console.log(`[FileUploadMiddleware] File type: ${isPdf ? 'PDF' : 'Image'}, Target directory: ${targetDir}`);
+  logger.info({ uploadType, isPdf, targetDir }, '[fileUploadMiddleware] determine_target_dir');
 
   const timestamp = Date.now();
   const extension = path.extname(file.filename);
@@ -50,20 +53,20 @@ const processUploadedFile = async (file, allowedTypes, maxSize, uploadType) => {
   const uniqueFilename = `${timestamp}-${basename}${extension}`;
   const filePath = path.join(targetDir, uniqueFilename);
 
-  console.log(`[FileUploadMiddleware] Generated unique filename: ${uniqueFilename}`);
+  logger.debug({ uniqueFilename }, '[fileUploadMiddleware] generated_filename');
 
   const buffer = await file.toBuffer();
-  console.log(`[FileUploadMiddleware] File buffer size: ${buffer.length} bytes`);
+  logger.debug({ size: buffer.length }, '[fileUploadMiddleware] buffer_size');
 
   if (buffer.length > maxSize) {
     const errorMsg = `File too large: ${Math.round(buffer.length / (1024 * 1024))}MB. Maximum size: ${Math.round(maxSize / (1024 * 1024))}MB`;
-    console.error(`[FileUploadMiddleware] ${errorMsg}`);
+    logger.error({ size: buffer.length, maxSize }, '[fileUploadMiddleware] file_too_large');
     throw new Error(errorMsg);
   }
 
-  console.log(`[FileUploadMiddleware] Writing file to: ${filePath}`);
+  logger.info({ filePath }, '[fileUploadMiddleware] writing_file');
   await fs.writeFile(filePath, buffer);
-  console.log('[FileUploadMiddleware] File successfully written to disk');
+  logger.info('[fileUploadMiddleware] write_success');
 
   return {
     filename: uniqueFilename,
@@ -82,6 +85,7 @@ const processUploadedFile = async (file, allowedTypes, maxSize, uploadType) => {
  */
 export const uploadEssay = async (request, reply) => {
   try {
+    request.log.info('[fileUploadMiddleware] uploadEssay start');
     const file = await request.file();
 
     const allowedTypes = ['application/pdf'];
@@ -90,7 +94,9 @@ export const uploadEssay = async (request, reply) => {
     const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'ESSAY');
 
     request.uploadedFile = processedFile;
+    request.log.info('[fileUploadMiddleware] uploadEssay success');
   } catch (error) {
+    request.log.error({ err: error }, '[fileUploadMiddleware] uploadEssay error');
     reply.status(400).send({
       success: false,
       message: error.message || 'File upload failed',
@@ -105,6 +111,7 @@ export const uploadEssay = async (request, reply) => {
  */
 export const uploadHeadshot = async (request, reply) => {
   try {
+    request.log.info('[fileUploadMiddleware] uploadHeadshot start');
     const file = await request.file();
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
@@ -113,7 +120,9 @@ export const uploadHeadshot = async (request, reply) => {
     const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'HEADSHOT');
 
     request.uploadedFile = processedFile;
+    request.log.info('[fileUploadMiddleware] uploadHeadshot success');
   } catch (error) {
+    request.log.error({ err: error }, '[fileUploadMiddleware] uploadHeadshot error');
     reply.status(400).send({
       success: false,
       message: error.message || 'File upload failed',
@@ -128,15 +137,44 @@ export const uploadHeadshot = async (request, reply) => {
  */
 export const uploadPaymentProof = async (request, reply) => {
   try {
+    request.log.info('[fileUploadMiddleware] uploadPaymentProof start');
     const file = await request.file();
 
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
     const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 10 * 1024 * 1024; // 10MB
 
     const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'PAYMENT_PROOF');
 
     request.uploadedFile = processedFile;
+    request.log.info('[fileUploadMiddleware] uploadPaymentProof success');
   } catch (error) {
+    request.log.error({ err: error }, '[fileUploadMiddleware] uploadPaymentProof error');
+    reply.status(400).send({
+      success: false,
+      message: error.message || 'File upload failed',
+    });
+  }
+};
+
+/**
+ * Bootcamp image upload handler (Images only)
+ * @param {Object} request - Fastify request
+ * @param {Object} reply - Fastify reply
+ */
+export const uploadBootcampImage = async (request, reply) => {
+  try {
+    request.log.info('[fileUploadMiddleware] uploadBootcampImage start');
+    const file = await request.file();
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB untuk optimasi
+
+    const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'BOOTCAMP_IMAGE');
+
+    request.uploadedFile = processedFile;
+    request.log.info('[fileUploadMiddleware] uploadBootcampImage success');
+  } catch (error) {
+    request.log.error({ err: error }, '[fileUploadMiddleware] uploadBootcampImage error');
     reply.status(400).send({
       success: false,
       message: error.message || 'File upload failed',
@@ -151,10 +189,14 @@ export const uploadPaymentProof = async (request, reply) => {
  * @returns {Promise<boolean>} true if deleted or not exists, false if failed
  */
 export const deleteFile = async (filePath) => {
+  const logger = getLogger();
   try {
+    logger.info({ filePath }, '[fileUploadMiddleware] deleteFile start');
     await fs.remove(filePath);
+    logger.info('[fileUploadMiddleware] deleteFile success');
     return true;
   } catch (err) {
+    logger.error({ err }, '[fileUploadMiddleware] deleteFile error');
     return false;
   }
 };

@@ -1,5 +1,6 @@
 import { RylsRegistrationRepository } from '../repositories/rylsRegistrationRepository.js';
 import { FileUploadService } from './fileUploadService.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * RYLS Registration Service
@@ -9,6 +10,10 @@ export class RylsRegistrationService {
   constructor() {
     this.registrationRepository = new RylsRegistrationRepository();
     this.fileUploadService = new FileUploadService();
+  }
+
+  get logger() {
+    return getLogger();
   }
 
   /**
@@ -21,6 +26,8 @@ export class RylsRegistrationService {
   }
 
   async createRegistration(formData) {
+    this.logger.info('[rylsRegistrationService] createRegistration start');
+    this.logger.debug({ formKeys: Object.keys(formData || {}) }, '[rylsRegistrationService] rawKeys');
     try {
       const step1 = formData.step1;
       const payment = formData.payment;
@@ -52,25 +59,25 @@ export class RylsRegistrationService {
         throw new Error('Failed to create submission');
       }
 
+      this.logger.info('[rylsRegistrationService] createRegistration success');
       return registration;
     } catch (error) {
-      console.error('Error creating registration:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] createRegistration error');
       throw error;
     }
   }
 
   /**
    * Submit fully funded registration
-   * @param {Object} formData - Complete form data
-   * @returns {Promise<Object>} Registration result
    */
   async submitFullyFundedRegistration(formData) {
+    this.logger.info('[rylsRegistrationService] submitFullyFundedRegistration start');
     try {
       const { registration, submission } = await this.registrationRepository.createFullyFundedFlow({
         step1: formData.step1,
       });
 
-      return {
+      const result = {
         registrationId: registration.id,
         submissionId: registration.submission_id,
         email: registration.email,
@@ -84,21 +91,21 @@ export class RylsRegistrationService {
           essayDescription: submission.essay_description,
         },
       };
+
+      this.logger.info('[rylsRegistrationService] submitFullyFundedRegistration success');
+      return result;
     } catch (error) {
-      console.error('Error submitting fully funded registration:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] submitFullyFundedRegistration error');
       throw error;
     }
   }
 
   /**
    * Submit self funded registration
-   * @param {Object} formData - Complete form data
-   * @param {string} [paymentOrderId] - Optional payment order ID to link
-   * @returns {Promise<Object>} Registration result
    */
   async submitSelfFundedRegistration(formData, paymentOrderId = null) {
+    this.logger.info('[rylsRegistrationService] submitSelfFundedRegistration start');
     try {
-      // Atomic create using transaction
       const { registration, submission } = await this.registrationRepository.createSelfFundedFlow({
         step1: formData.step1,
         passportNumber: formData.passportNumber,
@@ -108,7 +115,7 @@ export class RylsRegistrationService {
         paymentOrderId: paymentOrderId,
       });
 
-      return {
+      const result = {
         registrationId: registration.id,
         submissionId: registration.submission_id,
         email: registration.email,
@@ -123,131 +130,88 @@ export class RylsRegistrationService {
           readPolicies: submission.read_policies,
         },
       };
+
+      this.logger.info('[rylsRegistrationService] submitSelfFundedRegistration success');
+      return result;
     } catch (error) {
-      console.error('Error submitting self funded registration:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] submitSelfFundedRegistration error');
       throw error;
     }
   }
 
   /**
    * Get registration by submission ID
-   * @param {string} submissionId - Submission ID
-   * @returns {Promise<Object|null>} Registration details
    */
   async getRegistrationBySubmissionId(submissionId) {
+    this.logger.info({ submissionId }, '[rylsRegistrationService] getRegistrationBySubmissionId start');
     try {
       const registration = await this.registrationRepository.findBySubmissionId(submissionId);
-
-      if (!registration) {
-        return null;
-      }
-
-      return registration;
+      const result = registration || null;
+      this.logger.info('[rylsRegistrationService] getRegistrationBySubmissionId success');
+      return result;
     } catch (error) {
-      console.error('Error getting registration by submission ID:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationBySubmissionId error');
       throw new Error('Failed to retrieve registration');
     }
   }
 
   /**
    * Get registration by ID
-   * @param {number} id - Registration ID
-   * @returns {Promise<Object|null>} Registration details
    */
   async getRegistrationById(id) {
+    this.logger.info({ id }, '[rylsRegistrationService] getRegistrationById start');
     try {
       const registration = await this.registrationRepository.findByIdWithRelations(id);
-
-      if (!registration) {
-        return null;
-      }
-
-      return registration;
+      const result = registration || null;
+      this.logger.info('[rylsRegistrationService] getRegistrationById success');
+      return result;
     } catch (error) {
-      console.error('Error getting registration by ID:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationById error');
       throw new Error('Failed to retrieve registration');
     }
   }
 
   /**
    * Get all registrations with pagination and filters
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} Paginated registrations
    */
   async getRegistrations(options = {}) {
+    this.logger.info('[rylsRegistrationService] getRegistrations start');
+    this.logger.debug({ options }, '[rylsRegistrationService] rawOptions');
     try {
-      console.log('[RylsService] getRegistrations called');
-      console.log('[RylsService] Options received:', JSON.stringify(options, null, 2));
-      console.log('[RylsService] Calling repository.getRegistrations...');
-
       const result = await this.registrationRepository.getRegistrations(options);
-
-      console.log('[RylsService] Repository returned result');
-      console.log('[RylsService] Result structure:', {
-        registrationsCount: result?.registrations?.length || 0,
-        pagination: result?.pagination || 'missing',
-      });
-
+      this.logger.info('[rylsRegistrationService] getRegistrations success');
       return result;
     } catch (error) {
-      console.error('[RylsService] Error getting registrations:', error);
-      console.error('[RylsService] Error stack:', error.stack);
+      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrations error');
       throw new Error('Failed to retrieve registrations');
     }
   }
 
   /**
-   * Get registration by ID
-   * @param {number} id - Registration ID
-   * @returns {Object|null} Raw registration object or null if not found
-   */
-  async getRegistrationById(id) {
-    console.log('[RylsService] getRegistrationById called for ID:', id);
-
-    try {
-      const registration = await this.registrationRepository.findByIdWithRelations(id);
-
-      if (!registration) {
-        console.log('[RylsService] Registration not found for ID:', id);
-        return null;
-      }
-
-      console.log('[RylsService] Registration found for ID:', id);
-      return registration;
-    } catch (error) {
-      console.error('[RylsService] Error getting registration by ID:', error);
-      console.error('[RylsService] Error stack:', error.stack);
-      throw new Error('Failed to get registration');
-    }
-  }
-
-  /**
    * Update registration status
-   * @param {number} id - Registration ID
-   * @param {string} status - New status (PENDING, APPROVED, REJECTED)
-   * @returns {Promise<Object>} Updated registration
    */
   async updateRegistrationStatus(id, status) {
+    this.logger.info({ id, status }, '[rylsRegistrationService] updateRegistrationStatus start');
     try {
-      // Validate status
       const validStatuses = ['PENDING', 'PAID', 'FAILED', 'EXPIRED'];
       if (!validStatuses.includes(status)) {
         throw new Error(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
       }
 
       const updatedRegistration = await this.registrationRepository.updateStatus(id, status);
+      this.logger.info('[rylsRegistrationService] updateRegistrationStatus success');
       return updatedRegistration;
     } catch (error) {
-      console.error('Error updating registration status:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] updateRegistrationStatus error');
       throw error;
     }
   }
 
   /**
    * Get registration statistics
-   * @returns {Promise<Object>} Registration statistics
    */
   async getRegistrationStatistics() {
+    this.logger.info('[rylsRegistrationService] getRegistrationStatistics start');
     try {
       const [basicStats, nationalityStats, sourceStats] = await Promise.all([
         this.registrationRepository.getRegistrationStats(),
@@ -255,53 +219,52 @@ export class RylsRegistrationService {
         this.registrationRepository.getDiscoverSourceStats(),
       ]);
 
-      return {
+      const result = {
         ...basicStats,
         demographicBreakdown: {
-          byNationality: nationalityStats.slice(0, 10), // Top 10 nationalities
+          byNationality: nationalityStats.slice(0, 10),
           byDiscoverSource: sourceStats,
         },
         generatedAt: new Date().toISOString(),
       };
+
+      this.logger.info('[rylsRegistrationService] getRegistrationStatistics success');
+      return result;
     } catch (error) {
-      console.error('Error getting registration statistics:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationStatistics error');
       throw new Error('Failed to retrieve registration statistics');
     }
   }
 
   /**
    * Get registrations by date range
-   * @param {Date} startDate - Start date
-   * @param {Date} endDate - End date
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>} Registrations in date range
    */
   async getRegistrationsByDateRange(startDate, endDate, options = {}) {
+    this.logger.info({ startDate, endDate }, '[rylsRegistrationService] getRegistrationsByDateRange start');
     try {
       const registrations = await this.registrationRepository.getRegistrationsByDateRange(startDate, endDate, options);
-
+      this.logger.info('[rylsRegistrationService] getRegistrationsByDateRange success');
       return registrations;
     } catch (error) {
-      console.error('Error getting registrations by date range:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationsByDateRange error');
       throw new Error('Failed to retrieve registrations by date range');
     }
   }
 
   /**
    * Delete registration
-   * @param {number} id - Registration ID
-   * @returns {Promise<boolean>} Success status
    */
   async deleteRegistration(id) {
+    this.logger.info({ id }, '[rylsRegistrationService] deleteRegistration start');
     try {
-      // Get registration first to check files
       const registration = await this.registrationRepository.findByIdWithRelations(id);
 
       if (!registration) {
-        throw new Error('Registration not found');
+        const err = new Error('Registration not found');
+        this.logger.info({ id }, '[rylsRegistrationService] deleteRegistration not_found');
+        throw err;
       }
 
-      // Delete associated files
       const filesToDelete = [];
 
       if (registration.fully_funded_submission) {
@@ -316,74 +279,56 @@ export class RylsRegistrationService {
         }
       }
 
-      // Delete files
       await Promise.all(filesToDelete.map((fileId) => this.fileUploadService.deleteFile(fileId)));
 
-      // Delete registration
       await this.registrationRepository.deleteRegistration(id);
 
+      this.logger.info('[rylsRegistrationService] deleteRegistration success');
       return true;
     } catch (error) {
-      console.error('Error deleting registration:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] deleteRegistration error');
       throw error;
     }
   }
 
-  /**
-   * Generate Excel file with multiple sheets for RYLS registrations
-   * @param {Array} registrations - Array of registration objects with relations
-   * @returns {Promise<Buffer>} Excel file buffer
-   */
   async generateExcelFile(registrations) {
+    this.logger.info('[rylsRegistrationService] generateExcelFile start');
     try {
-      console.log('[RylsService] generateExcelFile called');
-      console.log(`[RylsService] Processing ${registrations.length} registrations`);
-
-      // Import xlsx library
       const XLSX = await import('xlsx');
 
-      // Create workbook
       const workbook = XLSX.utils.book_new();
 
-      // Prepare data for each sheet
       const mainSheetData = this.prepareMainSheetData(registrations);
       const fullyFundedSheetData = this.prepareFullyFundedSheetData(registrations);
       const selfFundedSheetData = this.prepareSelfFundedSheetData(registrations);
       const paymentsSheetData = this.preparePaymentsSheetData(registrations);
 
-      // Create worksheets
       const mainSheet = XLSX.utils.aoa_to_sheet(mainSheetData);
       const fullyFundedSheet = XLSX.utils.aoa_to_sheet(fullyFundedSheetData);
       const selfFundedSheet = XLSX.utils.aoa_to_sheet(selfFundedSheetData);
       const paymentsSheet = XLSX.utils.aoa_to_sheet(paymentsSheetData);
 
-      // Apply auto-width to all sheets
       mainSheet['!cols'] = this.calculateColumnWidths(mainSheetData);
       fullyFundedSheet['!cols'] = this.calculateColumnWidths(fullyFundedSheetData);
       selfFundedSheet['!cols'] = this.calculateColumnWidths(selfFundedSheetData);
       paymentsSheet['!cols'] = this.calculateColumnWidths(paymentsSheetData);
 
-      // Add worksheets to workbook
       XLSX.utils.book_append_sheet(workbook, mainSheet, 'Registrations');
       XLSX.utils.book_append_sheet(workbook, fullyFundedSheet, 'Fully Funded');
       XLSX.utils.book_append_sheet(workbook, selfFundedSheet, 'Self Funded');
       XLSX.utils.book_append_sheet(workbook, paymentsSheet, 'Payments');
 
-      // Generate buffer
       const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
-      console.log('[RylsService] Excel file generated successfully');
+      this.logger.info('[rylsRegistrationService] generateExcelFile success');
       return excelBuffer;
     } catch (error) {
-      console.error('[RylsService] Error generating Excel file:', error);
+      this.logger.error({ err: error }, '[rylsRegistrationService] generateExcelFile error');
       throw new Error('Failed to generate Excel file');
     }
   }
 
-  /**
-   * Prepare data for main registrations sheet
-   * @private
-   */
+  // helper methods (prepare*, extractUploadPath, calculateColumnWidths) tetap sama
   prepareMainSheetData(registrations) {
     const headers = [
       'ID',
@@ -401,9 +346,7 @@ export class RylsRegistrationService {
       'Scholarship Type',
       'Created At',
     ];
-
     const rows = [headers];
-
     registrations.forEach((reg) => {
       const row = [
         reg.id,
@@ -423,14 +366,9 @@ export class RylsRegistrationService {
       ];
       rows.push(row);
     });
-
     return rows;
   }
 
-  /**
-   * Prepare data for self funded submissions sheet
-   * @private
-   */
   prepareSelfFundedSheetData(registrations) {
     const headers = [
       'Registration ID',
@@ -443,9 +381,7 @@ export class RylsRegistrationService {
       'Read Policies',
       'Created At',
     ];
-
     const rows = [headers];
-
     registrations.forEach((reg) => {
       if (reg.self_funded_submission) {
         const row = [
@@ -462,19 +398,12 @@ export class RylsRegistrationService {
         rows.push(row);
       }
     });
-
     return rows;
   }
 
-  /**
-   * Prepare data for fully funded submissions sheet
-   * @private
-   */
   prepareFullyFundedSheetData(registrations) {
     const headers = ['Registration ID', 'Full Name', 'Essay Topic', 'Essay File ID', 'Essay File URL', 'Essay Description'];
-
     const rows = [headers];
-
     registrations.forEach((reg) => {
       if (reg.fully_funded_submission) {
         const row = [
@@ -490,19 +419,12 @@ export class RylsRegistrationService {
         rows.push(row);
       }
     });
-
     return rows;
   }
 
-  /**
-   * Prepare data for payments sheet
-   * @private
-   */
   preparePaymentsSheetData(registrations) {
     const headers = ['Registration ID', 'Full Name', 'Amount', 'Type', 'PayPal Payment Proof', 'Midtrans Order ID', 'Paid At'];
-
     const rows = [headers];
-
     registrations.forEach((reg) => {
       if (reg.payments && reg.payments.length > 0) {
         reg.payments.forEach((payment) => {
@@ -519,64 +441,36 @@ export class RylsRegistrationService {
         });
       }
     });
-
     return rows;
   }
 
-  /**
-   * Extract upload path from full file path for URL generation
-   * @param {string} filePath - Full file path from database
-   * @returns {string|null} Upload path relative to uploads folder
-   * @private
-   */
   extractUploadPath(filePath) {
     if (!filePath) return null;
-
     const uploadsIndex = filePath.indexOf('/uploads/');
     if (uploadsIndex !== -1) {
-      return filePath.substring(uploadsIndex + 9); // +9 untuk skip '/uploads/'
+      return filePath.substring(uploadsIndex + 9);
     }
     return null;
   }
 
-  /**
-   * Calculate optimal column widths based on content
-   * @param {Array} sheetData - 2D array of sheet data (headers + rows)
-   * @returns {Array} Array of column width objects
-   * @private
-   */
   calculateColumnWidths(sheetData) {
     if (!sheetData || sheetData.length === 0) return [];
-
     const numColumns = sheetData[0].length;
     const columnWidths = [];
-
-    // Calculate width for each column
     for (let col = 0; col < numColumns; col++) {
       let maxWidth = 0;
-
-      // Check header width
       if (sheetData[0] && sheetData[0][col]) {
         maxWidth = Math.max(maxWidth, String(sheetData[0][col]).length);
       }
-
-      // Check data width in each row
       for (let row = 1; row < sheetData.length; row++) {
         if (sheetData[row] && sheetData[row][col]) {
           const cellValue = String(sheetData[row][col]);
           maxWidth = Math.max(maxWidth, cellValue.length);
         }
       }
-
-      // Add padding and set minimum/maximum width
       const optimalWidth = Math.min(Math.max(maxWidth + 2, 8), 50);
-
-      columnWidths.push({
-        width: optimalWidth,
-        wch: optimalWidth, // Excel column width unit
-      });
+      columnWidths.push({ width: optimalWidth, wch: optimalWidth });
     }
-
     return columnWidths;
   }
 }

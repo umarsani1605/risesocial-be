@@ -1,4 +1,3 @@
-import { validationResult } from 'express-validator';
 import { bootcampService } from '../../services/bootcampService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
@@ -18,17 +17,16 @@ class BootcampRelatedController {
    */
   async getAllPricings(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
+      request.log.info('[bootcampRelatedController] getAllPricings start');
+      request.log.debug({ params: request.params, query: request.query }, '[bootcampRelatedController] raw');
 
       const { bootcampId } = request.params;
       const pricings = await this.bootcampService.getAllPricingsByBootcampId(parseInt(bootcampId));
 
+      request.log.info('[bootcampRelatedController] getAllPricings success');
       return reply.send(successResponse(pricings, 'Pricing berhasil diambil'));
     } catch (error) {
-      request.log.error('Error:', error);
+      request.log.error({ err: error }, '[bootcampRelatedController] getAllPricings error');
       return reply.send(errorResponse('Internal server error', 500, error.message));
     }
   }
@@ -40,10 +38,8 @@ class BootcampRelatedController {
    */
   async createPricing(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
+      request.log.info('[bootcampRelatedController] createPricing start');
+      request.log.debug({ params: request.params, body: request.body }, '[bootcampRelatedController] raw');
 
       const { bootcampId } = request.params;
       const pricingData = {
@@ -53,9 +49,10 @@ class BootcampRelatedController {
 
       const pricing = await this.bootcampService.createPricing(pricingData);
 
+      request.log.info('[bootcampRelatedController] createPricing success');
       return reply.status(201).send(successResponse(pricing, 'Pricing berhasil dibuat'));
     } catch (error) {
-      request.log.error('Error:', error);
+      request.log.error({ err: error }, '[bootcampRelatedController] createPricing error');
       return reply.send(errorResponse('Internal server error', 500, error.message));
     }
   }
@@ -67,17 +64,16 @@ class BootcampRelatedController {
    */
   async updatePricing(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
+      request.log.info('[bootcampRelatedController] updatePricing start');
+      request.log.debug({ params: request.params, body: request.body }, '[bootcampRelatedController] raw');
 
       const { id } = request.params;
       const pricing = await this.bootcampService.updatePricing(parseInt(id), request.body);
 
+      request.log.info('[bootcampRelatedController] updatePricing success');
       return reply.send(successResponse(pricing, 'Pricing berhasil diupdate'));
     } catch (error) {
-      request.log.error('Error:', error);
+      request.log.error({ err: error }, '[bootcampRelatedController] updatePricing error');
       return reply.send(errorResponse('Internal server error', 500, error.message));
     }
   }
@@ -89,17 +85,16 @@ class BootcampRelatedController {
    */
   async deletePricing(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
+      request.log.info('[bootcampRelatedController] deletePricing start');
+      request.log.debug({ params: request.params }, '[bootcampRelatedController] raw');
 
       const { id } = request.params;
       await this.bootcampService.deletePricing(parseInt(id));
 
+      request.log.info('[bootcampRelatedController] deletePricing success');
       return reply.send(successResponse(null, 'Pricing berhasil dihapus'));
     } catch (error) {
-      request.log.error('Error:', error);
+      request.log.error({ err: error }, '[bootcampRelatedController] deletePricing error');
       return reply.send(errorResponse('Internal server error', 500, error.message));
     }
   }
@@ -111,19 +106,18 @@ class BootcampRelatedController {
    */
   async reorderPricingTiers(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
+      request.log.info('[bootcampRelatedController] reorderPricingTiers start');
+      request.log.debug({ params: request.params, body: request.body }, '[bootcampRelatedController] raw');
 
       const { bootcampId } = request.params;
       const { orderData } = request.body;
 
       const updatedPricings = await this.bootcampService.reorderPricingTiers(parseInt(bootcampId), orderData);
 
+      request.log.info('[bootcampRelatedController] reorderPricingTiers success');
       return reply.send(successResponse(updatedPricings, 'Pricing tiers berhasil direorder'));
     } catch (error) {
-      request.log.error('Error:', error);
+      request.log.error({ err: error }, '[bootcampRelatedController] reorderPricingTiers error');
       return reply.send(errorResponse('Internal server error', 500, error.message));
     }
   }
@@ -139,10 +133,6 @@ class BootcampRelatedController {
    */
   async getAllFeatures(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const features = await this.bootcampService.getAllFeaturesByBootcampId(parseInt(bootcampId));
@@ -161,10 +151,6 @@ class BootcampRelatedController {
    */
   async createFeature(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const featureData = {
@@ -188,10 +174,6 @@ class BootcampRelatedController {
    */
   async updateFeature(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { id } = request.params;
       const feature = await this.bootcampService.updateFeature(parseInt(id), request.body);
@@ -210,10 +192,6 @@ class BootcampRelatedController {
    */
   async deleteFeature(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { id } = request.params;
       await this.bootcampService.deleteFeature(parseInt(id));
@@ -232,10 +210,6 @@ class BootcampRelatedController {
    */
   async reorderFeatures(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const { orderData } = request.body;
@@ -260,10 +234,6 @@ class BootcampRelatedController {
    */
   async getAllTopics(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const { includeSessions } = request.query;
@@ -284,10 +254,6 @@ class BootcampRelatedController {
    */
   async createTopic(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const topicData = {
@@ -311,10 +277,6 @@ class BootcampRelatedController {
    */
   async updateTopic(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { id } = request.params;
       const topic = await this.bootcampService.updateTopic(parseInt(id), request.body);
@@ -333,10 +295,6 @@ class BootcampRelatedController {
    */
   async deleteTopic(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { id } = request.params;
       await this.bootcampService.deleteTopic(parseInt(id));
@@ -355,10 +313,6 @@ class BootcampRelatedController {
    */
   async reorderTopics(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const { orderData } = request.body;
@@ -383,10 +337,6 @@ class BootcampRelatedController {
    */
   async getAllSessions(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { topicId } = request.params;
       const sessions = await this.bootcampService.getAllSessionsByTopicId(parseInt(topicId));
@@ -405,10 +355,6 @@ class BootcampRelatedController {
    */
   async createSession(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { topicId } = request.params;
       const sessionData = {
@@ -432,10 +378,6 @@ class BootcampRelatedController {
    */
   async updateSession(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { id } = request.params;
       const session = await this.bootcampService.updateSession(parseInt(id), request.body);
@@ -454,10 +396,6 @@ class BootcampRelatedController {
    */
   async deleteSession(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { id } = request.params;
       await this.bootcampService.deleteSession(parseInt(id));
@@ -476,10 +414,6 @@ class BootcampRelatedController {
    */
   async reorderSessions(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { topicId } = request.params;
       const { orderData } = request.body;
@@ -504,10 +438,6 @@ class BootcampRelatedController {
    */
   async getAllFaqs(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const faqs = await this.bootcampService.getAllFaqsByBootcampId(parseInt(bootcampId));
@@ -526,10 +456,6 @@ class BootcampRelatedController {
    */
   async createFaq(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const faqData = {
@@ -553,10 +479,6 @@ class BootcampRelatedController {
    */
   async updateFaq(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { id } = request.params;
       const faq = await this.bootcampService.updateFaq(parseInt(id), request.body);
@@ -575,10 +497,6 @@ class BootcampRelatedController {
    */
   async deleteFaq(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { id } = request.params;
       await this.bootcampService.deleteFaq(parseInt(id));
@@ -597,10 +515,6 @@ class BootcampRelatedController {
    */
   async searchFaqs(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const { keyword } = request.query;
@@ -625,10 +539,6 @@ class BootcampRelatedController {
    */
   async getAllBootcampRelatedData(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const bootcampIdInt = parseInt(bootcampId);
@@ -679,10 +589,6 @@ class BootcampRelatedController {
    */
   async getBootcampRelatedStats(request, reply) {
     try {
-      const errors = validationResult(request);
-      if (!errors.isEmpty()) {
-        return reply.send(errorResponse('Validation Error', 400, errors.array()));
-      }
 
       const { bootcampId } = request.params;
       const bootcampIdInt = parseInt(bootcampId);

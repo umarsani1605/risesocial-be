@@ -1,5 +1,6 @@
 import { BaseRepository } from './base/BaseRepository.js';
 import prisma from '../lib/prisma.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * FileUpload Repository
@@ -10,14 +11,17 @@ export class FileUploadRepository extends BaseRepository {
     super(prisma.fileUpload);
   }
 
+  get logger() {
+    return getLogger();
+  }
+
   /**
    * Create a new file upload record
-   * @param {Object} fileData - File upload data
-   * @returns {Promise<Object>} Created file upload record
    */
   async createFileUpload(fileData) {
+    this.logger.info('[fileUploadRepository] createFileUpload start');
+    this.logger.debug({ originalName: fileData.originalName, uploadType: fileData.uploadType }, '[fileUploadRepository] rawInput');
     try {
-      console.log('Available models:', Object.keys(prisma));
       const fileUpload = await this.model.create({
         data: {
           original_name: fileData.originalName,
@@ -28,99 +32,63 @@ export class FileUploadRepository extends BaseRepository {
         },
       });
 
+      this.logger.info({ id: fileUpload.id }, '[fileUploadRepository] createFileUpload success');
       return fileUpload;
     } catch (error) {
-      console.error('Error creating file upload:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] createFileUpload error');
       throw new Error('Failed to create file upload record');
     }
   }
 
   /**
    * Find file upload by ID
-   * @param {number} id - File upload ID
-   * @returns {Promise<Object|null>} File upload record
    */
   async findById(id) {
+    this.logger.info({ id }, '[fileUploadRepository] findById start');
     try {
-      const fileUpload = await this.model.findUnique({
-        where: { id: parseInt(id) },
-      });
-
+      const fileUpload = await this.model.findUnique({ where: { id: parseInt(id) } });
+      this.logger.info({ found: !!fileUpload }, '[fileUploadRepository] findById success');
       return fileUpload;
     } catch (error) {
-      console.error('Error finding file upload by ID:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] findById error');
       throw new Error('Failed to find file upload');
     }
   }
 
   /**
    * Find files by upload type
-   * @param {string} uploadType - Upload type (ESSAY, HEADSHOT)
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>} Array of file upload records
    */
   async findByUploadType(uploadType, options = {}) {
+    this.logger.info({ uploadType, options }, '[fileUploadRepository] findByUploadType start');
     try {
       const { page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc' } = options;
-
       const skip = (page - 1) * limit;
 
-      const files = await this.model.findMany({
-        where: {
-          upload_type: uploadType,
-        },
-        orderBy: {
-          [sortBy]: sortOrder,
-        },
-        skip,
-        take: limit,
-      });
+      const files = await this.model.findMany({ where: { upload_type: uploadType }, orderBy: { [sortBy]: sortOrder }, skip, take: limit });
 
+      this.logger.info({ count: files.length }, '[fileUploadRepository] findByUploadType success');
       return files;
     } catch (error) {
-      console.error('Error finding files by upload type:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] findByUploadType error');
       throw new Error('Failed to find files by upload type');
     }
   }
 
   /**
    * Get file upload statistics
-   * @returns {Promise<Object>} File upload statistics
    */
   async getFileUploadStats() {
+    this.logger.info('[fileUploadRepository] getFileUploadStats start');
     try {
       const [totalFiles, essayFiles, headshotFiles, totalSize, recentFiles] = await Promise.all([
-        // Total files count
         this.model.count(),
-
-        // Essay files count
-        this.model.count({
-          where: { upload_type: 'ESSAY' },
-        }),
-
-        // Headshot files count
-        this.model.count({
-          where: { upload_type: 'HEADSHOT' },
-        }),
-
-        // Total size of all files
-        this.model.aggregate({
-          _sum: {
-            file_size: true,
-          },
-        }),
-
-        // Recent files (last 7 days)
-        this.model.count({
-          where: {
-            created_at: {
-              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-            },
-          },
-        }),
+        this.model.count({ where: { upload_type: 'ESSAY' } }),
+        this.model.count({ where: { upload_type: 'HEADSHOT' } }),
+        this.model.aggregate({ _sum: { file_size: true } }),
+        this.model.count({ where: { created_at: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }),
       ]);
 
-      return {
+      const result = {
         totalFiles,
         essayFiles,
         headshotFiles,
@@ -128,168 +96,120 @@ export class FileUploadRepository extends BaseRepository {
         recentFiles,
         averageFileSize: totalFiles > 0 ? Math.round((totalSize._sum.file_size || 0) / totalFiles) : 0,
       };
+      this.logger.info('[fileUploadRepository] getFileUploadStats success');
+      return result;
     } catch (error) {
-      console.error('Error getting file upload stats:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] getFileUploadStats error');
       throw new Error('Failed to get file upload statistics');
     }
   }
 
   /**
    * Find files uploaded within date range
-   * @param {Date} startDate - Start date
-   * @param {Date} endDate - End date
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>} Array of file upload records
    */
   async findByDateRange(startDate, endDate, options = {}) {
+    this.logger.info({ startDate, endDate, options }, '[fileUploadRepository] findByDateRange start');
     try {
       const { uploadType, page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc' } = options;
-
       const skip = (page - 1) * limit;
 
-      const whereClause = {
-        created_at: {
-          gte: startDate,
-          lte: endDate,
-        },
-      };
+      const whereClause = { created_at: { gte: startDate, lte: endDate } };
+      if (uploadType) whereClause.upload_type = uploadType;
 
-      if (uploadType) {
-        whereClause.upload_type = uploadType;
-      }
+      const files = await this.model.findMany({ where: whereClause, orderBy: { [sortBy]: sortOrder }, skip, take: limit });
 
-      const files = await this.model.findMany({
-        where: whereClause,
-        orderBy: {
-          [sortBy]: sortOrder,
-        },
-        skip,
-        take: limit,
-      });
-
+      this.logger.info({ count: files.length }, '[fileUploadRepository] findByDateRange success');
       return files;
     } catch (error) {
-      console.error('Error finding files by date range:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] findByDateRange error');
       throw new Error('Failed to find files by date range');
     }
   }
 
   /**
    * Delete file upload record
-   * @param {number} id - File upload ID
-   * @returns {Promise<boolean>} Success status
    */
   async deleteFileUpload(id) {
+    this.logger.info({ id }, '[fileUploadRepository] deleteFileUpload start');
     try {
-      await this.model.delete({
-        where: { id: parseInt(id) },
-      });
-
+      await this.model.delete({ where: { id: parseInt(id) } });
+      this.logger.info('[fileUploadRepository] deleteFileUpload success');
       return true;
     } catch (error) {
-      console.error('Error deleting file upload:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] deleteFileUpload error');
       throw new Error('Failed to delete file upload record');
     }
   }
 
   /**
    * Update file upload record
-   * @param {number} id - File upload ID
-   * @param {Object} updateData - Data to update
-   * @returns {Promise<Object>} Updated file upload record
    */
   async updateFileUpload(id, updateData) {
+    this.logger.info({ id }, '[fileUploadRepository] updateFileUpload start');
+    this.logger.debug({ updateData }, '[fileUploadRepository] update payload');
     try {
-      const updatedFile = await this.model.update({
-        where: { id: parseInt(id) },
-        data: updateData,
-      });
-
+      const updatedFile = await this.model.update({ where: { id: parseInt(id) }, data: updateData });
+      this.logger.info({ id: updatedFile.id }, '[fileUploadRepository] updateFileUpload success');
       return updatedFile;
     } catch (error) {
-      console.error('Error updating file upload:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] updateFileUpload error');
       throw new Error('Failed to update file upload record');
     }
   }
 
   /**
    * Find files by original name pattern
-   * @param {string} namePattern - Name pattern to search
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>} Array of file upload records
    */
   async findByOriginalName(namePattern, options = {}) {
+    this.logger.info({ namePattern, options }, '[fileUploadRepository] findByOriginalName start');
     try {
       const { uploadType, page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc' } = options;
-
       const skip = (page - 1) * limit;
 
-      const whereClause = {
-        original_name: {
-          contains: namePattern,
-          mode: 'insensitive',
-        },
-      };
+      const whereClause = { original_name: { contains: namePattern, mode: 'insensitive' } };
+      if (uploadType) whereClause.upload_type = uploadType;
 
-      if (uploadType) {
-        whereClause.upload_type = uploadType;
-      }
+      const files = await this.model.findMany({ where: whereClause, orderBy: { [sortBy]: sortOrder }, skip, take: limit });
 
-      const files = await this.model.findMany({
-        where: whereClause,
-        orderBy: {
-          [sortBy]: sortOrder,
-        },
-        skip,
-        take: limit,
-      });
-
+      this.logger.info({ count: files.length }, '[fileUploadRepository] findByOriginalName success');
       return files;
     } catch (error) {
-      console.error('Error finding files by original name:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] findByOriginalName error');
       throw new Error('Failed to find files by original name');
     }
   }
 
   /**
    * Get file upload count by type
-   * @returns {Promise<Object>} Count by upload type
    */
   async getCountByType() {
+    this.logger.info('[fileUploadRepository] getCountByType start');
     try {
-      const counts = await this.model.groupBy({
-        by: ['upload_type'],
-        _count: {
-          id: true,
-        },
-      });
-
+      const counts = await this.model.groupBy({ by: ['upload_type'], _count: { id: true } });
       const result = {};
       counts.forEach((count) => {
         result[count.upload_type] = count._count.id;
       });
-
+      this.logger.info('[fileUploadRepository] getCountByType success');
       return result;
     } catch (error) {
-      console.error('Error getting count by type:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] getCountByType error');
       throw new Error('Failed to get count by type');
     }
   }
 
   /**
    * Check if file exists by path
-   * @param {string} filePath - File path
-   * @returns {Promise<boolean>} File exists status
    */
   async fileExistsByPath(filePath) {
+    this.logger.info({ filePath }, '[fileUploadRepository] fileExistsByPath start');
     try {
-      const file = await this.model.findFirst({
-        where: { file_path: filePath },
-      });
-
-      return !!file;
+      const file = await this.model.findFirst({ where: { file_path: filePath } });
+      const exists = !!file;
+      this.logger.info({ exists }, '[fileUploadRepository] fileExistsByPath success');
+      return exists;
     } catch (error) {
-      console.error('Error checking file exists by path:', error);
+      this.logger.error({ err: error }, '[fileUploadRepository] fileExistsByPath error');
       throw new Error('Failed to check file existence');
     }
   }

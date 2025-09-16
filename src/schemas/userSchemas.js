@@ -24,7 +24,7 @@ export const userResponseSchema = {
 export const createUserSchema = {
   body: {
     type: 'object',
-    required: ['first_name', 'last_name', 'email', 'password'],
+    // Documentation only - let backend handle validation
     properties: {
       first_name: { type: 'string', minLength: 1 },
       last_name: { type: 'string', minLength: 1 },
@@ -79,9 +79,11 @@ export const updateUserSchema = {
  * Skema untuk login.
  */
 export const loginSchema = {
+  summary: 'User login',
+  description: 'Authenticate user with email and password',
   body: {
     type: 'object',
-    required: ['email', 'password'],
+
     properties: {
       email: { type: 'string', format: 'email' },
       password: { type: 'string' },
@@ -92,16 +94,9 @@ export const loginSchema = {
     200: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        message: { type: 'string' },
-        data: {
-          type: 'object',
-          properties: {
-            user: userResponseSchema,
-            token: { type: 'string' },
-            expiresIn: { type: 'string' },
-          },
-        },
+        user: userResponseSchema,
+        token: { type: 'string' },
+        expiresIn: { type: 'string' },
       },
     },
   },
@@ -111,9 +106,11 @@ export const loginSchema = {
  * Skema untuk register.
  */
 export const registerSchema = {
+  summary: 'User registration',
+  description: 'Register a new user account',
   body: {
     type: 'object',
-    required: ['first_name', 'last_name', 'email', 'password'],
+
     properties: {
       first_name: { type: 'string', minLength: 1 },
       last_name: { type: 'string', minLength: 1 },
@@ -127,16 +124,9 @@ export const registerSchema = {
     201: {
       type: 'object',
       properties: {
-        success: { type: 'boolean' },
-        message: { type: 'string' },
-        data: {
-          type: 'object',
-          properties: {
-            user: userResponseSchema,
-            token: { type: 'string' },
-            expiresIn: { type: 'string' },
-          },
-        },
+        user: userResponseSchema,
+        token: { type: 'string' },
+        expiresIn: { type: 'string' },
       },
     },
   },
@@ -146,12 +136,56 @@ export const registerSchema = {
  * Skema untuk get current user.
  */
 export const getCurrentUserSchema = {
+  summary: 'Get current user profile',
+  description: 'Retrieve the profile information of the currently authenticated user',
+  security: [{ bearerAuth: [] }],
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        id: { type: 'number' },
+        first_name: { type: 'string' },
+        last_name: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        phone: { type: ['string', 'null'] },
+        avatar: { type: ['string', 'null'] },
+        role: { type: 'string', enum: ['USER', 'ADMIN'] },
+        created_at: { type: 'string', format: 'date-time' },
+        updated_at: { type: 'string', format: 'date-time' },
+      },
+    },
+    401: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        statusCode: { type: 'integer' },
+      },
+    },
+  },
+};
+
+/**
+ * Skema untuk logout.
+ */
+export const logoutSchema = {
+  summary: 'User logout',
+  description: 'Logout the currently authenticated user',
+  security: [{ bearerAuth: [] }],
   response: {
     200: {
       type: 'object',
       properties: {
         success: { type: 'boolean' },
-        data: userResponseSchema,
+        message: { type: 'string' },
+      },
+    },
+    401: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        statusCode: { type: 'integer' },
       },
     },
   },

@@ -6,6 +6,7 @@ import fastifyCaching from '@fastify/caching';
 import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
 import { disconnectDatabase } from './lib/prisma.js';
+import pino from 'pino';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs-extra';
@@ -15,37 +16,99 @@ import swaggerUi from '@fastify/swagger-ui';
 
 import { errorHandler, notFoundHandler } from './middleware/index.js';
 
-import userRoutes from './routes/userRoutes.js';
-import authRoutes from './routes/authRoutes.js';
-import bootcampRoutes from './routes/bootcamp/index.js';
-import bootcampRelatedRoutes from './routes/bootcamp/bootcampRelatedRoutes.js';
-import instructorRoutes from './routes/instructor/instructorRoutes.js';
-import enrollmentRoutes from './routes/enrollment/index.js';
-import { jobsRoutes } from './routes/jobs/index.js';
-import { programsRoutes } from './routes/programs/index.js';
-import { testimonialsRoutes } from './routes/testimonials/index.js';
-import { fileUploadRoutes } from './routes/upload/fileUploadRoutes.js';
-import { rylsRegistrationRoutes } from './routes/registration/rylsRegistrationRoutes.js';
 import rylsPaymentRoutes from './routes/payments/rylsPaymentRoutes.js';
+import userRylsRegistrationRoutes from './routes/user/rylsRegistrationRoutes.js';
+import adminRylsRegistrationRoutes from './routes/admin/rylsRegistrationRoutes.js';
+import userFileUploadRoutes from './routes/user/fileUploadRoutes.js';
+import adminFileUploadRoutes from './routes/admin/fileUploadRoutes.js';
+import adminSystemSettingsRoutes from './routes/admin/systemSettingsRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import bootcampRelatedRoutes from './routes/bootcamp/bootcampRelatedRoutes.js';
+import userUserRoutes from './routes/user/userRoutes.js';
+import adminUserRoutes from './routes/admin/userRoutes.js';
+import userBootcampRoutes from './routes/user/bootcampRoutes.js';
+import adminBootcampRoutes from './routes/admin/bootcampRoutes.js';
+import userInstructorRoutes from './routes/user/instructorRoutes.js';
+import adminInstructorRoutes from './routes/admin/instructorRoutes.js';
+import userEnrollmentRoutes from './routes/user/enrollmentRoutes.js';
+import adminEnrollmentRoutes from './routes/admin/enrollmentRoutes.js';
+import userJobsRoutes from './routes/user/jobsRoutes.js';
+import adminJobsRoutes from './routes/admin/jobsRoutes.js';
+import userTestimonialsRoutes from './routes/user/testimonialsRoutes.js';
+import adminTestimonialsRoutes from './routes/admin/testimonialsRoutes.js';
+import { runWithLogger } from './lib/loggerContext.js';
 
 dotenv.config();
 
-const fastify = Fastify({
-  logger: {
-    level: process.env.NODE_ENV === 'development' ? 'info' : 'error',
+const env = process.env.NODE_ENV || 'development';
+
+const envToLogger = {
+  development: {
+    level: process.env.LOG_LEVEL || 'debug',
+    transport: {
+      targets: [
+        {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'yyyy-mm-dd HH:MM:ss',
+            ignore: 'pid,hostname',
+          },
+        },
+        {
+          target: 'pino-pretty',
+          options: {
+            colorize: false,
+            translateTime: 'yyyy-mm-dd HH:MM:ss',
+            ignore: 'pid,hostname',
+            destination: './logs/app.log',
+            mkdir: true,
+          },
+        },
+      ],
+    },
   },
+  production: {
+    level: process.env.LOG_LEVEL || 'info',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: false,
+        translateTime: 'yyyy-mm-dd HH:MM:ss',
+        ignore: 'pid,hostname',
+        destination: './logs/app.log',
+        mkdir: true,
+        messageFormat: '{time} [{level}] {msg}',
+      },
+    },
+  },
+  test: false,
+};
+
+const fastify = Fastify({
+  logger: envToLogger[env] ?? true,
+});
+
+fastify.addHook('onRequest', (req, reply, done) => {
+  runWithLogger({ logger: req.log }, done);
 });
 
 await fastify.register(cors, {
   origin: (origin, cb) => {
-    const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
-    if (!origin || origin === allowedOrigin) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const backendUrl = `http://localhost:${process.env.PORT || 8000}`;
+
+    const allowedOrigins = [frontendUrl, backendUrl];
+
+    if (!origin || allowedOrigins.includes(origin)) {
       cb(null, true);
       return;
     }
     cb(new Error('Not allowed by CORS'), false);
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 });
 
 await fastify.register(multipart, {
@@ -54,44 +117,23 @@ await fastify.register(multipart, {
   },
 });
 
-// Register static file serving for uploads folder
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsPath = path.join(__dirname, '..', 'uploads');
 
-console.log('[Server] Static file serving setup:');
-console.log('[Server] __dirname:', __dirname);
-console.log('[Server] Uploads path:', uploadsPath);
-console.log('[Server] Uploads path exists:', await fs.pathExists(uploadsPath));
+// Ensure uploads directory exists
+await fs.ensureDir(uploadsPath);
+await fs.ensureDir(path.join(uploadsPath, 'images'));
+await fs.ensureDir(path.join(uploadsPath, 'documents'));
 
 await fastify.register(fastifyStatic, {
   root: uploadsPath,
   prefix: '/uploads/',
   decorateReply: false,
-  // Remove host constraints to allow all hosts
-  // constraints: {
-  //   host: 'localhost',
-  // },
 });
-
-console.log('[Server] Static file serving registered for /uploads/');
 
 await fastify.register(jwt, {
   secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-for-development',
-  sign: {
-    issuer: 'rise-social',
-    audience: 'rise-social-users',
-  },
-  verify: {
-    issuer: 'rise-social',
-    audience: 'rise-social-users',
-  },
-});
-
-await fastify.register(fastifyCaching, {
-  privacy: fastifyCaching.privacy.PUBLIC,
-  expiresIn: 60, // 1 hour
-  cacheSegment: 'rise-social',
 });
 
 await fastify.register(swagger, {
@@ -109,20 +151,46 @@ await fastify.register(swagger, {
     schemes: ['http'],
     consumes: ['application/json'],
     produces: ['application/json'],
+    securityDefinitions: {
+      bearerAuth: {
+        type: 'apiKey',
+        name: 'Authorization',
+        in: 'header',
+        description: 'Enter your Bearer token in the format: Bearer <token>',
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
     tags: [
-      { name: 'User', description: 'User-related endpoints' },
       { name: 'Auth', description: 'Authentication endpoints' },
-      { name: 'Bootcamp', description: 'Bootcamp-related endpoints' },
-      { name: 'Instructors', description: 'Instructor-related endpoints' },
-      { name: 'Instructor Assignments', description: 'Instructor-bootcamp assignment endpoints' },
-      { name: 'Enrollments', description: 'Enrollment management endpoints' },
-      { name: 'Enrollment Analytics', description: 'Enrollment analytics and reporting endpoints' },
-      { name: 'Jobs', description: 'Job-related endpoints' },
-      { name: 'Programs', description: 'Program-related endpoints' },
-      { name: 'Testimonials', description: 'Testimonial-related endpoints' },
-      { name: 'File Upload', description: 'File upload and management endpoints' },
-      { name: 'RYLS Registration', description: 'Rise Young Leaders Summit registration endpoints' },
-      { name: 'RYLS Payments', description: 'Rise Young Leaders Summit payment endpoints' },
+      { name: 'User Self-Management', description: 'User profile and account management' },
+      { name: 'User Utilities', description: 'User utility endpoints' },
+      { name: 'User Bootcamps', description: 'User bootcamp browsing and information' },
+      { name: 'User Instructors', description: 'User instructor browsing and information' },
+      { name: 'User Jobs', description: 'User job browsing endpoints' },
+      { name: 'User Testimonials', description: 'User testimonial viewing' },
+      { name: 'User Enrollments', description: 'User enrollment management' },
+      { name: 'User File Upload', description: 'User file upload functionality' },
+      { name: 'User RYLS Registration', description: 'User RYLS registration' },
+      { name: 'Admin User Management', description: 'Admin user management' },
+      { name: 'Admin Bootcamps', description: 'Admin bootcamp management' },
+      { name: 'Admin Instructors', description: 'Admin instructor management' },
+      { name: 'Admin Jobs', description: 'Admin job management endpoints' },
+      { name: 'Admin Testimonials', description: 'Admin testimonial management' },
+      { name: 'Admin Enrollments', description: 'Admin enrollment management' },
+      { name: 'Admin File Upload', description: 'Admin file upload management' },
+      { name: 'Admin RYLS Registration', description: 'Admin RYLS registration management' },
+      { name: 'Admin System Settings', description: 'Admin system configuration' },
+      { name: 'Bootcamp Related', description: 'Combined bootcamp data endpoints' },
+      { name: 'Bootcamp Pricing', description: 'Bootcamp pricing management' },
+      { name: 'Bootcamp Features', description: 'Bootcamp features management' },
+      { name: 'Bootcamp Topics', description: 'Bootcamp topics and curriculum' },
+      { name: 'Bootcamp FAQs', description: 'Bootcamp FAQ management' },
+      { name: 'System', description: 'System health and debugging endpoints' },
+      { name: 'RYLS Payments', description: 'RYLS payment processing and management' },
     ],
   },
 });
@@ -140,37 +208,97 @@ await fastify.register(swaggerUi, {
 fastify.setErrorHandler(errorHandler);
 fastify.setNotFoundHandler(notFoundHandler);
 
-fastify.get('/health', async (request, reply) => {
-  return {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'rise-social-backend',
-  };
-});
+fastify.get(
+  '/health',
+  {
+    schema: {
+      tags: ['System'],
+      summary: 'Health check endpoint',
+      description: 'Returns the health status of the API server',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            service: { type: 'string' },
+          },
+        },
+      },
+    },
+  },
+  async (request, reply) => {
+    return {
+      status: 'ok',
+      service: 'rise-social-backend',
+    };
+  }
+);
 
-fastify.register(userRoutes, { prefix: '/api/users' });
-fastify.register(authRoutes, { prefix: '/api/auth' });
-fastify.register(bootcampRoutes, { prefix: '/api/bootcamps' });
-fastify.register(bootcampRelatedRoutes, { prefix: '/api/bootcamp-related' });
-fastify.register(instructorRoutes, { prefix: '/api/instructors' });
-fastify.register(enrollmentRoutes, { prefix: '/api/enrollments' });
-fastify.register(jobsRoutes, { prefix: '/api/jobs' });
-fastify.register(programsRoutes, { prefix: '/api/programs' });
-fastify.register(testimonialsRoutes, { prefix: '/api/testimonials' });
-fastify.register(fileUploadRoutes, { prefix: '/api/uploads' });
-fastify.register(rylsRegistrationRoutes, { prefix: '/api/ryls/registrations' });
-fastify.register(rylsPaymentRoutes, { prefix: '/api/payments' });
+fastify.get(
+  '/debug/routes',
+  {
+    schema: {
+      tags: ['System'],
+      summary: 'Debug routes endpoint',
+      description: 'Returns list of all registered routes for debugging',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            routes: {
+              type: 'array',
+              items: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  },
+  async (request, reply) => {
+    try {
+      const routes = fastify.printRoutes();
+      return {
+        routes: routes.split('\n').filter((route) => route.trim()),
+      };
+    } catch (error) {
+      return {
+        error: error.message,
+      };
+    }
+  }
+);
+
+fastify.register(authRoutes, { prefix: '/auth' });
+fastify.register(userUserRoutes, { prefix: '/users' });
+fastify.register(adminUserRoutes, { prefix: '/admin/users' });
+fastify.register(userBootcampRoutes, { prefix: '/bootcamps' });
+fastify.register(adminBootcampRoutes, { prefix: '/admin/bootcamps' });
+fastify.register(userInstructorRoutes, { prefix: '/instructors' });
+fastify.register(adminInstructorRoutes, { prefix: '/admin/instructors' });
+fastify.register(userEnrollmentRoutes, { prefix: '/enrollments' });
+fastify.register(adminEnrollmentRoutes, { prefix: '/admin/enrollments' });
+fastify.register(userJobsRoutes, { prefix: '/jobs' });
+fastify.register(adminJobsRoutes, { prefix: '/admin/jobs' });
+fastify.register(userTestimonialsRoutes, { prefix: '/testimonials' });
+fastify.register(adminTestimonialsRoutes, { prefix: '/admin/testimonials' });
+fastify.register(userRylsRegistrationRoutes, { prefix: '/ryls/registrations' });
+fastify.register(adminRylsRegistrationRoutes, { prefix: '/admin/ryls/registrations' });
+fastify.register(userFileUploadRoutes, { prefix: '/uploads' });
+fastify.register(adminFileUploadRoutes, { prefix: '/admin/uploads' });
+fastify.register(adminSystemSettingsRoutes, { prefix: '/admin/system/settings' });
+fastify.register(bootcampRelatedRoutes, { prefix: '/bootcamp-related' });
+fastify.register(rylsPaymentRoutes, { prefix: '/payments' });
 
 const gracefulShutdown = async (signal) => {
-  console.log(`\nReceived ${signal}. Starting graceful shutdown...`);
+  fastify.log.info(`\nReceived ${signal}. Starting graceful shutdown...`);
 
   try {
     await fastify.close();
     await disconnectDatabase();
-    console.log('Graceful shutdown completed.');
+    fastify.log.info('Graceful shutdown completed.');
     process.exit(0);
   } catch (error) {
-    console.error('Error during shutdown:', error);
+    fastify.log.error({ err: error }, 'Error during shutdown');
     process.exit(1);
   }
 };
@@ -184,12 +312,9 @@ const start = async () => {
     const host = process.env.HOST || '0.0.0.0';
 
     await fastify.listen({ port: Number(port), host });
-
-    console.log('Rise Social Backend Server Started!');
-    console.log(`📡 Server running on http://localhost:${port}`);
   } catch (err) {
     fastify.log.error(err);
-    console.error('Failed to start server:', err);
+    fastify.log.error({ err }, 'Failed to start server');
     process.exit(1);
   }
 };

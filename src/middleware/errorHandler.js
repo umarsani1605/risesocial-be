@@ -10,15 +10,17 @@ import { errorResponse } from '../utils/response.js';
 export function errorHandler(error, request, reply) {
   const { log } = request;
 
-  // Log error untuk debugging (always log in server)
-  log.error({
-    error: error.message,
-    stack: error.stack,
-    url: request.url,
-    method: request.method,
-    params: request.params,
-    query: request.query,
-  });
+  // Structured error log for observability
+  log.error(
+    {
+      err: error,
+      url: request.url,
+      method: request.method,
+      params: request.params,
+      query: request.query,
+    },
+    '[errorHandler] unhandled_error'
+  );
 
   // Handle Fastify validation errors
   if (error.validation) {

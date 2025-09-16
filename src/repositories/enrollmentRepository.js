@@ -1,4 +1,5 @@
 import { BaseRepository } from './base/BaseRepository.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * EnrollmentRepository - Repository untuk mengelola enrollment bootcamp
@@ -9,12 +10,15 @@ class EnrollmentRepository extends BaseRepository {
     super(prisma, 'bootcampEnrollment');
   }
 
+  get logger() {
+    return getLogger();
+  }
+
   /**
    * Mendapatkan semua enrollment dengan filter dan include
-   * @param {Object} options - Filter dan include options
-   * @returns {Promise<Array>} - Array of enrollments
    */
   async findAllWithDetails(options = {}) {
+    this.logger.info({ options }, '[enrollmentRepository] findAllWithDetails called');
     const {
       user_id,
       bootcamp_id,
@@ -33,7 +37,6 @@ class EnrollmentRepository extends BaseRepository {
     const where = {};
     const include = {};
 
-    // Build where conditions
     if (user_id) where.user_id = user_id;
     if (bootcamp_id) where.bootcamp_id = bootcamp_id;
     if (enrollment_status) where.enrollment_status = enrollment_status;
@@ -50,17 +53,9 @@ class EnrollmentRepository extends BaseRepository {
       if (enrolled_to) where.enrolled_at.lte = new Date(enrolled_to);
     }
 
-    // Build include conditions
     if (include_user) {
       include.user = {
-        select: {
-          id: true,
-          username: true,
-          first_name: true,
-          last_name: true,
-          email: true,
-          avatar: true,
-        },
+        select: { id: true, username: true, first_name: true, last_name: true, email: true, avatar: true },
       };
     }
 
@@ -81,84 +76,38 @@ class EnrollmentRepository extends BaseRepository {
     }
 
     if (include_pricing) {
-      include.pricing_tier = {
-        select: {
-          id: true,
-          name: true,
-          original_price: true,
-          discount_price: true,
-        },
-      };
+      include.pricing_tier = { select: { id: true, name: true, original_price: true, discount_price: true } };
     }
 
     const skip = (page - 1) * limit;
 
     const [enrollments, total] = await Promise.all([
-      this.model.findMany({
-        where,
-        include,
-        skip,
-        take: limit,
-        orderBy: { enrolled_at: 'desc' },
-      }),
+      this.model.findMany({ where, include, skip, take: limit, orderBy: { enrolled_at: 'desc' } }),
       this.model.count({ where }),
     ]);
 
-    return {
-      data: enrollments,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return { data: enrollments, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
   /**
    * Mendapatkan enrollment berdasarkan user dan bootcamp
-   * @param {number} userId - ID user
-   * @param {number} bootcampId - ID bootcamp
-   * @returns {Promise<Object|null>} - Enrollment atau null
    */
   async findByUserAndBootcamp(userId, bootcampId) {
+    this.logger.info({ userId, bootcampId }, '[enrollmentRepository] findByUserAndBootcamp called');
     return await this.model.findUnique({
-      where: {
-        bootcamp_id_user_id: {
-          bootcamp_id: bootcampId,
-          user_id: userId,
-        },
-      },
+      where: { bootcamp_id_user_id: { bootcamp_id: bootcampId, user_id: userId } },
       include: {
-        bootcamp: {
-          select: {
-            id: true,
-            title: true,
-            path_slug: true,
-            image_url: true,
-            category: true,
-            duration: true,
-          },
-        },
-        pricing_tier: {
-          select: {
-            id: true,
-            name: true,
-            original_price: true,
-            discount_price: true,
-          },
-        },
+        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true, category: true, duration: true } },
+        pricing_tier: { select: { id: true, name: true, original_price: true, discount_price: true } },
       },
     });
   }
 
   /**
    * Mendapatkan enrollment berdasarkan user ID
-   * @param {number} userId - ID user
-   * @param {Object} options - Options untuk filtering
-   * @returns {Promise<Array>} - Array of user enrollments
    */
   async findByUserId(userId, options = {}) {
+    this.logger.info({ userId }, '[enrollmentRepository] findByUserId called');
     const { enrollment_status, progress_min, progress_max, page = 1, limit = 10 } = options;
 
     const where = { user_id: userId };
@@ -166,10 +115,7 @@ class EnrollmentRepository extends BaseRepository {
     if (enrollment_status) where.enrollment_status = enrollment_status;
     if (progress_min !== undefined) where.progress_percentage = { gte: progress_min };
     if (progress_max !== undefined) {
-      where.progress_percentage = {
-        ...where.progress_percentage,
-        lte: progress_max,
-      };
+      where.progress_percentage = { ...where.progress_percentage, lte: progress_max };
     }
 
     const skip = (page - 1) * limit;
@@ -191,14 +137,7 @@ class EnrollmentRepository extends BaseRepository {
               portfolio: true,
             },
           },
-          pricing_tier: {
-            select: {
-              id: true,
-              name: true,
-              original_price: true,
-              discount_price: true,
-            },
-          },
+          pricing_tier: { select: { id: true, name: true, original_price: true, discount_price: true } },
         },
         skip,
         take: limit,
@@ -207,35 +146,21 @@ class EnrollmentRepository extends BaseRepository {
       this.model.count({ where }),
     ]);
 
-    return {
-      data: enrollments,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return { data: enrollments, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
   /**
    * Mendapatkan enrollment berdasarkan bootcamp ID
-   * @param {number} bootcampId - ID bootcamp
-   * @param {Object} options - Options untuk filtering
-   * @returns {Promise<Array>} - Array of bootcamp enrollments
    */
   async findByBootcampId(bootcampId, options = {}) {
+    this.logger.info({ bootcampId }, '[enrollmentRepository] findByBootcampId called');
     const { enrollment_status, progress_min, progress_max, page = 1, limit = 10 } = options;
 
     const where = { bootcamp_id: bootcampId };
-
     if (enrollment_status) where.enrollment_status = enrollment_status;
     if (progress_min !== undefined) where.progress_percentage = { gte: progress_min };
     if (progress_max !== undefined) {
-      where.progress_percentage = {
-        ...where.progress_percentage,
-        lte: progress_max,
-      };
+      where.progress_percentage = { ...where.progress_percentage, lte: progress_max };
     }
 
     const skip = (page - 1) * limit;
@@ -244,24 +169,8 @@ class EnrollmentRepository extends BaseRepository {
       this.model.findMany({
         where,
         include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-              email: true,
-              avatar: true,
-            },
-          },
-          pricing_tier: {
-            select: {
-              id: true,
-              name: true,
-              original_price: true,
-              discount_price: true,
-            },
-          },
+          user: { select: { id: true, username: true, first_name: true, last_name: true, email: true, avatar: true } },
+          pricing_tier: { select: { id: true, name: true, original_price: true, discount_price: true } },
         },
         skip,
         take: limit,
@@ -270,23 +179,14 @@ class EnrollmentRepository extends BaseRepository {
       this.model.count({ where }),
     ]);
 
-    return {
-      data: enrollments,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return { data: enrollments, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
   /**
    * Membuat enrollment baru
-   * @param {Object} data - Data enrollment
-   * @returns {Promise<Object>} - Enrollment yang dibuat
    */
   async createEnrollment(data) {
+    this.logger.info('[enrollmentRepository] createEnrollment called');
     const enrollmentData = {
       user_id: data.user_id,
       bootcamp_id: data.bootcamp_id,
@@ -298,49 +198,19 @@ class EnrollmentRepository extends BaseRepository {
     return await this.model.create({
       data: enrollmentData,
       include: {
-        bootcamp: {
-          select: {
-            id: true,
-            title: true,
-            path_slug: true,
-            image_url: true,
-            category: true,
-            duration: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            username: true,
-            first_name: true,
-            last_name: true,
-            email: true,
-          },
-        },
-        pricing_tier: {
-          select: {
-            id: true,
-            name: true,
-            original_price: true,
-            discount_price: true,
-          },
-        },
+        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true, category: true, duration: true } },
+        user: { select: { id: true, username: true, first_name: true, last_name: true, email: true } },
+        pricing_tier: { select: { id: true, name: true, original_price: true, discount_price: true } },
       },
     });
   }
 
   /**
    * Update progress enrollment
-   * @param {number} enrollmentId - ID enrollment
-   * @param {number} progressPercentage - Progress percentage (0-100)
-   * @returns {Promise<Object>} - Enrollment yang diupdate
    */
   async updateProgress(enrollmentId, progressPercentage) {
-    const updateData = {
-      progress_percentage: progressPercentage,
-    };
-
-    // Jika progress 100%, set sebagai completed
+    this.logger.info({ enrollmentId }, '[enrollmentRepository] updateProgress called');
+    const updateData = { progress_percentage: progressPercentage };
     if (progressPercentage >= 100) {
       updateData.enrollment_status = 'COMPLETED';
       updateData.completed_at = new Date();
@@ -350,38 +220,18 @@ class EnrollmentRepository extends BaseRepository {
       where: { id: enrollmentId },
       data: updateData,
       include: {
-        bootcamp: {
-          select: {
-            id: true,
-            title: true,
-            path_slug: true,
-            image_url: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            username: true,
-            first_name: true,
-            last_name: true,
-          },
-        },
+        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true } },
+        user: { select: { id: true, username: true, first_name: true, last_name: true } },
       },
     });
   }
 
   /**
    * Update status enrollment
-   * @param {number} enrollmentId - ID enrollment
-   * @param {string} status - Status baru
-   * @returns {Promise<Object>} - Enrollment yang diupdate
    */
   async updateStatus(enrollmentId, status) {
-    const updateData = {
-      enrollment_status: status,
-    };
-
-    // Jika status menjadi COMPLETED, set completed_at
+    this.logger.info({ enrollmentId, status }, '[enrollmentRepository] updateStatus called');
+    const updateData = { enrollment_status: status };
     if (status === 'COMPLETED') {
       updateData.completed_at = new Date();
       updateData.progress_percentage = 100;
@@ -391,32 +241,17 @@ class EnrollmentRepository extends BaseRepository {
       where: { id: enrollmentId },
       data: updateData,
       include: {
-        bootcamp: {
-          select: {
-            id: true,
-            title: true,
-            path_slug: true,
-            image_url: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            username: true,
-            first_name: true,
-            last_name: true,
-          },
-        },
+        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true } },
+        user: { select: { id: true, username: true, first_name: true, last_name: true } },
       },
     });
   }
 
   /**
    * Mendapatkan statistik enrollment
-   * @param {Object} options - Options untuk filtering
-   * @returns {Promise<Object>} - Statistik enrollment
    */
   async getEnrollmentStats(options = {}) {
+    this.logger.info({ options }, '[enrollmentRepository] getEnrollmentStats called');
     const { bootcamp_id, user_id, date_from, date_to } = options;
 
     const where = {};
@@ -434,20 +269,12 @@ class EnrollmentRepository extends BaseRepository {
       this.model.count({ where: { ...where, enrollment_status: 'COMPLETED' } }),
       this.model.count({ where: { ...where, enrollment_status: 'CANCELLED' } }),
       this.model.count({ where: { ...where, enrollment_status: 'SUSPENDED' } }),
-      this.model.aggregate({
-        where,
-        _avg: { progress_percentage: true },
-      }),
+      this.model.aggregate({ where, _avg: { progress_percentage: true } }),
     ]);
 
     return {
       total_enrollments: total,
-      status_breakdown: {
-        enrolled,
-        completed,
-        cancelled,
-        suspended,
-      },
+      status_breakdown: { enrolled, completed, cancelled, suspended },
       completion_rate: total > 0 ? ((completed / total) * 100).toFixed(2) : 0,
       cancellation_rate: total > 0 ? ((cancelled / total) * 100).toFixed(2) : 0,
       average_progress: averageProgress._avg.progress_percentage || 0,
@@ -456,38 +283,20 @@ class EnrollmentRepository extends BaseRepository {
 
   /**
    * Mendapatkan enrollment yang akan berakhir dalam X hari
-   * @param {number} days - Jumlah hari
-   * @returns {Promise<Array>} - Array of enrollments
    */
   async getExpiringEnrollments(days = 7) {
+    this.logger.info({ days }, '[enrollmentRepository] getExpiringEnrollments called');
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() + days);
 
     return await this.model.findMany({
       where: {
         enrollment_status: 'ENROLLED',
-        // Asumsi ada field expire_at atau bisa dihitung dari enrolled_at + duration
-        enrolled_at: {
-          lte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 hari yang lalu
-        },
+        enrolled_at: { lte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) },
       },
       include: {
-        user: {
-          select: {
-            id: true,
-            first_name: true,
-            last_name: true,
-            email: true,
-          },
-        },
-        bootcamp: {
-          select: {
-            id: true,
-            title: true,
-            path_slug: true,
-            duration: true,
-          },
-        },
+        user: { select: { id: true, first_name: true, last_name: true, email: true } },
+        bootcamp: { select: { id: true, title: true, path_slug: true, duration: true } },
       },
       orderBy: { enrolled_at: 'asc' },
     });
@@ -495,10 +304,9 @@ class EnrollmentRepository extends BaseRepository {
 
   /**
    * Mendapatkan top learners berdasarkan progress
-   * @param {Object} options - Options untuk filtering
-   * @returns {Promise<Array>} - Array of top learners
    */
   async getTopLearners(options = {}) {
+    this.logger.info({ options }, '[enrollmentRepository] getTopLearners called');
     const { limit = 10, bootcamp_id } = options;
 
     const where = { enrollment_status: 'ENROLLED' };
@@ -507,23 +315,8 @@ class EnrollmentRepository extends BaseRepository {
     return await this.model.findMany({
       where,
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            first_name: true,
-            last_name: true,
-            avatar: true,
-          },
-        },
-        bootcamp: {
-          select: {
-            id: true,
-            title: true,
-            path_slug: true,
-            image_url: true,
-          },
-        },
+        user: { select: { id: true, username: true, first_name: true, last_name: true, avatar: true } },
+        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true } },
       },
       orderBy: [{ progress_percentage: 'desc' }, { enrolled_at: 'asc' }],
       take: limit,
@@ -532,90 +325,48 @@ class EnrollmentRepository extends BaseRepository {
 
   /**
    * Validasi sebelum create enrollment
-   * @param {Object} data - Data enrollment
-   * @returns {Promise<Object>} - Validation result
    */
   async validateEnrollment(data) {
+    this.logger.info('[enrollmentRepository] validateEnrollment called');
     const { user_id, bootcamp_id, pricing_tier_id } = data;
 
-    // Cek apakah user sudah enrolled di bootcamp ini
     const existingEnrollment = await this.findByUserAndBootcamp(user_id, bootcamp_id);
     if (existingEnrollment) {
-      return {
-        valid: false,
-        message: 'User sudah terdaftar di bootcamp ini',
-        existing_enrollment: existingEnrollment,
-      };
+      return { valid: false, message: 'User sudah terdaftar di bootcamp ini', existing_enrollment: existingEnrollment };
     }
 
-    // Cek apakah bootcamp ada dan aktif
-    const bootcamp = await this.prisma.bootcamp.findUnique({
-      where: { id: bootcamp_id },
-      select: { id: true, title: true, status: true },
-    });
-
+    const bootcamp = await this.prisma.bootcamp.findUnique({ where: { id: bootcamp_id }, select: { id: true, title: true, status: true } });
     if (!bootcamp) {
-      return {
-        valid: false,
-        message: 'Bootcamp tidak ditemukan',
-      };
+      return { valid: false, message: 'Bootcamp tidak ditemukan' };
     }
-
     if (bootcamp.status !== 'ACTIVE') {
-      return {
-        valid: false,
-        message: 'Bootcamp tidak tersedia untuk pendaftaran',
-      };
+      return { valid: false, message: 'Bootcamp tidak tersedia untuk pendaftaran' };
     }
 
-    // Cek apakah pricing tier valid (jika ada)
     if (pricing_tier_id) {
-      const pricingTier = await this.prisma.bootcampPricing.findFirst({
-        where: {
-          id: pricing_tier_id,
-          bootcamp_id: bootcamp_id,
-        },
-      });
-
+      const pricingTier = await this.prisma.bootcampPricing.findFirst({ where: { id: pricing_tier_id, bootcamp_id } });
       if (!pricingTier) {
-        return {
-          valid: false,
-          message: 'Pricing tier tidak valid untuk bootcamp ini',
-        };
+        return { valid: false, message: 'Pricing tier tidak valid untuk bootcamp ini' };
       }
     }
 
-    return {
-      valid: true,
-      message: 'Enrollment dapat dibuat',
-    };
+    return { valid: true, message: 'Enrollment dapat dibuat' };
   }
 
   /**
    * Bulk update enrollment status
-   * @param {Array} enrollmentIds - Array of enrollment IDs
-   * @param {string} status - Status baru
-   * @returns {Promise<Object>} - Update result
    */
   async bulkUpdateStatus(enrollmentIds, status) {
-    const updateData = {
-      enrollment_status: status,
-    };
-
+    this.logger.info({ count: Array.isArray(enrollmentIds) ? enrollmentIds.length : 0, status }, '[enrollmentRepository] bulkUpdateStatus called');
+    const updateData = { enrollment_status: status };
     if (status === 'COMPLETED') {
       updateData.completed_at = new Date();
       updateData.progress_percentage = 100;
     }
 
-    const result = await this.model.updateMany({
-      where: { id: { in: enrollmentIds } },
-      data: updateData,
-    });
+    const result = await this.model.updateMany({ where: { id: { in: enrollmentIds } }, data: updateData });
 
-    return {
-      updated_count: result.count,
-      message: `Berhasil mengupdate ${result.count} enrollment`,
-    };
+    return { updated_count: result.count, message: `Berhasil mengupdate ${result.count} enrollment` };
   }
 }
 

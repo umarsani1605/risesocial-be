@@ -1,20 +1,28 @@
 import { jobsRepository } from '../repositories/jobsRepository.js';
+import { linkedInJobSearch } from '../integrations/linkedinJobSearch.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * Jobs business logic service
  * Handles job search, recommendations, and management
  */
 export class JobsService {
+  get logger() {
+    return getLogger();
+  }
   /**
    * Search jobs with full-text search and filtering
    * @param {Object} options - Search options
    * @returns {Promise<Object>} Search results with enhanced data
    */
   async searchJobs(options = {}) {
+    this.logger.info({ options }, '[jobsService] searchJobs start');
+
     const result = await jobsRepository.searchJobs(options);
 
-    // Enhance each job with computed fields
     result.data = result.data.map((job) => this.enhanceJob(job));
+
+    this.logger.info({ count: result.data.length }, '[jobsService] searchJobs result');
 
     return result;
   }
@@ -30,6 +38,24 @@ export class JobsService {
 
     if (!job) {
       const error = new Error(`Job with slug '${slug}' not found`);
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return this.enhanceJobDetails(job);
+  }
+
+  /**
+   * Get job by ID
+   * @param {number} id - Job ID
+   * @returns {Promise<Object>} Job details
+   * @throws {Error} If job not found
+   */
+  async getJobById(id) {
+    const job = await jobsRepository.findById(id);
+
+    if (!job) {
+      const error = new Error(`Job with ID '${id}' not found`);
       error.statusCode = 404;
       throw error;
     }
@@ -159,68 +185,6 @@ export class JobsService {
   }
 
   /**
-   * Get popular job categories
-   * @returns {Promise<Array>} Popular categories
-   */
-  async getPopularCategories() {
-    return await jobsRepository.getPopularCategories();
-  }
-
-  /**
-   * Get popular locations
-   * @returns {Promise<Array>} Popular locations
-   */
-  async getPopularLocations() {
-    return await jobsRepository.getPopularLocations();
-  }
-
-  /**
-   * Get popular companies
-   * @returns {Promise<Array>} Popular companies
-   */
-  async getPopularCompanies() {
-    return await jobsRepository.getPopularCompanies();
-  }
-
-  /**
-   * Get trending skills
-   * @returns {Promise<Array>} Trending skills
-   */
-  async getTrendingSkills() {
-    return await jobsRepository.getTrendingSkills();
-  }
-
-  /**
-   * Get job statistics
-   * @returns {Promise<Object>} Job statistics
-   */
-  async getStatistics() {
-    return await jobsRepository.getStatistics();
-  }
-
-  /**
-   * Get job market insights
-   * @returns {Promise<Object>} Market insights
-   */
-  async getMarketInsights() {
-    const [statistics, popularCategories, popularLocations, trendingSkills, popularCompanies] = await Promise.all([
-      this.getStatistics(),
-      this.getPopularCategories(),
-      this.getPopularLocations(),
-      this.getTrendingSkills(),
-      this.getPopularCompanies(),
-    ]);
-
-    return {
-      overview: statistics,
-      categories: popularCategories.slice(0, 10),
-      locations: popularLocations.slice(0, 10),
-      skills: trendingSkills.slice(0, 15),
-      companies: popularCompanies.slice(0, 15),
-    };
-  }
-
-  /**
    * Enhance job object with computed fields
    * @private
    * @param {Object} job - Raw job data
@@ -233,7 +197,6 @@ export class JobsService {
 
     return {
       ...job,
-      // Add computed fields
       daysSincePosted,
       isRecent: daysSincePosted <= 7,
       isExpiringSoon: job.application_deadline ? Math.floor((new Date(job.application_deadline) - now) / (1000 * 60 * 60 * 24)) <= 3 : false,
@@ -261,7 +224,6 @@ export class JobsService {
 
     return {
       ...enhanced,
-      // Additional detail-specific enhancements
       descriptionWordCount: job.description ? job.description.split(' ').length : 0,
       estimatedReadTime: job.description
         ? Math.ceil(job.description.split(' ').length / 200) // 200 words per minute
@@ -483,7 +445,226 @@ export class JobsService {
       excludeId: job.id,
     };
   }
+
+  /**
+   * Generate slug from title
+   * @private
+   * @param {string} title - Job title
+   * @returns {string} Generated slug
+   */
+  generateSlug(title) {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim('-');
+  }
+
+  /**
+   * Get featured jobs (using regular search with limit)
+   * @param {number} limit - Number of featured jobs to return
+   * @returns {Promise<Array>} Featured jobs
+   */
+  async getFeaturedJobs(limit = 6) {
+    this.logger.info({ limit }, '[jobsService] getFeaturedJobs start');
+
+    const options = {
+      page: 1,
+      limit: limit,
+      sortBy: 'postedDate',
+      sortOrder: 'desc',
+    };
+
+    const result = await this.searchJobs(options);
+
+    this.logger.info({ count: result.data.length }, '[jobsService] getFeaturedJobs result');
+    return result.data;
+  }
+
+  /**
+   * Get job categories (distinct employment types)
+   * @returns {Promise<Array>} Array of unique job categories
+   */
+  async getJobCategories() {
+    this.logger.info('[jobsService] getJobCategories start');
+
+    const categories = await jobsRepository.model.findMany({
+      select: {
+        employment_type: true,
+      },
+      distinct: ['employment_type'],
+      where: {
+        status: 'active',
+      },
+      orderBy: {
+        employment_type: 'asc',
+      },
+    });
+
+    const uniqueCategories = categories
+      .map((job) => job.employment_type)
+      .filter(Boolean)
+      .sort();
+
+    this.logger.info({ categories: uniqueCategories }, '[jobsService] getJobCategories result');
+    return uniqueCategories;
+  }
+
+  /**
+   * Sync jobs from LinkedIn API to database
+   * @param {Object} options - Sync options
+   * @returns {Promise<Object>} Sync results
+   */
+  async syncJobsFromLinkedIn(options = {}) {
+    try {
+      this.logger.info({ options }, '[jobsService] sync start');
+      this.logger.info('[jobsService] call linkedinJobSearch.manualSync');
+
+      const searchResult = await linkedInJobSearch.searchJobs(options);
+
+      this.logger.info({ searchResult }, '[jobsService] searchResult');
+
+      if (!searchResult.success) {
+        throw new Error(searchResult.error || 'Failed to fetch jobs from LinkedIn');
+      }
+
+      const linkedinJobs = searchResult.jobs;
+      this.logger.info({ total: linkedinJobs.length, success: searchResult.success }, '[jobsService] linkedinJobs');
+
+      if (linkedinJobs.length === 0) {
+        return {
+          success: true,
+          message: 'No jobs found from LinkedIn',
+          totalJobs: 0,
+          savedJobs: 0,
+          skippedJobs: 0,
+        };
+      }
+
+      const jobsToSave = [];
+      let skippedCount = 0;
+
+      for (const linkedinJob of linkedinJobs) {
+        const existingJob = await jobsRepository.findJobByLinkedInId(linkedinJob.id);
+
+        if (existingJob) {
+          skippedCount++;
+          continue;
+        }
+
+        let locationId = null;
+        if (linkedinJob.locations_raw && linkedinJob.locations_raw.length > 0) {
+          const location = linkedinJob.locations_raw[0];
+
+          const locationData = {
+            city: location.address?.addressLocality || null,
+            region: location.address?.addressRegion || null,
+            country: location.address?.addressCountry || 'Indonesia',
+            latitude: location.latitude ? parseFloat(location.latitude) : null,
+            longitude: location.longitude ? parseFloat(location.longitude) : null,
+            timezone: 'Asia/Jakarta', // Default timezone for Indonesia
+            raw_location_data: location,
+            location_type: 'office', // Default location type
+            is_remote: linkedinJob.remote_derived || false,
+          };
+
+          const existingLocation = await jobsRepository.findLocationByDetails(locationData);
+          if (existingLocation) {
+            locationId = existingLocation.id;
+          } else {
+            const newLocation = await jobsRepository.createLocation(locationData);
+            locationId = newLocation.id;
+          }
+        }
+
+        const jobData = {
+          title: linkedinJob.title,
+          slug: this.generateSlug(linkedinJob.title),
+          company_id: 1, // Default company ID, will be updated later
+          location_id: locationId,
+          linkedin_job_id: linkedinJob.id,
+          external_url: linkedinJob.url,
+          posted_date: new Date(linkedinJob.date_posted),
+          valid_until: linkedinJob.date_validthrough ? new Date(linkedinJob.date_validthrough) : null,
+          employment_type: linkedinJob.employment_type?.[0] || 'FULL_TIME',
+          seniority_level: linkedinJob.seniority || 'MID_LEVEL',
+          description: linkedinJob.title,
+          salary_raw: linkedinJob.salary_raw ? JSON.stringify(linkedinJob.salary_raw) : null,
+          location_requirements_raw: linkedinJob.location_requirements_raw ? JSON.stringify(linkedinJob.location_requirements_raw) : null,
+          source_type: 'jobboard',
+          source: 'linkedin',
+          source_domain: linkedinJob.source_domain,
+          source_url: linkedinJob.url,
+          direct_apply: linkedinJob.directapply || false,
+          status: 'ACTIVE',
+          api_created_at: new Date(),
+        };
+
+        jobsToSave.push(jobData);
+      }
+
+      // Save jobs to database
+      let savedCount = 0;
+
+      if (jobsToSave.length > 0) {
+        this.logger.info({ toSave: jobsToSave.length, skipped: skippedCount }, '[jobsService] persisting jobs');
+
+        const result = await jobsRepository.createManyJobs(jobsToSave);
+
+        this.logger.info({ result }, '[jobsService] createMany result');
+
+        savedCount = result.count || jobsToSave.length;
+      }
+
+      this.logger.info({ totalJobs: linkedinJobs.length, saved: savedCount, skipped: skippedCount }, '[jobsService] sync done');
+
+      return {
+        success: true,
+        message: 'LinkedIn sync completed successfully',
+        totalJobs: linkedinJobs.length,
+        savedJobs: savedCount,
+        skippedJobs: skippedCount,
+      };
+    } catch (error) {
+      this.logger.error({ err: error }, '[jobsService] sync failed');
+      throw error;
+    }
+  }
+
+  /**
+   * Get companies with filtering and pagination
+   * @param {Object} options - Filter and pagination options
+   * @returns {Promise<Object>} Paginated companies with metadata
+   */
+  async getCompanies(options = {}) {
+    this.logger.info({ options }, '[jobsService] getCompanies start');
+    try {
+      const result = await jobsRepository.searchCompanies(options);
+
+      // Enhance company data with additional computed fields
+      result.data = result.data.map((company) => this.enhanceCompany(company));
+
+      this.logger.info({ count: result.data.length }, '[jobsService] getCompanies success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[jobsService] getCompanies error');
+      throw error;
+    }
+  }
+
+  /**
+   * Enhance company data with computed fields
+   * @param {Object} company - Company data from database
+   * @returns {Object} Enhanced company data
+   */
+  enhanceCompany(company) {
+    return {
+      ...company,
+      // Add any computed fields here if needed
+      // For example: formattedFoundedDate, isLargeCompany, etc.
+    };
+  }
 }
 
-// Export instance
 export const jobsService = new JobsService();

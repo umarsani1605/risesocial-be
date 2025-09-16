@@ -10,7 +10,7 @@ import { convertUsdToIdr } from '../integrations/currencyConverter.js';
  * @constant {Object}
  */
 export const RYLS_PAYMENT_AMOUNTS_USD = {
-  FULLY_FUNDED: 15,
+  FULLY_FUNDED: 0.1,
   SELF_FUNDED: 750,
 };
 
@@ -187,12 +187,3 @@ export const getPaymentAmountIdr = async (scholarshipType, fastify) => {
 export const mapFraudStatus = (fraudStatus) => {
   return FRAUD_STATUS_MAPPING[fraudStatus] || 'UNKNOWN';
 };
-
-// Log configuration on startup
-console.log(`💰 [PaymentConstants] RYLS Payment Amounts (USD):`);
-console.log(`   💰 Fully Funded: $${RYLS_PAYMENT_AMOUNTS_USD.FULLY_FUNDED}`);
-console.log(`   💰 Self Funded: $${RYLS_PAYMENT_AMOUNTS_USD.SELF_FUNDED}`);
-console.log(
-  `🔢 [PaymentConstants] Order ID Format: ${ORDER_ID_CONFIG.PREFIX}${ORDER_ID_CONFIG.START_NUMBER.toString().padStart(ORDER_ID_CONFIG.PADDING, '0')}`
-);
-console.log(`⏰ [PaymentConstants] Payment Expiry: ${PAYMENT_EXPIRY.DURATION} ${PAYMENT_EXPIRY.UNIT}`);

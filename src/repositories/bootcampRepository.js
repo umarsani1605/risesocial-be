@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
 import { BaseRepository } from './base/BaseRepository.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * Consolidated Bootcamp Repository
@@ -10,15 +11,17 @@ export class BootcampRepository extends BaseRepository {
     super(prisma.bootcamp);
   }
 
+  get logger() {
+    return getLogger();
+  }
+
   // ==================== MAIN BOOTCAMP METHODS ====================
 
   /**
    * Find bootcamp by slug
-   * @param {string} slug - Bootcamp slug
-   * @param {Object} options - Query options
-   * @returns {Promise<Object|null>} Bootcamp or null
    */
   async findBySlug(slug, options = {}) {
+    this.logger.info({ slug }, '[bootcampRepository] findBySlug called');
     const bootcamp = await this.model.findUnique({
       where: { path_slug: slug },
       include: {
@@ -53,7 +56,6 @@ export class BootcampRepository extends BaseRepository {
       ...options,
     });
 
-    // Transform instructors to flat structure for easier frontend usage
     if (bootcamp && bootcamp.instructors) {
       bootcamp.instructors = bootcamp.instructors.map((item) => ({
         bootcamp_id: item.bootcamp_id,
@@ -73,15 +75,13 @@ export class BootcampRepository extends BaseRepository {
 
   /**
    * Find bootcamps with pagination and filtering
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} Paginated result with data and meta
    */
   async findWithPagination(options = {}) {
+    this.logger.info({ options }, '[bootcampRepository] findWithPagination called');
     const { page = 1, limit = 10, category, search, status = 'ACTIVE', minRating, includeRelations = false } = options;
 
     const skip = (page - 1) * limit;
 
-    // Build filter conditions
     const where = { status };
 
     if (category) {
@@ -96,7 +96,6 @@ export class BootcampRepository extends BaseRepository {
       where.rating = { gte: Number(minRating) };
     }
 
-    // Prepare include object
     const include = includeRelations
       ? {
           pricing: {
@@ -149,9 +148,9 @@ export class BootcampRepository extends BaseRepository {
 
   /**
    * Get bootcamp categories
-   * @returns {Promise<Array>} Array of unique categories
    */
   async getCategories() {
+    this.logger.info('[bootcampRepository] getCategories called');
     const result = await this.model.findMany({
       where: { status: 'ACTIVE' },
       select: { category: true },
@@ -162,10 +161,9 @@ export class BootcampRepository extends BaseRepository {
 
   /**
    * Get featured bootcamps
-   * @param {number} limit - Number of bootcamps to return
-   * @returns {Promise<Array>} Featured bootcamps
    */
   async getFeatured(limit = 6) {
+    this.logger.info({ limit }, '[bootcampRepository] getFeatured called');
     return await this.model.findMany({
       where: {
         status: 'ACTIVE',
@@ -190,11 +188,9 @@ export class BootcampRepository extends BaseRepository {
 
   /**
    * Check if slug exists
-   * @param {string} slug - Bootcamp slug
-   * @param {number} excludeId - ID to exclude from check (for updates)
-   * @returns {Promise<boolean>} True if exists
    */
   async slugExists(slug, excludeId = null) {
+    this.logger.info({ slug, excludeId }, '[bootcampRepository] slugExists called');
     const where = { path_slug: slug };
     if (excludeId) {
       where.id = { not: excludeId };
@@ -1047,6 +1043,787 @@ export class BootcampRepository extends BaseRepository {
       average_instructors_per_bootcamp: avgInstructorsPerBootcamp,
       average_bootcamps_per_instructor: avgBootcampsPerInstructor,
     };
+  }
+
+  /**
+   * Create pricing for bootcamp
+   */
+  async createPricing(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampRepository] createPricing called');
+
+    const { tier_order, ...rest } = data || {};
+
+    const pricing = await prisma.$transaction(async (tx) => {
+      const desiredOrder = Number(tier_order);
+      let finalOrder = desiredOrder;
+      if (Number.isFinite(desiredOrder) && desiredOrder >= 1) {
+        const shiftResult = await tx.bootcampPricing.updateMany({
+          where: { bootcamp_id: bootcampId, tier_order: { gte: desiredOrder } },
+          data: { tier_order: { increment: 1 } },
+        });
+        this.logger.info({ bootcampId, desiredOrder, shifted: shiftResult.count }, '[bootcampRepository] pricing shift-on-create');
+        finalOrder = desiredOrder;
+      } else {
+        const maxRow = await tx.bootcampPricing.findFirst({
+          where: { bootcamp_id: bootcampId },
+          orderBy: { tier_order: 'desc' },
+          select: { tier_order: true },
+        });
+        finalOrder = (maxRow?.tier_order || 0) + 1;
+      }
+
+      return tx.bootcampPricing.create({
+        data: { bootcamp_id: bootcampId, ...rest, tier_order: finalOrder },
+      });
+    });
+
+    this.logger.info({ pricingId: pricing.id }, '[bootcampRepository] createPricing success');
+    return pricing;
+  }
+
+  /**
+   * Update pricing for bootcamp
+   */
+  async updatePricing(bootcampId, pricingId, data) {
+    this.logger.info({ bootcampId, pricingId, data }, '[bootcampRepository] updatePricing called');
+    const { tier_order, ...rest } = data || {};
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampPricing.findFirst({
+        where: { id: pricingId, bootcamp_id: bootcampId },
+        select: { tier_order: true },
+      });
+
+      if (typeof tier_order === 'number' && tier_order >= 1 && existing) {
+        if (tier_order < existing.tier_order) {
+          await tx.bootcampPricing.updateMany({
+            where: { bootcamp_id: bootcampId, tier_order: { gte: tier_order, lt: existing.tier_order } },
+            data: { tier_order: { increment: 1 } },
+          });
+        } else if (tier_order > existing.tier_order) {
+          await tx.bootcampPricing.updateMany({
+            where: { bootcamp_id: bootcampId, tier_order: { lte: tier_order, gt: existing.tier_order } },
+            data: { tier_order: { decrement: 1 } },
+          });
+        }
+      }
+
+      const updated = await tx.bootcampPricing.update({
+        where: { id: pricingId, bootcamp_id: bootcampId },
+        data: { ...rest, ...(tier_order ? { tier_order } : {}) },
+      });
+
+      return updated;
+    });
+
+    this.logger.info({ pricingId: result.id }, '[bootcampRepository] updatePricing success');
+    return result;
+  }
+
+  /**
+   * Delete pricing for bootcamp
+   */
+  async deletePricing(bootcampId, pricingId) {
+    this.logger.info({ bootcampId, pricingId }, '[bootcampRepository] deletePricing called');
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampPricing.findFirst({
+        where: { id: pricingId, bootcamp_id: bootcampId },
+        select: { tier_order: true },
+      });
+
+      await tx.bootcampPricing.delete({
+        where: { id: pricingId, bootcamp_id: bootcampId },
+      });
+
+      if (existing?.tier_order) {
+        const shiftResult = await tx.bootcampPricing.updateMany({
+          where: { bootcamp_id: bootcampId, tier_order: { gt: existing.tier_order } },
+          data: { tier_order: { decrement: 1 } },
+        });
+        this.logger.info(
+          { bootcampId, deletedOrder: existing.tier_order, shifted: shiftResult.count },
+          '[bootcampRepository] pricing shift-on-delete'
+        );
+      }
+    });
+
+    this.logger.info({ pricingId }, '[bootcampRepository] deletePricing success');
+    return { message: 'Pricing deleted successfully' };
+  }
+
+  // ==================== FEATURES METHODS ====================
+
+  /**
+   * Create feature for bootcamp
+   */
+  async createFeature(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampRepository] createFeature called');
+
+    const { feature_order, ...rest } = data || {};
+
+    const feature = await prisma.$transaction(async (tx) => {
+      const desiredOrder = Number(feature_order);
+      let finalOrder = desiredOrder;
+      if (Number.isFinite(desiredOrder) && desiredOrder >= 1) {
+        const shiftResult = await tx.bootcampFeature.updateMany({
+          where: { bootcamp_id: bootcampId, feature_order: { gte: desiredOrder } },
+          data: { feature_order: { increment: 1 } },
+        });
+        this.logger.info({ bootcampId, desiredOrder, shifted: shiftResult.count }, '[bootcampRepository] feature shift-on-create');
+        finalOrder = desiredOrder;
+      } else {
+        const maxRow = await tx.bootcampFeature.findFirst({
+          where: { bootcamp_id: bootcampId },
+          orderBy: { feature_order: 'desc' },
+          select: { feature_order: true },
+        });
+        finalOrder = (maxRow?.feature_order || 0) + 1;
+      }
+
+      return tx.bootcampFeature.create({
+        data: { bootcamp_id: bootcampId, ...rest, feature_order: finalOrder },
+      });
+    });
+
+    this.logger.info({ featureId: feature.id }, '[bootcampRepository] createFeature success');
+    return feature;
+  }
+
+  /**
+   * Update feature for bootcamp
+   */
+  async updateFeature(bootcampId, featureId, data) {
+    this.logger.info({ bootcampId, featureId, data }, '[bootcampRepository] updateFeature called');
+    const { feature_order, ...rest } = data || {};
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampFeature.findFirst({
+        where: { id: featureId, bootcamp_id: bootcampId },
+        select: { feature_order: true },
+      });
+
+      if (typeof feature_order === 'number' && feature_order >= 1 && existing) {
+        if (feature_order < existing.feature_order) {
+          await tx.bootcampFeature.updateMany({
+            where: { bootcamp_id: bootcampId, feature_order: { gte: feature_order, lt: existing.feature_order } },
+            data: { feature_order: { increment: 1 } },
+          });
+        } else if (feature_order > existing.feature_order) {
+          await tx.bootcampFeature.updateMany({
+            where: { bootcamp_id: bootcampId, feature_order: { lte: feature_order, gt: existing.feature_order } },
+            data: { feature_order: { decrement: 1 } },
+          });
+        }
+      }
+
+      const updated = await tx.bootcampFeature.update({
+        where: { id: featureId, bootcamp_id: bootcampId },
+        data: { ...rest, ...(feature_order ? { feature_order } : {}) },
+      });
+
+      return updated;
+    });
+
+    this.logger.info({ featureId: result.id }, '[bootcampRepository] updateFeature success');
+    return result;
+  }
+
+  /**
+   * Delete feature for bootcamp
+   */
+  async deleteFeature(bootcampId, featureId) {
+    this.logger.info({ bootcampId, featureId }, '[bootcampRepository] deleteFeature called');
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampFeature.findFirst({
+        where: { id: featureId, bootcamp_id: bootcampId },
+        select: { feature_order: true },
+      });
+
+      await tx.bootcampFeature.delete({
+        where: { id: featureId, bootcamp_id: bootcampId },
+      });
+
+      if (existing?.feature_order) {
+        await tx.bootcampFeature.updateMany({
+          where: { bootcamp_id: bootcampId, feature_order: { gt: existing.feature_order } },
+          data: { feature_order: { decrement: 1 } },
+        });
+      }
+    });
+
+    this.logger.info({ featureId }, '[bootcampRepository] deleteFeature success');
+    return { message: 'Feature deleted successfully' };
+  }
+
+  // ==================== INSTRUCTORS METHODS ====================
+
+  /**
+   * Create instructor for bootcamp
+   */
+  async createInstructor(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampRepository] createInstructor called');
+
+    const { instructor_order, ...rest } = data || {};
+
+    const instructor = await prisma.$transaction(async (tx) => {
+      const desiredOrder = Number(instructor_order);
+      let finalOrder = desiredOrder;
+      if (Number.isFinite(desiredOrder) && desiredOrder >= 1) {
+        const shiftResult = await tx.bootcampInstructor.updateMany({
+          where: { bootcamp_id: bootcampId, instructor_order: { gte: desiredOrder } },
+          data: { instructor_order: { increment: 1 } },
+        });
+        this.logger.info({ bootcampId, desiredOrder, shifted: shiftResult.count }, '[bootcampRepository] instructor shift-on-create');
+        finalOrder = desiredOrder;
+      } else {
+        const maxRow = await tx.bootcampInstructor.findFirst({
+          where: { bootcamp_id: bootcampId },
+          orderBy: { instructor_order: 'desc' },
+          select: { instructor_order: true },
+        });
+        finalOrder = (maxRow?.instructor_order || 0) + 1;
+      }
+
+      return tx.bootcampInstructor.create({
+        data: { bootcamp_id: bootcampId, ...rest, instructor_order: finalOrder },
+        include: { instructor: true },
+      });
+    });
+
+    this.logger.info({ instructorId: instructor.instructor_id }, '[bootcampRepository] createInstructor success');
+    return instructor;
+  }
+
+  /**
+   * Update instructor for bootcamp
+   */
+  async updateInstructor(bootcampId, instructorId, data) {
+    this.logger.info({ bootcampId, instructorId, data }, '[bootcampRepository] updateInstructor called');
+    const { instructor_order, ...rest } = data || {};
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampInstructor.findFirst({
+        where: { instructor_id: instructorId, bootcamp_id: bootcampId },
+        select: { instructor_order: true },
+      });
+
+      if (typeof instructor_order === 'number' && instructor_order >= 1 && existing) {
+        if (instructor_order < existing.instructor_order) {
+          await tx.bootcampInstructor.updateMany({
+            where: { bootcamp_id: bootcampId, instructor_order: { gte: instructor_order, lt: existing.instructor_order } },
+            data: { instructor_order: { increment: 1 } },
+          });
+        } else if (instructor_order > existing.instructor_order) {
+          await tx.bootcampInstructor.updateMany({
+            where: { bootcamp_id: bootcampId, instructor_order: { lte: instructor_order, gt: existing.instructor_order } },
+            data: { instructor_order: { decrement: 1 } },
+          });
+        }
+      }
+
+      const updated = await tx.bootcampInstructor.update({
+        where: { instructor_id: instructorId, bootcamp_id: bootcampId },
+        data: { ...rest, ...(instructor_order ? { instructor_order } : {}) },
+        include: { instructor: true },
+      });
+
+      return updated;
+    });
+
+    this.logger.info({ instructorId: result.instructor_id }, '[bootcampRepository] updateInstructor success');
+    return result;
+  }
+
+  /**
+   * Delete instructor from bootcamp
+   */
+  async deleteInstructor(bootcampId, instructorId) {
+    this.logger.info({ bootcampId, instructorId }, '[bootcampRepository] deleteInstructor called');
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampInstructor.findFirst({
+        where: { instructor_id: instructorId, bootcamp_id: bootcampId },
+        select: { instructor_order: true },
+      });
+
+      await tx.bootcampInstructor.delete({
+        where: { instructor_id: instructorId, bootcamp_id: bootcampId },
+      });
+
+      if (existing?.instructor_order) {
+        await tx.bootcampInstructor.updateMany({
+          where: { bootcamp_id: bootcampId, instructor_order: { gt: existing.instructor_order } },
+          data: { instructor_order: { decrement: 1 } },
+        });
+      }
+    });
+
+    this.logger.info({ instructorId }, '[bootcampRepository] deleteInstructor success');
+    return { message: 'Instructor removed successfully' };
+  }
+
+  // ==================== TOPICS METHODS ====================
+
+  /**
+   * Create topic for bootcamp
+   */
+  async createTopic(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampRepository] createTopic called');
+
+    const { topic_order, ...rest } = data || {};
+
+    const topic = await prisma.$transaction(async (tx) => {
+      const desiredOrder = Number(topic_order);
+      let finalOrder = desiredOrder;
+      if (Number.isFinite(desiredOrder) && desiredOrder >= 1) {
+        const shiftResult = await tx.bootcampTopic.updateMany({
+          where: { bootcamp_id: bootcampId, topic_order: { gte: desiredOrder } },
+          data: { topic_order: { increment: 1 } },
+        });
+        this.logger.info({ bootcampId, desiredOrder, shifted: shiftResult.count }, '[bootcampRepository] topic shift-on-create');
+        finalOrder = desiredOrder;
+      } else {
+        const maxRow = await tx.bootcampTopic.findFirst({
+          where: { bootcamp_id: bootcampId },
+          orderBy: { topic_order: 'desc' },
+          select: { topic_order: true },
+        });
+        finalOrder = (maxRow?.topic_order || 0) + 1;
+      }
+
+      return tx.bootcampTopic.create({
+        data: { bootcamp_id: bootcampId, ...rest, topic_order: finalOrder },
+        include: { sessions: true },
+      });
+    });
+
+    this.logger.info({ topicId: topic.id }, '[bootcampRepository] createTopic success');
+    return topic;
+  }
+
+  /**
+   * Update topic for bootcamp
+   */
+  async updateTopic(bootcampId, topicId, data) {
+    this.logger.info({ bootcampId, topicId, data }, '[bootcampRepository] updateTopic called');
+    const { topic_order, ...rest } = data || {};
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampTopic.findFirst({
+        where: { id: topicId, bootcamp_id: bootcampId },
+        select: { topic_order: true },
+      });
+
+      if (typeof topic_order === 'number' && topic_order >= 1 && existing) {
+        if (topic_order < existing.topic_order) {
+          await tx.bootcampTopic.updateMany({
+            where: { bootcamp_id: bootcampId, topic_order: { gte: topic_order, lt: existing.topic_order } },
+            data: { topic_order: { increment: 1 } },
+          });
+        } else if (topic_order > existing.topic_order) {
+          await tx.bootcampTopic.updateMany({
+            where: { bootcamp_id: bootcampId, topic_order: { lte: topic_order, gt: existing.topic_order } },
+            data: { topic_order: { decrement: 1 } },
+          });
+        }
+      }
+
+      const updated = await tx.bootcampTopic.update({
+        where: { id: topicId, bootcamp_id: bootcampId },
+        data: { ...rest, ...(topic_order ? { topic_order } : {}) },
+        include: { sessions: true },
+      });
+
+      return updated;
+    });
+
+    this.logger.info({ topicId: result.id }, '[bootcampRepository] updateTopic success');
+    return result;
+  }
+
+  /**
+   * Delete topic from bootcamp
+   */
+  async deleteTopic(bootcampId, topicId) {
+    this.logger.info({ bootcampId, topicId }, '[bootcampRepository] deleteTopic called');
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampTopic.findFirst({
+        where: { id: topicId, bootcamp_id: bootcampId },
+        select: { topic_order: true },
+      });
+
+      await tx.bootcampTopic.delete({
+        where: { id: topicId, bootcamp_id: bootcampId },
+      });
+
+      if (existing?.topic_order) {
+        await tx.bootcampTopic.updateMany({
+          where: { bootcamp_id: bootcampId, topic_order: { gt: existing.topic_order } },
+          data: { topic_order: { decrement: 1 } },
+        });
+      }
+    });
+
+    this.logger.info({ topicId }, '[bootcampRepository] deleteTopic success');
+    return { message: 'Topic deleted successfully' };
+  }
+
+  // ==================== TESTIMONIALS METHODS ====================
+
+  /**
+   * Create testimonial for bootcamp
+   */
+  async createTestimonial(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampRepository] createTestimonial called');
+
+    const { testimonial_order, ...rest } = data || {};
+
+    const testimonial = await prisma.$transaction(async (tx) => {
+      const desiredOrder = Number(testimonial_order);
+      let finalOrder = desiredOrder;
+      if (Number.isFinite(desiredOrder) && desiredOrder >= 1) {
+        const shiftResult = await tx.bootcampTestimonial.updateMany({
+          where: { bootcamp_id: bootcampId, testimonial_order: { gte: desiredOrder } },
+          data: { testimonial_order: { increment: 1 } },
+        });
+        this.logger.info({ bootcampId, desiredOrder, shifted: shiftResult.count }, '[bootcampRepository] testimonial shift-on-create');
+        finalOrder = desiredOrder;
+      } else {
+        const maxRow = await tx.bootcampTestimonial.findFirst({
+          where: { bootcamp_id: bootcampId },
+          orderBy: { testimonial_order: 'desc' },
+          select: { testimonial_order: true },
+        });
+        finalOrder = (maxRow?.testimonial_order || 0) + 1;
+      }
+
+      return tx.bootcampTestimonial.create({
+        data: { bootcamp_id: bootcampId, ...rest, testimonial_order: finalOrder },
+      });
+    });
+
+    this.logger.info({ testimonialId: testimonial.id }, '[bootcampRepository] createTestimonial success');
+    return testimonial;
+  }
+
+  /**
+   * Update testimonial for bootcamp
+   */
+  async updateTestimonial(bootcampId, testimonialId, data) {
+    this.logger.info({ bootcampId, testimonialId, data }, '[bootcampRepository] updateTestimonial called');
+    const { testimonial_order, ...rest } = data || {};
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampTestimonial.findFirst({
+        where: { id: testimonialId, bootcamp_id: bootcampId },
+        select: { testimonial_order: true },
+      });
+
+      if (typeof testimonial_order === 'number' && testimonial_order >= 1 && existing) {
+        if (testimonial_order < existing.testimonial_order) {
+          await tx.bootcampTestimonial.updateMany({
+            where: { bootcamp_id: bootcampId, testimonial_order: { gte: testimonial_order, lt: existing.testimonial_order } },
+            data: { testimonial_order: { increment: 1 } },
+          });
+        } else if (testimonial_order > existing.testimonial_order) {
+          await tx.bootcampTestimonial.updateMany({
+            where: { bootcamp_id: bootcampId, testimonial_order: { lte: testimonial_order, gt: existing.testimonial_order } },
+            data: { testimonial_order: { decrement: 1 } },
+          });
+        }
+      }
+
+      const updated = await tx.bootcampTestimonial.update({
+        where: { id: testimonialId, bootcamp_id: bootcampId },
+        data: { ...rest, ...(testimonial_order ? { testimonial_order } : {}) },
+      });
+
+      return updated;
+    });
+
+    this.logger.info({ testimonialId: result.id }, '[bootcampRepository] updateTestimonial success');
+    return result;
+  }
+
+  /**
+   * Delete testimonial from bootcamp
+   */
+  async deleteTestimonial(bootcampId, testimonialId) {
+    this.logger.info({ bootcampId, testimonialId }, '[bootcampRepository] deleteTestimonial called');
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampTestimonial.findFirst({
+        where: { id: testimonialId, bootcamp_id: bootcampId },
+        select: { testimonial_order: true },
+      });
+
+      await tx.bootcampTestimonial.delete({
+        where: { id: testimonialId, bootcamp_id: bootcampId },
+      });
+
+      if (existing?.testimonial_order) {
+        await tx.bootcampTestimonial.updateMany({
+          where: { bootcamp_id: bootcampId, testimonial_order: { gt: existing.testimonial_order } },
+          data: { testimonial_order: { decrement: 1 } },
+        });
+      }
+    });
+
+    this.logger.info({ testimonialId }, '[bootcampRepository] deleteTestimonial success');
+    return { message: 'Testimonial deleted successfully' };
+  }
+
+  // ==================== FAQs METHODS ====================
+
+  /**
+   * Create FAQ for bootcamp
+   */
+  async createFaq(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampRepository] createFaq called');
+
+    const { faq_order, ...rest } = data || {};
+
+    const faq = await prisma.$transaction(async (tx) => {
+      const desiredOrder = Number(faq_order);
+      let finalOrder = desiredOrder;
+      if (Number.isFinite(desiredOrder) && desiredOrder >= 1) {
+        const shiftResult = await tx.bootcampFaq.updateMany({
+          where: { bootcamp_id: bootcampId, faq_order: { gte: desiredOrder } },
+          data: { faq_order: { increment: 1 } },
+        });
+        this.logger.info({ bootcampId, desiredOrder, shifted: shiftResult.count }, '[bootcampRepository] faq shift-on-create');
+        finalOrder = desiredOrder;
+      } else {
+        const maxRow = await tx.bootcampFaq.findFirst({
+          where: { bootcamp_id: bootcampId },
+          orderBy: { faq_order: 'desc' },
+          select: { faq_order: true },
+        });
+        finalOrder = (maxRow?.faq_order || 0) + 1;
+      }
+
+      return tx.bootcampFaq.create({
+        data: { bootcamp_id: bootcampId, ...rest, faq_order: finalOrder },
+      });
+    });
+
+    this.logger.info({ faqId: faq.id }, '[bootcampRepository] createFaq success');
+    return faq;
+  }
+
+  /**
+   * Update FAQ for bootcamp
+   */
+  async updateFaq(bootcampId, faqId, data) {
+    this.logger.info({ bootcampId, faqId, data }, '[bootcampRepository] updateFaq called');
+    const { faq_order, ...rest } = data || {};
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampFaq.findFirst({
+        where: { id: faqId, bootcamp_id: bootcampId },
+        select: { faq_order: true },
+      });
+
+      if (typeof faq_order === 'number' && faq_order >= 1 && existing) {
+        if (faq_order < existing.faq_order) {
+          await tx.bootcampFaq.updateMany({
+            where: { bootcamp_id: bootcampId, faq_order: { gte: faq_order, lt: existing.faq_order } },
+            data: { faq_order: { increment: 1 } },
+          });
+        } else if (faq_order > existing.faq_order) {
+          await tx.bootcampFaq.updateMany({
+            where: { bootcamp_id: bootcampId, faq_order: { lte: faq_order, gt: existing.faq_order } },
+            data: { faq_order: { decrement: 1 } },
+          });
+        }
+      }
+
+      const updated = await tx.bootcampFaq.update({
+        where: { id: faqId, bootcamp_id: bootcampId },
+        data: { ...rest, ...(faq_order ? { faq_order } : {}) },
+      });
+
+      return updated;
+    });
+
+    this.logger.info({ faqId: result.id }, '[bootcampRepository] updateFaq success');
+    return result;
+  }
+
+  /**
+   * Delete FAQ from bootcamp
+   */
+  async deleteFaq(bootcampId, faqId) {
+    this.logger.info({ bootcampId, faqId }, '[bootcampRepository] deleteFaq called');
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampFaq.findFirst({
+        where: { id: faqId, bootcamp_id: bootcampId },
+        select: { faq_order: true },
+      });
+
+      await tx.bootcampFaq.delete({
+        where: { id: faqId, bootcamp_id: bootcampId },
+      });
+
+      if (existing?.faq_order) {
+        await tx.bootcampFaq.updateMany({
+          where: { bootcamp_id: bootcampId, faq_order: { gt: existing.faq_order } },
+          data: { faq_order: { decrement: 1 } },
+        });
+      }
+    });
+
+    this.logger.info({ faqId }, '[bootcampRepository] deleteFaq success');
+    return { message: 'FAQ deleted successfully' };
+  }
+
+  // ==================== SESSION METHODS WITH RE-ORDERING ====================
+
+  /**
+   * Find topic by ID
+   */
+  async findTopicById(topicId) {
+    this.logger.info({ topicId }, '[bootcampRepository] findTopicById called');
+    return await prisma.bootcampTopic.findUnique({
+      where: { id: topicId },
+    });
+  }
+
+  /**
+   * Find session by ID
+   */
+  async findSessionById(sessionId) {
+    this.logger.info({ sessionId }, '[bootcampRepository] findSessionById called');
+    return await prisma.bootcampSession.findUnique({
+      where: { id: sessionId },
+    });
+  }
+
+  /**
+   * Create session for topic with re-ordering
+   */
+  async createSession(bootcampId, topicId, data) {
+    this.logger.info({ bootcampId, topicId, data }, '[bootcampRepository] createSession called');
+
+    const { session_order, ...rest } = data || {};
+
+    const session = await prisma.$transaction(async (tx) => {
+      const desiredOrder = Number(session_order);
+      let finalOrder = desiredOrder;
+
+      if (Number.isFinite(desiredOrder) && desiredOrder >= 1) {
+        const shiftResult = await tx.bootcampSession.updateMany({
+          where: { topic_id: topicId, session_order: { gte: desiredOrder } },
+          data: { session_order: { increment: 1 } },
+        });
+        this.logger.info({ topicId, desiredOrder, shifted: shiftResult.count }, '[bootcampRepository] session shift-on-create');
+        finalOrder = desiredOrder;
+      } else {
+        const maxSession = await tx.bootcampSession.findFirst({
+          where: { topic_id: topicId },
+          orderBy: { session_order: 'desc' },
+          select: { session_order: true },
+        });
+        finalOrder = maxSession ? maxSession.session_order + 1 : 1;
+      }
+
+      return await tx.bootcampSession.create({
+        data: {
+          topic_id: topicId,
+          session_order: finalOrder,
+          ...rest,
+        },
+      });
+    });
+
+    this.logger.info({ sessionId: session.id }, '[bootcampRepository] createSession success');
+    return session;
+  }
+
+  /**
+   * Update session with re-ordering
+   */
+  async updateSession(bootcampId, topicId, sessionId, data) {
+    this.logger.info({ bootcampId, topicId, sessionId, data }, '[bootcampRepository] updateSession called');
+    const { session_order, ...rest } = data || {};
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampSession.findFirst({
+        where: { id: sessionId, topic_id: topicId },
+        select: { session_order: true },
+      });
+
+      if (typeof session_order === 'number' && session_order >= 1 && existing) {
+        if (session_order < existing.session_order) {
+          // Moving up: shift items between new position and old position down
+          const shiftResult = await tx.bootcampSession.updateMany({
+            where: {
+              topic_id: topicId,
+              session_order: { gte: session_order, lt: existing.session_order },
+            },
+            data: { session_order: { increment: 1 } },
+          });
+          this.logger.info({ topicId, sessionId, session_order, shifted: shiftResult.count }, '[bootcampRepository] session shift-up');
+        } else if (session_order > existing.session_order) {
+          // Moving down: shift items between old position and new position up
+          const shiftResult = await tx.bootcampSession.updateMany({
+            where: {
+              topic_id: topicId,
+              session_order: { gt: existing.session_order, lte: session_order },
+            },
+            data: { session_order: { decrement: 1 } },
+          });
+          this.logger.info({ topicId, sessionId, session_order, shifted: shiftResult.count }, '[bootcampRepository] session shift-down');
+        }
+      }
+
+      return await tx.bootcampSession.update({
+        where: { id: sessionId, topic_id: topicId },
+        data: { session_order, ...rest },
+      });
+    });
+
+    this.logger.info({ sessionId: result.id }, '[bootcampRepository] updateSession success');
+    return result;
+  }
+
+  /**
+   * Delete session with re-ordering
+   */
+  async deleteSession(bootcampId, topicId, sessionId) {
+    this.logger.info({ bootcampId, topicId, sessionId }, '[bootcampRepository] deleteSession called');
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.bootcampSession.findFirst({
+        where: { id: sessionId, topic_id: topicId },
+        select: { session_order: true },
+      });
+
+      await tx.bootcampSession.delete({
+        where: { id: sessionId, topic_id: topicId },
+      });
+
+      if (existing?.session_order) {
+        const shiftResult = await tx.bootcampSession.updateMany({
+          where: {
+            topic_id: topicId,
+            session_order: { gt: existing.session_order },
+          },
+          data: { session_order: { decrement: 1 } },
+        });
+        this.logger.info(
+          { topicId, deletedOrder: existing.session_order, shifted: shiftResult.count },
+          '[bootcampRepository] session shift-on-delete'
+        );
+      }
+    });
+
+    this.logger.info({ sessionId }, '[bootcampRepository] deleteSession success');
+    return { message: 'Session deleted successfully' };
   }
 }
 

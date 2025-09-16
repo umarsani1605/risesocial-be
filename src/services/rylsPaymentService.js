@@ -10,6 +10,7 @@ import {
   mapFraudStatus,
   WEBHOOK_CONFIG,
 } from '../constants/payments.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * RYLS Payment Service
@@ -22,19 +23,22 @@ export class RylsPaymentService {
     this.registrationRepository = new RylsRegistrationRepository();
   }
 
+  get logger() {
+    return getLogger();
+  }
+
   /**
    * Create payment transaction for registration
    * @param {Object} registrationData - Basic registration data needed for payment
    * @returns {Promise<Object>} Payment transaction data
    */
   async createTransaction(data) {
-    console.log('[PaymentService] createTransaction called');
+    this.logger.info('[rylsPaymentService] createTransaction start');
 
     const type = data.type;
     const registrationData = data.data;
 
-    console.log('[PaymentService] Payment type:', type);
-    console.log('[PaymentService] Registration data:', registrationData);
+    this.logger.debug({ type, registrationData }, '[rylsPaymentService] rawInput');
 
     try {
       const sequenceNumber = await this.paymentRepository.getNextSequenceNumber();
@@ -42,8 +46,7 @@ export class RylsPaymentService {
       const amountIdr = await getPaymentAmountIdr(registrationData.scholarshipType);
       const itemTemplate = getItemTemplate(registrationData.scholarshipType);
 
-      console.log('[PaymentService] Generated order ID:', orderId);
-      console.log('[PaymentService] Payment amount:', amountIdr.toLocaleString('id-ID'), 'IDR');
+      this.logger.info({ orderId, amountIdr }, '[rylsPaymentService] order prepared');
 
       let rylsPayment;
       let snapTransaction;
@@ -66,7 +69,6 @@ export class RylsPaymentService {
               email: registrationData.email,
               phone: registrationData.whatsapp || '',
               address: registrationData.residence,
-              city: registrationData.residence,
               country_code: 'IDN',
             },
           },
@@ -79,16 +81,15 @@ export class RylsPaymentService {
               category: itemTemplate.category,
             },
           ],
+          credit_card: { secure: true },
         };
 
-        console.log('[PaymentService] Midtrans transaction params:', JSON.stringify(transactionParams, null, 2));
-
-        console.log('[PaymentService] Creating Midtrans transaction...');
+        this.logger.debug({ transactionParams }, '[rylsPaymentService] midtrans params');
 
         snapTransaction = await snap.createTransaction(transactionParams);
 
-        console.log('[PaymentService] Midtrans transaction created successfully');
-        console.log('[PaymentService] Midtrans response:', snapTransaction);
+        this.logger.info('[rylsPaymentService] midtrans transaction created');
+        this.logger.debug({ snapTransaction }, '[rylsPaymentService] midtrans response');
 
         const midtransPaymentData = {
           order_id: orderId,
@@ -100,8 +101,7 @@ export class RylsPaymentService {
         };
 
         const savedMidtransPayment = await this.paymentRepository.createMidtransPayment(midtransPaymentData);
-
-        console.log('[PaymentService] Midtrans payment record:', savedMidtransPayment);
+        this.logger.debug({ savedMidtransPaymentId: savedMidtransPayment.id }, '[rylsPaymentService] midtrans saved');
 
         const rylsPaymentData = {
           type: 'MIDTRANS',
@@ -111,8 +111,7 @@ export class RylsPaymentService {
         };
 
         rylsPayment = await this.paymentRepository.createRylsPayment(rylsPaymentData);
-
-        console.log('[PaymentService] Ryls payment record:', rylsPayment);
+        this.logger.debug({ rylsPaymentId: rylsPayment.id }, '[rylsPaymentService] ryls payment saved');
       }
 
       if (type == 'PAYPAL') {
@@ -125,10 +124,10 @@ export class RylsPaymentService {
         };
 
         rylsPayment = await this.paymentRepository.createRylsPayment(rylsPaymentData);
-
-        console.log('[PaymentService] Ryls payment record:', rylsPayment);
+        this.logger.debug({ rylsPaymentId: rylsPayment.id }, '[rylsPaymentService] ryls payment saved');
       }
 
+      this.logger.info('[rylsPaymentService] createTransaction success');
       return {
         payment_id: rylsPayment.id,
         order_id: orderId,
@@ -138,19 +137,17 @@ export class RylsPaymentService {
         redirect_url: snapTransaction?.redirect_url || null,
       };
     } catch (error) {
-      console.error('[PaymentService] Error creating transaction:', error);
+      this.logger.error({ err: error }, '[rylsPaymentService] createTransaction error');
       throw new Error(`Failed to create payment transaction: ${error.message}`);
     }
   }
 
   /**
    * Handle Midtrans webhook notification
-   * @param {Object} notificationData - Webhook notification data
-   * @returns {Promise<Object>} Processing result
    */
   async handleWebhookNotification(notificationData) {
-    console.log('[PaymentService] handleWebhookNotification called');
-    console.log('[PaymentService] Notification data:', JSON.stringify(notificationData, null, 2));
+    this.logger.info('[rylsPaymentService] handleWebhookNotification start');
+    this.logger.debug({ notificationData }, '[rylsPaymentService] webhook payload');
 
     try {
       const { order_id, transaction_status, fraud_status, transaction_id, payment_type } = notificationData;
@@ -160,19 +157,18 @@ export class RylsPaymentService {
         throw new Error('Invalid notification signature');
       }
 
-      console.log('[PaymentService] Notification signature verified');
+      this.logger.info('[rylsPaymentService] signature verified');
 
-      // 2. Find payment record
       const payment = await this.paymentRepository.findByOrderId(order_id);
       if (!payment) {
         throw new Error(`Payment not found for order_id: ${order_id}`);
       }
 
-      console.log('[PaymentService] Payment found:', payment.id);
-      console.log('[PaymentService] Current status:', payment.transaction_status);
-      console.log('[PaymentService] New status:', transaction_status);
+      this.logger.debug(
+        { paymentId: payment.id, current: payment.transaction_status, next: transaction_status },
+        '[rylsPaymentService] status update'
+      );
 
-      // 3. Update payment record
       const updateData = {
         transaction_status,
         transaction_id,
@@ -182,30 +178,25 @@ export class RylsPaymentService {
         notified_at: new Date(),
       };
 
-      // Set paid_at for successful payments
       if (['settlement', 'capture'].includes(transaction_status)) {
         updateData.paid_at = new Date();
-        console.log('[PaymentService] Payment marked as paid');
+        this.logger.info('[rylsPaymentService] payment marked as paid');
       }
 
       const updatedPayment = await this.paymentRepository.updateByOrderId(order_id, updateData);
 
-      // 4. Update registration status based on payment status
       const newRegistrationStatus = mapTransactionStatus(transaction_status);
       if (newRegistrationStatus !== 'UNKNOWN') {
         await this.registrationRepository.updateStatus(payment.registration_id, newRegistrationStatus);
-        console.log('[PaymentService] Registration payment_status updated to:', newRegistrationStatus);
+        this.logger.info({ newRegistrationStatus }, '[rylsPaymentService] registration status updated');
       }
 
-      // 5. Handle fraud status for credit card payments
       if (payment_type === 'credit_card' && fraud_status) {
         const fraudDecision = mapFraudStatus(fraud_status);
-        console.log('[PaymentService] Fraud status:', fraud_status, '→', fraudDecision);
-
-        // Additional fraud handling logic can be added here
+        this.logger.info({ fraud_status, fraudDecision }, '[rylsPaymentService] fraud status');
       }
 
-      console.log('[PaymentService] Webhook notification processed successfully');
+      this.logger.info('[rylsPaymentService] handleWebhookNotification success');
 
       return {
         success: true,
@@ -215,70 +206,56 @@ export class RylsPaymentService {
         paymentId: updatedPayment.id,
       };
     } catch (error) {
-      console.error('[PaymentService] Error handling webhook notification:', error);
+      this.logger.error({ err: error }, '[rylsPaymentService] handleWebhookNotification error');
       throw new Error(`Failed to process webhook notification: ${error.message}`);
     }
   }
 
   /**
    * Verify Midtrans notification signature
-   * @param {Object} notificationData - Notification data from Midtrans
-   * @returns {boolean} True if signature is valid
    */
   verifyNotificationSignature(notificationData) {
-    console.log('[PaymentService] verifyNotificationSignature called');
+    this.logger.info('[rylsPaymentService] verifyNotificationSignature start');
 
     try {
       const { order_id, status_code, gross_amount, signature_key } = notificationData;
       const serverKey = getServerKey();
 
-      // Create signature string: order_id + status_code + gross_amount + server_key
       const signatureString = `${order_id}${status_code}${gross_amount}${serverKey}`;
-
-      // Generate SHA512 hash
       const calculatedSignature = crypto.createHash(WEBHOOK_CONFIG.SIGNATURE_ALGORITHM).update(signatureString).digest('hex');
 
       const isValid = calculatedSignature === signature_key;
 
-      console.log('[PaymentService] Signature verification:', isValid ? 'VALID' : 'INVALID');
+      this.logger.info({ isValid }, '[rylsPaymentService] signature verification');
       if (!isValid) {
-        console.log('[PaymentService] Expected signature:', calculatedSignature);
-        console.log('[PaymentService] Received signature:', signature_key);
+        this.logger.debug({ expected: calculatedSignature, received: signature_key }, '[rylsPaymentService] signature mismatch');
       }
 
       return isValid;
     } catch (error) {
-      console.error('[PaymentService] Error verifying signature:', error);
+      this.logger.error({ err: error }, '[rylsPaymentService] verifyNotificationSignature error');
       return false;
     }
   }
 
   /**
    * Get payment status for registration
-   * @param {number} registrationId - Registration ID
-   * @returns {Promise<Object>} Payment status information
    */
   async getPaymentStatus(registrationId) {
-    console.log('[PaymentService] getPaymentStatus called');
-    console.log('[PaymentService] Registration ID:', registrationId);
+    this.logger.info({ registrationId }, '[rylsPaymentService] getPaymentStatus start');
 
     try {
       const payments = await this.paymentRepository.findByRegistrationId(registrationId, { limit: 1 });
 
       if (payments.length === 0) {
-        return {
-          hasPayment: false,
-          status: null,
-          orderId: null,
-          amount: null,
-        };
+        this.logger.info('[rylsPaymentService] no payment found');
+        return { hasPayment: false, status: null, orderId: null, amount: null };
       }
 
       const latestPayment = payments[0];
+      this.logger.debug({ status: latestPayment.transaction_status, orderId: latestPayment.order_id }, '[rylsPaymentService] latest payment');
 
-      console.log('[PaymentService] Latest payment status:', latestPayment.transaction_status);
-      console.log('[PaymentService] Order ID:', latestPayment.order_id);
-
+      this.logger.info('[rylsPaymentService] getPaymentStatus success');
       return {
         hasPayment: true,
         status: latestPayment.transaction_status,
@@ -290,40 +267,33 @@ export class RylsPaymentService {
         createdAt: latestPayment.created_at,
       };
     } catch (error) {
-      console.error('[PaymentService] Error getting payment status:', error);
+      this.logger.error({ err: error }, '[rylsPaymentService] getPaymentStatus error');
       throw new Error(`Failed to get payment status: ${error.message}`);
     }
   }
 
   /**
    * Get payment statistics
-   * @param {Object} filters - Filter options
-   * @returns {Promise<Object>} Payment statistics
    */
   async getPaymentStatistics(filters = {}) {
-    console.log('[PaymentService] getPaymentStatistics called');
-    console.log('[PaymentService] Filters:', JSON.stringify(filters, null, 2));
+    this.logger.info('[rylsPaymentService] getPaymentStatistics start');
+    this.logger.debug({ filters }, '[rylsPaymentService] rawFilters');
 
     try {
       const statistics = await this.paymentRepository.getStatistics(filters);
-
-      console.log('[PaymentService] Statistics retrieved:', JSON.stringify(statistics, null, 2));
-
+      this.logger.info('[rylsPaymentService] getPaymentStatistics success');
       return statistics;
     } catch (error) {
-      console.error('[PaymentService] Error getting statistics:', error);
+      this.logger.error({ err: error }, '[rylsPaymentService] getPaymentStatistics error');
       throw new Error(`Failed to get payment statistics: ${error.message}`);
     }
   }
 
   /**
    * Cancel pending payment (if allowed)
-   * @param {string} orderId - Order ID to cancel
-   * @returns {Promise<Object>} Cancellation result
    */
   async cancelPayment(orderId) {
-    console.log('[PaymentService] cancelPayment called');
-    console.log('[PaymentService] Order ID:', orderId);
+    this.logger.info({ orderId }, '[rylsPaymentService] cancelPayment start');
 
     try {
       const payment = await this.paymentRepository.findByOrderId(orderId);
@@ -335,30 +305,18 @@ export class RylsPaymentService {
         throw new Error(`Cannot cancel payment with status: ${payment.transaction_status}`);
       }
 
-      // Update payment status to cancelled
       const updatedPayment = await this.paymentRepository.updateByOrderId(orderId, {
         transaction_status: 'cancel',
-        last_notification: {
-          cancelled_by: 'system',
-          cancelled_at: new Date().toISOString(),
-          reason: 'Manual cancellation',
-        },
+        last_notification: { cancelled_by: 'system', cancelled_at: new Date().toISOString(), reason: 'Manual cancellation' },
         notified_at: new Date(),
       });
 
-      // Update registration status
       await this.registrationRepository.updateStatus(payment.registration_id, 'FAILED');
 
-      console.log('[PaymentService] Payment cancelled successfully');
-
-      return {
-        success: true,
-        orderId: orderId,
-        previousStatus: payment.transaction_status,
-        newStatus: 'cancel',
-      };
+      this.logger.info('[rylsPaymentService] cancelPayment success');
+      return { success: true, orderId: orderId, previousStatus: payment.transaction_status, newStatus: 'cancel' };
     } catch (error) {
-      console.error('[PaymentService] Error cancelling payment:', error);
+      this.logger.error({ err: error }, '[rylsPaymentService] cancelPayment error');
       throw new Error(`Failed to cancel payment: ${error.message}`);
     }
   }

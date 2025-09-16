@@ -1,3 +1,4 @@
+import { getLogger } from '../lib/loggerContext.js';
 import InstructorRepository from '../repositories/instructorRepository.js';
 // Note: bootcampInstructorRepository.js sudah dihapus, perlu implementasi ulang
 
@@ -8,211 +9,264 @@ class InstructorService {
     this.bootcampInstructorRepository = null;
   }
 
+  get logger() {
+    return getLogger();
+  }
+
   /**
    * Mendapatkan semua instructor dengan pagination
-   * @param {Object} options - Options untuk query
-   * @returns {Promise<Object>} Paginated instructor data
    */
   async getAllInstructors(options = {}) {
-    const result = await this.instructorRepository.findManyWithPagination(options);
+    this.logger.info('[instructorService] getAllInstructors start');
+    console.log('[InstructorService] getAllInstructors - options:', JSON.stringify(options, null, 2));
+    console.log('[InstructorService] getAllInstructors - repository:', !!this.instructorRepository);
 
-    // Enhance instructor objects
-    result.data = result.data.map((instructor) => this.enhanceInstructorObject(instructor));
+    try {
+      const result = await this.instructorRepository.findManyWithPagination(options);
+      console.log('[InstructorService] getAllInstructors - raw result:', {
+        dataLength: result?.data?.length,
+        meta: result?.meta,
+      });
 
-    return result;
+      result.data = result.data.map((instructor) => this.enhanceInstructorObject(instructor));
+      this.logger.info('[instructorService] getAllInstructors success');
+      return result;
+    } catch (error) {
+      console.error('[InstructorService] getAllInstructors - detailed error:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+      this.logger.error({ err: error }, '[instructorService] getAllInstructors error');
+      throw error;
+    }
   }
 
   /**
    * Mendapatkan instructor berdasarkan ID
-   * @param {number} id - ID instructor
-   * @param {boolean} includeBootcamps - Include bootcamp associations
-   * @returns {Promise<Object>} Instructor yang di-enhance
    */
   async getInstructorById(id, includeBootcamps = false) {
-    const instructor = await this.instructorRepository.findByIdWithBootcamps(id, includeBootcamps);
-    return instructor ? this.enhanceInstructorObject(instructor) : null;
+    this.logger.info({ id, includeBootcamps }, '[instructorService] getInstructorById start');
+    try {
+      const instructor = await this.instructorRepository.findByIdWithBootcamps(id, includeBootcamps);
+      const result = instructor ? this.enhanceInstructorObject(instructor) : null;
+      this.logger.info('[instructorService] getInstructorById success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] getInstructorById error');
+      throw error;
+    }
   }
 
   /**
    * Membuat instructor baru
-   * @param {Object} data - Data instructor
-   * @returns {Promise<Object>} Instructor yang dibuat
    */
   async createInstructor(data) {
-    // Validasi data
-    this.validateInstructorData(data);
-
-    const instructor = await this.instructorRepository.createInstructor(data);
-    return this.enhanceInstructorObject(instructor);
+    this.logger.info('[instructorService] createInstructor start');
+    try {
+      this.validateInstructorData(data);
+      const instructor = await this.instructorRepository.createInstructor(data);
+      const result = this.enhanceInstructorObject(instructor);
+      this.logger.info('[instructorService] createInstructor success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] createInstructor error');
+      throw error;
+    }
   }
 
   /**
    * Update instructor
-   * @param {number} id - ID instructor
-   * @param {Object} data - Data untuk update
-   * @returns {Promise<Object>} Instructor yang diupdate
    */
   async updateInstructor(id, data) {
-    // Validasi data jika ada
-    if (Object.keys(data).length > 0) {
-      this.validateInstructorData(data, false);
+    this.logger.info({ id }, '[instructorService] updateInstructor start');
+    try {
+      if (Object.keys(data).length > 0) {
+        this.validateInstructorData(data, false);
+      }
+      const instructor = await this.instructorRepository.updateInstructor(id, data);
+      const result = this.enhanceInstructorObject(instructor);
+      this.logger.info('[instructorService] updateInstructor success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] updateInstructor error');
+      throw error;
     }
-
-    const instructor = await this.instructorRepository.updateInstructor(id, data);
-    return this.enhanceInstructorObject(instructor);
   }
 
   /**
    * Menghapus instructor
-   * @param {number} id - ID instructor
-   * @returns {Promise<Object>} Instructor yang dihapus
    */
   async deleteInstructor(id) {
-    return await this.instructorRepository.deleteInstructor(id);
+    this.logger.info({ id }, '[instructorService] deleteInstructor start');
+    try {
+      const result = await this.instructorRepository.deleteInstructor(id);
+      this.logger.info('[instructorService] deleteInstructor success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] deleteInstructor error');
+      throw error;
+    }
   }
 
   /**
    * Mencari instructor berdasarkan nama
-   * @param {string} name - Nama instructor
-   * @returns {Promise<Array>} Array instructor yang di-enhance
    */
   async searchInstructorByName(name) {
-    const instructors = await this.instructorRepository.findByName(name);
-    return instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+    this.logger.info({ name }, '[instructorService] searchInstructorByName start');
+    try {
+      const instructors = await this.instructorRepository.findByName(name);
+      const result = instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+      this.logger.info('[instructorService] searchInstructorByName success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] searchInstructorByName error');
+      throw error;
+    }
   }
 
   /**
    * Mendapatkan instructor berdasarkan job title
-   * @param {string} jobTitle - Job title
-   * @returns {Promise<Array>} Array instructor yang di-enhance
    */
   async getInstructorsByJobTitle(jobTitle) {
-    const instructors = await this.instructorRepository.findByJobTitle(jobTitle);
-    return instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+    this.logger.info({ jobTitle }, '[instructorService] getInstructorsByJobTitle start');
+    try {
+      const instructors = await this.instructorRepository.findByJobTitle(jobTitle);
+      const result = instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+      this.logger.info('[instructorService] getInstructorsByJobTitle success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] getInstructorsByJobTitle error');
+      throw error;
+    }
   }
 
   /**
    * Mendapatkan instructor yang tersedia untuk bootcamp
-   * @param {number} bootcampId - ID bootcamp
-   * @returns {Promise<Array>} Array instructor yang tersedia
    */
   async getAvailableInstructorsForBootcamp(bootcampId) {
-    const instructors = await this.instructorRepository.findAvailableForBootcamp(bootcampId);
-    return instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+    this.logger.info({ bootcampId }, '[instructorService] getAvailableInstructorsForBootcamp start');
+    try {
+      const instructors = await this.instructorRepository.findAvailableForBootcamp(bootcampId);
+      const result = instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+      this.logger.info('[instructorService] getAvailableInstructorsForBootcamp success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] getAvailableInstructorsForBootcamp error');
+      throw error;
+    }
   }
 
   /**
    * Mendapatkan instructor untuk bootcamp tertentu
-   * @param {number} bootcampId - ID bootcamp
-   * @returns {Promise<Array>} Array instructor dengan order
    */
   async getInstructorsByBootcampId(bootcampId) {
-    const instructors = await this.instructorRepository.findByBootcampId(bootcampId);
-    return instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+    this.logger.info({ bootcampId }, '[instructorService] getInstructorsByBootcampId start');
+    try {
+      const instructors = await this.instructorRepository.findByBootcampId(bootcampId);
+      const result = instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+      this.logger.info('[instructorService] getInstructorsByBootcampId success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] getInstructorsByBootcampId error');
+      throw error;
+    }
   }
 
   /**
    * Mendapatkan bootcamp yang diajar oleh instructor
-   * @param {number} instructorId - ID instructor
-   * @returns {Promise<Array>} Array bootcamp
    */
   async getBootcampsByInstructorId(instructorId) {
-    const bootcamps = await this.instructorRepository.findBootcampsByInstructorId(instructorId);
-    return bootcamps.map((bootcamp) => this.enhanceBootcampObject(bootcamp));
+    this.logger.info({ instructorId }, '[instructorService] getBootcampsByInstructorId start');
+    try {
+      const bootcamps = await this.instructorRepository.findBootcampsByInstructorId(instructorId);
+      const result = bootcamps.map((bootcamp) => this.enhanceBootcampObject(bootcamp));
+      this.logger.info('[instructorService] getBootcampsByInstructorId success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] getBootcampsByInstructorId error');
+      throw error;
+    }
   }
 
   /**
    * Mendapatkan instructor terpopuler
-   * @param {number} limit - Limit hasil
-   * @returns {Promise<Array>} Array instructor popular yang di-enhance
    */
   async getPopularInstructors(limit = 10) {
-    const instructors = await this.instructorRepository.findPopularInstructors(limit);
-    return instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+    this.logger.info({ limit }, '[instructorService] getPopularInstructors start');
+    try {
+      const instructors = await this.instructorRepository.findPopularInstructors(limit);
+      const result = instructors.map((instructor) => this.enhanceInstructorObject(instructor));
+      this.logger.info('[instructorService] getPopularInstructors success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] getPopularInstructors error');
+      throw error;
+    }
   }
 
   /**
-   * Assign instructor ke bootcamp
-   * @param {number} bootcampId - ID bootcamp
-   * @param {number} instructorId - ID instructor
-   * @param {number} instructorOrder - Order instructor (optional)
-   * @returns {Promise<Object>} Assignment yang dibuat
+   * Assign/Remove/Reorder/Batch/Detail (belum diimplementasikan)
    */
   async assignInstructorToBootcamp(bootcampId, instructorId, instructorOrder = null) {
-    // TODO: Implement bootcampInstructorRepository functionality
+    this.logger.info({ bootcampId, instructorId }, '[instructorService] assignInstructorToBootcamp start');
     throw new Error('BootcampInstructorRepository belum diimplementasikan');
   }
 
-  /**
-   * Remove instructor dari bootcamp
-   * @param {number} bootcampId - ID bootcamp
-   * @param {number} instructorId - ID instructor
-   * @returns {Promise<Object>} Assignment yang dihapus
-   */
   async removeInstructorFromBootcamp(bootcampId, instructorId) {
-    // TODO: Implement bootcampInstructorRepository functionality
+    this.logger.info({ bootcampId, instructorId }, '[instructorService] removeInstructorFromBootcamp start');
     throw new Error('BootcampInstructorRepository belum diimplementasikan');
   }
 
-  /**
-   * Reorder instructor dalam bootcamp
-   * @param {number} bootcampId - ID bootcamp
-   * @param {Array} orderData - Array berisi {instructor_id, instructor_order}
-   * @returns {Promise<Array>} Updated assignments
-   */
   async reorderInstructorsInBootcamp(bootcampId, orderData) {
-    // TODO: Implement bootcampInstructorRepository functionality
+    this.logger.info({ bootcampId }, '[instructorService] reorderInstructorsInBootcamp start');
     throw new Error('BootcampInstructorRepository belum diimplementasikan');
   }
 
-  /**
-   * Batch assign instructor ke bootcamp
-   * @param {number} bootcampId - ID bootcamp
-   * @param {Array} instructorIds - Array ID instructor
-   * @returns {Promise<Array>} Assignments yang dibuat
-   */
   async batchAssignInstructors(bootcampId, instructorIds) {
-    // TODO: Implement bootcampInstructorRepository functionality
+    this.logger.info(
+      { bootcampId, count: Array.isArray(instructorIds) ? instructorIds.length : 0 },
+      '[instructorService] batchAssignInstructors start'
+    );
     throw new Error('BootcampInstructorRepository belum diimplementasikan');
   }
 
-  /**
-   * Batch remove instructor dari bootcamp
-   * @param {number} bootcampId - ID bootcamp
-   * @param {Array} instructorIds - Array ID instructor
-   * @returns {Promise<number>} Jumlah assignment yang dihapus
-   */
   async batchRemoveInstructors(bootcampId, instructorIds) {
-    // TODO: Implement bootcampInstructorRepository functionality
+    this.logger.info(
+      { bootcampId, count: Array.isArray(instructorIds) ? instructorIds.length : 0 },
+      '[instructorService] batchRemoveInstructors start'
+    );
     throw new Error('BootcampInstructorRepository belum diimplementasikan');
   }
 
-  /**
-   * Mendapatkan detail assignment
-   * @param {number} bootcampId - ID bootcamp
-   * @param {number} instructorId - ID instructor
-   * @returns {Promise<Object>} Assignment detail yang di-enhance
-   */
   async getAssignmentDetail(bootcampId, instructorId) {
-    // TODO: Implement bootcampInstructorRepository functionality
+    this.logger.info({ bootcampId, instructorId }, '[instructorService] getAssignmentDetail start');
     throw new Error('BootcampInstructorRepository belum diimplementasikan');
   }
 
   /**
    * Mendapatkan statistik instructor
-   * @returns {Promise<Object>} Statistik instructor yang di-enhance
    */
   async getInstructorStats() {
-    const [instructorStats, assignmentStats] = await Promise.all([
-      this.instructorRepository.getInstructorStats(),
-      this.bootcampInstructorRepository.getAssignmentStats(),
-    ]);
+    this.logger.info('[instructorService] getInstructorStats start');
+    try {
+      const [instructorStats, assignmentStats] = await Promise.all([
+        this.instructorRepository.getInstructorStats(),
+        this.bootcampInstructorRepository.getAssignmentStats(),
+      ]);
 
-    return {
-      ...instructorStats,
-      ...assignmentStats,
-      engagement_score: this.calculateEngagementScore(instructorStats, assignmentStats),
-    };
+      const result = {
+        ...instructorStats,
+        ...assignmentStats,
+        engagement_score: this.calculateEngagementScore(instructorStats, assignmentStats),
+      };
+
+      this.logger.info('[instructorService] getInstructorStats success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[instructorService] getInstructorStats error');
+      throw error;
+    }
   }
 
   /**

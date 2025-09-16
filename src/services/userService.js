@@ -2,23 +2,36 @@ import bcrypt from 'bcryptjs';
 import { userRepository } from '../repositories/userRepository.js';
 import { userSettingsRepository } from '../repositories/userSettingsRepository.js';
 import { generateToken } from '../lib/jwt.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * User business logic service
  */
 export class UserService {
+  get logger() {
+    return getLogger();
+  }
+
   /**
    * Get all users with pagination and filtering
    * @param {Object} options - Query options
    * @returns {Promise<Object>} Paginated users
    */
   async getAllUsers(options = {}) {
-    const result = await userRepository.findManyWithPagination(options);
+    this.logger.info('[userService] getAllUsers start');
+    this.logger.debug({ options }, '[userService] raw');
+    try {
+      const result = await userRepository.findManyWithPagination(options);
 
-    // Remove passwords from all users
-    result.data = result.data.map((user) => this.excludePassword(user));
+      // Remove passwords from all users
+      result.data = result.data.map((user) => this.excludePassword(user));
 
-    return result;
+      this.logger.info('[userService] getAllUsers success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] getAllUsers error');
+      throw error;
+    }
   }
 
   /**
@@ -28,6 +41,8 @@ export class UserService {
    * @throws {Error} If user not found
    */
   async getUserById(id) {
+    this.logger.info('[userService] getUserById start');
+    this.logger.debug({ id }, '[userService] params');
     const user = await userRepository.findById(id, {
       include: { user_setting: true },
     });
@@ -35,9 +50,11 @@ export class UserService {
     if (!user) {
       const error = new Error('User not found');
       error.statusCode = 404;
+      this.logger.error({ err: error }, '[userService] getUserById not_found');
       throw error;
     }
 
+    this.logger.info('[userService] getUserById success');
     return this.excludePassword(user);
   }
 
@@ -48,28 +65,36 @@ export class UserService {
    * @throws {Error} If validation fails or user exists
    */
   async createUser(userData) {
-    // Validate user data
-    await this.validateUserCreation(userData);
+    this.logger.info('[userService] createUser start');
+    this.logger.debug({ email: userData?.email }, '[userService] rawBody');
+    try {
+      // Validate user data
+      await this.validateUserCreation(userData);
 
-    // Generate username if not provided
-    if (!userData.username) {
-      userData.username = await this.generateUniqueUsername(userData.first_name, userData.last_name);
+      // Generate username if not provided
+      if (!userData.username) {
+        userData.username = await this.generateUniqueUsername(userData.first_name, userData.last_name);
+      }
+
+      // Ensure role uppercase as DB enum
+      if (userData.role) {
+        userData.role = String(userData.role).toUpperCase();
+      }
+
+      // Hash password
+      if (userData.password) {
+        userData.password = await bcrypt.hash(userData.password, 12);
+      }
+
+      // Create user with settings
+      const user = await userRepository.createWithSettings(userData);
+
+      this.logger.info('[userService] createUser success');
+      return this.excludePassword(user);
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] createUser error');
+      throw error;
     }
-
-    // Ensure role uppercase as DB enum
-    if (userData.role) {
-      userData.role = String(userData.role).toUpperCase();
-    }
-
-    // Hash password
-    if (userData.password) {
-      userData.password = await bcrypt.hash(userData.password, 12);
-    }
-
-    // Create user with settings
-    const user = await userRepository.createWithSettings(userData);
-
-    return this.excludePassword(user);
   }
 
   /**
@@ -80,11 +105,14 @@ export class UserService {
    * @throws {Error} If user not found or validation fails
    */
   async updateUser(id, updateData) {
+    this.logger.info('[userService] updateUser start');
+    this.logger.debug({ id, updateData }, '[userService] raw');
     // Check if user exists
     const existingUser = await userRepository.findById(id);
     if (!existingUser) {
       const error = new Error('User not found');
       error.statusCode = 404;
+      this.logger.error({ err: error }, '[userService] updateUser not_found');
       throw error;
     }
 
@@ -104,11 +132,13 @@ export class UserService {
       if (emailExists) {
         const error = new Error('Email already exists');
         error.statusCode = 400;
+        this.logger.error({ err: error }, '[userService] updateUser email_exists');
         throw error;
       }
     }
 
     const user = await userRepository.update(id, updateData);
+    this.logger.info('[userService] updateUser success');
     return this.excludePassword(user);
   }
 
@@ -119,45 +149,47 @@ export class UserService {
    * @throws {Error} If user not found
    */
   async deleteUser(id) {
+    this.logger.info('[userService] deleteUser start');
+    this.logger.debug({ id }, '[userService] params');
     const user = await userRepository.findById(id);
     if (!user) {
       const error = new Error('User not found');
       error.statusCode = 404;
+      this.logger.error({ err: error }, '[userService] deleteUser not_found');
       throw error;
     }
 
     await userRepository.delete(id);
+    this.logger.info('[userService] deleteUser success');
   }
 
   /**
    * Login user
-   * @param {string} email - User email
-   * @param {string} password - User password
-   * @param {boolean} rememberMe - Remember me option
-   * @param {Object} server - Fastify server instance for JWT
-   * @returns {Promise<Object>} Login result with user and token
-   * @throws {Error} If credentials invalid
    */
   async login(email, password, rememberMe = false, server) {
+    this.logger.info('[userService] login start');
+    this.logger.debug({ email, rememberMe }, '[userService] login input');
+
     const user = await userRepository.findByEmail(email);
 
     if (!user) {
       const error = new Error('Invalid email or password');
       error.statusCode = 401;
+      this.logger.error({ err: error }, '[userService] login user_not_found');
       throw error;
     }
 
-    // Validate password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       const error = new Error('Invalid email or password');
       error.statusCode = 401;
+      this.logger.error({ err: error }, '[userService] login invalid_password');
       throw error;
     }
 
-    // Generate JWT token
     const token = generateToken(server, user, rememberMe);
 
+    this.logger.info('[userService] login success');
     return {
       user: this.excludePassword(user),
       token,
@@ -167,165 +199,125 @@ export class UserService {
 
   /**
    * Register new user
-   * @param {Object} userData - User registration data
-   * @param {Object} server - Fastify server instance for JWT
-   * @returns {Promise<Object>} Registration result with user and token
-   * @throws {Error} If validation fails or user exists
    */
   async register(userData, server) {
-    console.log('[UserService] Starting user registration', { email: userData.email });
+    this.logger.info('[userService] register start');
+    this.logger.debug({ email: userData?.email }, '[userService] rawInput');
 
     try {
-      // Validate registration data
-      console.log('[UserService] Validating registration data...');
+      this.logger.info('[userService] validating registration');
       await this.validateUserRegistration(userData);
-      console.log('[UserService] Registration data validated');
 
-      // Generate unique username
-      console.log('🔠 [UserService] Generating unique username...');
+      this.logger.info('[userService] generating username');
       const username = await this.generateUniqueUsername(userData.first_name, userData.last_name);
-      console.log('[UserService] Generated username:', username);
 
-      // Hash password
-      console.log('🔑 [UserService] Hashing password...');
+      this.logger.info('[userService] hashing password');
       const hashedPassword = await bcrypt.hash(userData.password, 12);
-      console.log('[UserService] Password hashed');
 
-      // Prepare user data
       const userDataWithHashedPassword = {
         ...userData,
         username,
         password: hashedPassword,
         role: 'USER',
       };
-      console.log('[UserService] Prepared user data for creation');
 
-      // Create user with settings
-      console.log('👤 [UserService] Creating user in database...');
+      this.logger.info('[userService] creating user with settings');
       const user = await userRepository.createWithSettings(userDataWithHashedPassword);
-      console.log('[UserService] User created successfully', { userId: user.id });
 
-      // Generate JWT token
-      console.log('🔐 [UserService] Generating JWT token...');
+      this.logger.info('[userService] generating jwt');
       const token = generateToken(server, user, false);
-      console.log('[UserService] JWT token generated');
 
-      console.log('[UserService] Registration completed successfully', {
-        userId: user.id,
-        email: user.email,
-      });
-
+      this.logger.info('[userService] register success');
       return {
         user: this.excludePassword(user),
         token,
         expiresIn: '1 day',
       };
     } catch (error) {
-      console.error('[UserService] Registration failed', {
-        error: error.message,
-        stack: error.stack,
-        userData: { email: userData.email },
-      });
+      this.logger.error({ err: error, email: userData?.email }, '[userService] register error');
       throw error;
     }
   }
 
   /**
    * Get current user profile
-   * @param {number} userId - User ID from JWT
-   * @returns {Promise<Object>} User profile
-   * @throws {Error} If user not found
    */
   async getCurrentUser(userId) {
-    const user = await userRepository.findById(userId, {
-      include: { user_setting: true },
-    });
+    this.logger.info({ userId }, '[userService] getCurrentUser start');
+    const user = await userRepository.findById(userId, { include: { user_setting: true } });
 
     if (!user) {
       const error = new Error('User not found');
       error.statusCode = 404;
+      this.logger.error({ err: error }, '[userService] getCurrentUser not_found');
       throw error;
     }
 
+    this.logger.info('[userService] getCurrentUser success');
     return this.excludePassword(user);
   }
 
   /**
    * Get user settings
-   * @param {number} userId - User ID
-   * @returns {Promise<Object>} User settings
    */
   async getUserSettings(userId) {
+    this.logger.info('[userService] getUserSettings start');
     let userSettings = await userSettingsRepository.findByUserId(userId);
 
-    // Create default settings if not exists
     if (!userSettings) {
       userSettings = await userSettingsRepository.createDefault(userId);
     }
 
+    this.logger.info('[userService] getUserSettings success');
     return userSettings;
   }
 
   /**
    * Update user settings
-   * @param {number} userId - User ID
-   * @param {Object} settingsData - Settings data
-   * @returns {Promise<Object>} Updated settings
    */
   async updateUserSettings(userId, settingsData) {
-    return await userSettingsRepository.upsertByUserId(userId, settingsData);
+    this.logger.info('[userService] updateUserSettings start');
+    this.logger.debug({ userId, settingsData }, '[userService] raw');
+    const result = await userSettingsRepository.upsertByUserId(userId, settingsData);
+    this.logger.info('[userService] updateUserSettings success');
+    return result;
   }
 
   /**
    * Check username availability
-   * @param {string} username - Username to check
-   * @returns {Promise<Object>} Availability result
    */
   async checkUsernameAvailability(username) {
+    this.logger.info('[userService] checkUsernameAvailability start');
     const exists = await userRepository.usernameExists(username);
-    return {
-      username,
-      available: !exists,
-    };
+    this.logger.info('[userService] checkUsernameAvailability success');
+    return { username, available: !exists };
   }
 
   /**
    * Generate username suggestions
-   * @param {string} firstName - First name
-   * @param {string} lastName - Last name
-   * @returns {Promise<Array>} Username suggestions
    */
   async generateUsernameSuggestions(firstName, lastName) {
+    this.logger.info('[userService] generateUsernameSuggestions start');
     const suggestions = [];
     const baseUsername = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
 
-    // Generate 5 suggestions
     for (let i = 0; i < 5; i++) {
       let username;
-      if (i === 0) {
-        username = baseUsername;
-      } else {
-        username = `${baseUsername}${Math.floor(Math.random() * 1000)}`;
-      }
-
+      if (i === 0) username = baseUsername;
+      else username = `${baseUsername}${Math.floor(Math.random() * 1000)}`;
       const exists = await userRepository.usernameExists(username);
-      suggestions.push({
-        username,
-        available: !exists,
-      });
+      suggestions.push({ username, available: !exists });
     }
 
+    this.logger.info('[userService] generateUsernameSuggestions success');
     return suggestions;
   }
 
   /**
    * Generate unique username
-   * @private
-   * @param {string} firstName - First name
-   * @param {string} lastName - Last name
-   * @returns {Promise<string>} Unique username
    */
   async generateUniqueUsername(firstName, lastName) {
+    this.logger.debug({ firstName, lastName }, '[userService] generateUniqueUsername');
     const baseUsername = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
     let username = baseUsername;
     let counter = 1;
@@ -340,9 +332,6 @@ export class UserService {
 
   /**
    * Remove password from user object
-   * @private
-   * @param {Object} user - User object
-   * @returns {Object} User without password
    */
   excludePassword(user) {
     if (!user) return null;
@@ -352,9 +341,6 @@ export class UserService {
 
   /**
    * Validate user creation data
-   * @private
-   * @param {Object} userData - User data
-   * @throws {Error} If validation fails
    */
   async validateUserCreation(userData) {
     if (!userData.email) {
@@ -362,20 +348,17 @@ export class UserService {
       error.statusCode = 400;
       throw error;
     }
-
     if (!userData.first_name) {
       const error = new Error('First name is required');
       error.statusCode = 400;
       throw error;
     }
-
     if (!userData.last_name) {
       const error = new Error('Last name is required');
       error.statusCode = 400;
       throw error;
     }
 
-    // Check if email already exists
     const emailExists = await userRepository.emailExists(userData.email);
     if (emailExists) {
       const error = new Error('Email already exists');
@@ -383,7 +366,6 @@ export class UserService {
       throw error;
     }
 
-    // Check if username already exists (if provided)
     if (userData.username) {
       const usernameExists = await userRepository.usernameExists(userData.username);
       if (usernameExists) {
@@ -396,9 +378,6 @@ export class UserService {
 
   /**
    * Validate user registration data
-   * @private
-   * @param {Object} userData - User data
-   * @throws {Error} If validation fails
    */
   async validateUserRegistration(userData) {
     if (!userData.password || userData.password.length < 6) {
@@ -407,7 +386,6 @@ export class UserService {
       throw error;
     }
 
-    // Use the same validation as creation
     await this.validateUserCreation(userData);
   }
 }

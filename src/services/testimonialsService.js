@@ -1,4 +1,5 @@
 import { TestimonialsRepository } from '../repositories/testimonialsRepository.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * Testimonials Service
@@ -9,54 +10,35 @@ class TestimonialsService {
     this.testimonialsRepository = new TestimonialsRepository();
   }
 
+  get logger() {
+    return getLogger();
+  }
+
   /**
    * Enhance testimonial object with computed fields
-   * @param {Object} testimonial - Raw testimonial object
-   * @returns {Object} Enhanced testimonial object
    */
   enhanceTestimonial(testimonial) {
     if (!testimonial) return null;
 
     const enhanced = {
       ...testimonial,
-      // Status flags
       isActive: testimonial.status === 'ACTIVE',
       isPending: testimonial.status === 'PENDING',
       isInactive: testimonial.status === 'INACTIVE',
-
-      // Rating display
       ratingStars: '★'.repeat(testimonial.rating) + '☆'.repeat(5 - testimonial.rating),
       ratingPercentage: (testimonial.rating / 5) * 100,
-
-      // Text formatting
       textPreview: testimonial.text ? testimonial.text.substring(0, 100) + (testimonial.text.length > 100 ? '...' : '') : null,
       textWordCount: testimonial.text ? testimonial.text.split(' ').length : 0,
-
-      // Formatted dates
       formattedCreatedAt: testimonial.created_at ? new Date(testimonial.created_at).toLocaleDateString('id-ID') : null,
       formattedUpdatedAt: testimonial.updated_at ? new Date(testimonial.updated_at).toLocaleDateString('id-ID') : null,
-
-      // Time calculations
       createdDaysAgo: testimonial.created_at ? Math.floor((new Date() - new Date(testimonial.created_at)) / (1000 * 60 * 60 * 24)) : null,
       updatedDaysAgo: testimonial.updated_at ? Math.floor((new Date() - new Date(testimonial.updated_at)) / (1000 * 60 * 60 * 24)) : null,
-
-      // Status badge properties
       statusBadge: {
         text: testimonial.status,
         color: testimonial.status === 'ACTIVE' ? 'green' : testimonial.status === 'PENDING' ? 'yellow' : 'red',
         variant: testimonial.status === 'ACTIVE' ? 'success' : testimonial.status === 'PENDING' ? 'warning' : 'danger',
       },
-
-      // Featured badge
-      featuredBadge: testimonial.featured
-        ? {
-            text: 'Featured',
-            color: 'blue',
-            variant: 'info',
-          }
-        : null,
-
-      // Rating quality
+      featuredBadge: testimonial.featured ? { text: 'Featured', color: 'blue', variant: 'info' } : null,
       ratingQuality:
         testimonial.rating >= 5
           ? 'excellent'
@@ -67,11 +49,7 @@ class TestimonialsService {
           : testimonial.rating >= 2
           ? 'below_average'
           : 'poor',
-
-      // Country display
       countryFlag: this.getCountryFlag(testimonial.country),
-
-      // Social proof data
       socialProof: {
         isHighRated: testimonial.rating >= 4,
         isFeatured: testimonial.featured,
@@ -84,8 +62,6 @@ class TestimonialsService {
 
   /**
    * Get country flag emoji (simplified version)
-   * @param {string} country - Country name
-   * @returns {string} Flag emoji or empty string
    */
   getCountryFlag(country) {
     if (!country) return '';
@@ -116,108 +92,101 @@ class TestimonialsService {
 
   /**
    * Get all testimonials with search and filtering
-   * @param {Object} filters - Filter criteria
-   * @param {number} page - Page number
-   * @param {number} limit - Items per page
-   * @param {string} sortBy - Sort field
-   * @param {string} sortOrder - Sort order
-   * @returns {Promise<Object>} Testimonials with pagination
    */
   async getTestimonials(filters = {}, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc') {
+    this.logger.info('[testimonialsService] getTestimonials start');
+    this.logger.debug({ filters, page, limit, sortBy, sortOrder }, '[testimonialsService] rawOptions');
     try {
       const result = await this.testimonialsRepository.findMany(filters, page, limit, sortBy, sortOrder);
-
-      // Enhance each testimonial
       const enhancedTestimonials = result.testimonials.map((testimonial) => this.enhanceTestimonial(testimonial));
-
-      return {
-        testimonials: enhancedTestimonials,
-        pagination: result.pagination,
-      };
+      const response = { testimonials: enhancedTestimonials, pagination: result.pagination };
+      this.logger.info('[testimonialsService] getTestimonials success');
+      return response;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] getTestimonials error');
       throw new Error(`Failed to get testimonials: ${error.message}`);
     }
   }
 
   /**
    * Get testimonial by ID
-   * @param {number} id - Testimonial ID
-   * @returns {Promise<Object|null>} Testimonial object or null
    */
   async getTestimonialById(id) {
+    this.logger.info({ id }, '[testimonialsService] getTestimonialById start');
     try {
       const testimonial = await this.testimonialsRepository.findById(id);
-      return this.enhanceTestimonial(testimonial);
+      const result = this.enhanceTestimonial(testimonial);
+      this.logger.info('[testimonialsService] getTestimonialById success');
+      return result;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] getTestimonialById error');
       throw new Error(`Failed to get testimonial: ${error.message}`);
     }
   }
 
   /**
    * Get featured testimonials
-   * @param {number} limit - Number of testimonials to fetch
-   * @returns {Promise<Array>} Featured testimonials
    */
   async getFeaturedTestimonials(limit = 6) {
+    this.logger.info({ limit }, '[testimonialsService] getFeaturedTestimonials start');
     try {
       const testimonials = await this.testimonialsRepository.getFeatured(limit);
-      return testimonials.map((testimonial) => this.enhanceTestimonial(testimonial));
+      const result = testimonials.map((testimonial) => this.enhanceTestimonial(testimonial));
+      this.logger.info('[testimonialsService] getFeaturedTestimonials success');
+      return result;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] getFeaturedTestimonials error');
       throw new Error(`Failed to get featured testimonials: ${error.message}`);
     }
   }
 
   /**
    * Get testimonials by country
-   * @param {string} country - Country name
-   * @param {number} limit - Number of testimonials to fetch
-   * @returns {Promise<Array>} Testimonials from specific country
    */
   async getTestimonialsByCountry(country, limit = 10) {
+    this.logger.info({ country, limit }, '[testimonialsService] getTestimonialsByCountry start');
     try {
       const testimonials = await this.testimonialsRepository.getByCountry(country, limit);
-      return testimonials.map((testimonial) => this.enhanceTestimonial(testimonial));
+      const result = testimonials.map((testimonial) => this.enhanceTestimonial(testimonial));
+      this.logger.info('[testimonialsService] getTestimonialsByCountry success');
+      return result;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] getTestimonialsByCountry error');
       throw new Error(`Failed to get testimonials by country: ${error.message}`);
     }
   }
 
   /**
    * Get testimonials by rating
-   * @param {number} minRating - Minimum rating
-   * @param {number} limit - Number of testimonials to fetch
-   * @returns {Promise<Array>} Testimonials with minimum rating
    */
   async getTestimonialsByRating(minRating, limit = 10) {
+    this.logger.info({ minRating, limit }, '[testimonialsService] getTestimonialsByRating start');
     try {
       const testimonials = await this.testimonialsRepository.getByRating(minRating, limit);
-      return testimonials.map((testimonial) => this.enhanceTestimonial(testimonial));
+      const result = testimonials.map((testimonial) => this.enhanceTestimonial(testimonial));
+      this.logger.info('[testimonialsService] getTestimonialsByRating success');
+      return result;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] getTestimonialsByRating error');
       throw new Error(`Failed to get testimonials by rating: ${error.message}`);
     }
   }
 
   /**
    * Create a new testimonial
-   * @param {Object} data - Testimonial data
-   * @returns {Promise<Object>} Created testimonial
    */
   async createTestimonial(data) {
+    this.logger.info('[testimonialsService] createTestimonial start');
     try {
-      // Validate required fields
       if (!data.name || typeof data.name !== 'string') {
         throw new Error('Name is required and must be a string');
       }
-
       if (!data.country || typeof data.country !== 'string') {
         throw new Error('Country is required and must be a string');
       }
-
       if (!data.text || typeof data.text !== 'string') {
         throw new Error('Text is required and must be a string');
       }
-
-      // Validate rating
       if (data.rating !== undefined) {
         const rating = parseInt(data.rating);
         if (isNaN(rating) || rating < 1 || rating > 5) {
@@ -225,19 +194,14 @@ class TestimonialsService {
         }
         data.rating = rating;
       }
-
-      // Validate status if provided
       const validStatuses = ['ACTIVE', 'INACTIVE', 'PENDING'];
       if (data.status && !validStatuses.includes(data.status)) {
         throw new Error(`Status must be one of: ${validStatuses.join(', ')}`);
       }
-
-      // Validate featured flag
       if (data.featured !== undefined && typeof data.featured !== 'boolean') {
         throw new Error('Featured must be a boolean');
       }
 
-      // Prepare testimonial data
       const testimonialData = {
         name: data.name.trim(),
         country: data.country.trim(),
@@ -247,28 +211,25 @@ class TestimonialsService {
         featured: data.featured || false,
       };
 
-      // Create testimonial
       const testimonial = await this.testimonialsRepository.create(testimonialData);
-      return this.enhanceTestimonial(testimonial);
+      const result = this.enhanceTestimonial(testimonial);
+      this.logger.info('[testimonialsService] createTestimonial success');
+      return result;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] createTestimonial error');
       throw new Error(`Failed to create testimonial: ${error.message}`);
     }
   }
 
   /**
    * Update a testimonial
-   * @param {number} id - Testimonial ID
-   * @param {Object} data - Update data
-   * @returns {Promise<Object|null>} Updated testimonial or null
    */
   async updateTestimonial(id, data) {
+    this.logger.info({ id }, '[testimonialsService] updateTestimonial start');
     try {
-      // Validate ID
       if (!id || isNaN(id)) {
         throw new Error('Valid testimonial ID is required');
       }
-
-      // Validate rating if provided
       if (data.rating !== undefined) {
         const rating = parseInt(data.rating);
         if (isNaN(rating) || rating < 1 || rating > 5) {
@@ -276,83 +237,59 @@ class TestimonialsService {
         }
         data.rating = rating;
       }
-
-      // Validate status if provided
       const validStatuses = ['ACTIVE', 'INACTIVE', 'PENDING'];
       if (data.status && !validStatuses.includes(data.status)) {
         throw new Error(`Status must be one of: ${validStatuses.join(', ')}`);
       }
-
-      // Validate featured flag
       if (data.featured !== undefined && typeof data.featured !== 'boolean') {
         throw new Error('Featured must be a boolean');
       }
 
-      // Prepare update data
       const updateData = {};
+      if (data.name) updateData.name = data.name.trim();
+      if (data.country) updateData.country = data.country.trim();
+      if (data.text) updateData.text = data.text.trim();
+      if (data.rating !== undefined) updateData.rating = data.rating;
+      if (data.status) updateData.status = data.status;
+      if (data.featured !== undefined) updateData.featured = data.featured;
 
-      if (data.name) {
-        updateData.name = data.name.trim();
-      }
-
-      if (data.country) {
-        updateData.country = data.country.trim();
-      }
-
-      if (data.text) {
-        updateData.text = data.text.trim();
-      }
-
-      if (data.rating !== undefined) {
-        updateData.rating = data.rating;
-      }
-
-      if (data.status) {
-        updateData.status = data.status;
-      }
-
-      if (data.featured !== undefined) {
-        updateData.featured = data.featured;
-      }
-
-      // Update testimonial
       const testimonial = await this.testimonialsRepository.update(id, updateData);
-      return this.enhanceTestimonial(testimonial);
+      const result = this.enhanceTestimonial(testimonial);
+      this.logger.info('[testimonialsService] updateTestimonial success');
+      return result;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] updateTestimonial error');
       throw new Error(`Failed to update testimonial: ${error.message}`);
     }
   }
 
   /**
    * Delete a testimonial
-   * @param {number} id - Testimonial ID
-   * @returns {Promise<boolean>} Success status
    */
   async deleteTestimonial(id) {
+    this.logger.info({ id }, '[testimonialsService] deleteTestimonial start');
     try {
-      // Validate ID
       if (!id || isNaN(id)) {
         throw new Error('Valid testimonial ID is required');
       }
-
-      return await this.testimonialsRepository.delete(id);
+      const deleted = await this.testimonialsRepository.delete(id);
+      this.logger.info('[testimonialsService] deleteTestimonial success');
+      return deleted;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] deleteTestimonial error');
       throw new Error(`Failed to delete testimonial: ${error.message}`);
     }
   }
 
   /**
    * Get testimonials statistics
-   * @returns {Promise<Object>} Statistics object
    */
   async getTestimonialsStatistics() {
+    this.logger.info('[testimonialsService] getTestimonialsStatistics start');
     try {
       const stats = await this.testimonialsRepository.getStatistics();
-
-      // Add percentage calculations
-      const total = stats.totalTestimonials || 1; // Avoid division by zero
-
-      return {
+      const total = stats.totalTestimonials || 1;
+      const result = {
         ...stats,
         statusPercentages: {
           active: Math.round((stats.activeTestimonials / total) * 100),
@@ -370,114 +307,73 @@ class TestimonialsService {
           hasRecentActivity: stats.recentTestimonials > 0,
           isHighQuality: stats.averageRating >= 4,
           globalReach: stats.countriesCount >= 5,
-          averageTestimonialsPerMonth: Math.round(stats.totalTestimonials / 12), // Assuming 1 year of data
+          averageTestimonialsPerMonth: Math.round(stats.totalTestimonials / 12),
         },
       };
+      this.logger.info('[testimonialsService] getTestimonialsStatistics success');
+      return result;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] getTestimonialsStatistics error');
       throw new Error(`Failed to get testimonials statistics: ${error.message}`);
     }
   }
 
   /**
    * Get testimonials for admin (including inactive/pending)
-   * @param {Object} filters - Filter criteria
-   * @param {number} page - Page number
-   * @param {number} limit - Items per page
-   * @param {string} sortBy - Sort field
-   * @param {string} sortOrder - Sort order
-   * @returns {Promise<Object>} Testimonials with pagination
    */
   async getTestimonialsForAdmin(filters = {}, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc') {
+    this.logger.info('[testimonialsService] getTestimonialsForAdmin start');
+    this.logger.debug({ filters, page, limit, sortBy, sortOrder }, '[testimonialsService] rawOptions');
     try {
       const result = await this.testimonialsRepository.findManyForAdmin(filters, page, limit, sortBy, sortOrder);
-
-      // Enhance each testimonial
       const enhancedTestimonials = result.testimonials.map((testimonial) => this.enhanceTestimonial(testimonial));
-
-      return {
-        testimonials: enhancedTestimonials,
-        pagination: result.pagination,
-      };
+      const response = { testimonials: enhancedTestimonials, pagination: result.pagination };
+      this.logger.info('[testimonialsService] getTestimonialsForAdmin success');
+      return response;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] getTestimonialsForAdmin error');
       throw new Error(`Failed to get testimonials for admin: ${error.message}`);
     }
   }
 
   /**
    * Get countries with testimonial counts
-   * @returns {Promise<Array>} Countries with counts
    */
   async getCountriesWithCounts() {
+    this.logger.info('[testimonialsService] getCountriesWithCounts start');
     try {
       const countries = await this.testimonialsRepository.getCountriesWithCounts();
-
-      // Enhance with flags
-      return countries.map((item) => ({
-        ...item,
-        flag: this.getCountryFlag(item.country),
-      }));
+      const response = countries.map((item) => ({ ...item, flag: this.getCountryFlag(item.country) }));
+      this.logger.info('[testimonialsService] getCountriesWithCounts success');
+      return response;
     } catch (error) {
+      this.logger.error({ err: error }, '[testimonialsService] getCountriesWithCounts error');
       throw new Error(`Failed to get countries with counts: ${error.message}`);
     }
   }
 
   /**
    * Validate testimonial data
-   * @param {Object} data - Testimonial data
-   * @param {boolean} isUpdate - Whether this is an update operation
-   * @returns {Object} Validation result
    */
   validateTestimonialData(data, isUpdate = false) {
     const errors = [];
-
-    // Name validation
-    if (!isUpdate && (!data.name || typeof data.name !== 'string')) {
-      errors.push('Name is required and must be a string');
-    } else if (data.name && (typeof data.name !== 'string' || data.name.trim().length < 2)) {
-      errors.push('Name must be at least 2 characters long');
-    } else if (data.name && data.name.trim().length > 255) {
-      errors.push('Name must be less than 255 characters');
-    }
-
-    // Country validation
-    if (!isUpdate && (!data.country || typeof data.country !== 'string')) {
-      errors.push('Country is required and must be a string');
-    } else if (data.country && (typeof data.country !== 'string' || data.country.trim().length < 2)) {
+    if (!isUpdate && (!data.name || typeof data.name !== 'string')) errors.push('Name is required and must be a string');
+    else if (data.name && (typeof data.name !== 'string' || data.name.trim().length < 2)) errors.push('Name must be at least 2 characters long');
+    else if (data.name && data.name.trim().length > 255) errors.push('Name must be less than 255 characters');
+    if (!isUpdate && (!data.country || typeof data.country !== 'string')) errors.push('Country is required and must be a string');
+    else if (data.country && (typeof data.country !== 'string' || data.country.trim().length < 2))
       errors.push('Country must be at least 2 characters long');
-    } else if (data.country && data.country.trim().length > 100) {
-      errors.push('Country must be less than 100 characters');
-    }
-
-    // Text validation
-    if (!isUpdate && (!data.text || typeof data.text !== 'string')) {
-      errors.push('Text is required and must be a string');
-    } else if (data.text && (typeof data.text !== 'string' || data.text.trim().length < 10)) {
-      errors.push('Text must be at least 10 characters long');
-    }
-
-    // Rating validation
+    else if (data.country && data.country.trim().length > 100) errors.push('Country must be less than 100 characters');
+    if (!isUpdate && (!data.text || typeof data.text !== 'string')) errors.push('Text is required and must be a string');
+    else if (data.text && (typeof data.text !== 'string' || data.text.trim().length < 10)) errors.push('Text must be at least 10 characters long');
     if (data.rating !== undefined) {
       const rating = parseInt(data.rating);
-      if (isNaN(rating) || rating < 1 || rating > 5) {
-        errors.push('Rating must be a number between 1 and 5');
-      }
+      if (isNaN(rating) || rating < 1 || rating > 5) errors.push('Rating must be a number between 1 and 5');
     }
-
-    // Status validation
     const validStatuses = ['ACTIVE', 'INACTIVE', 'PENDING'];
-    if (data.status && !validStatuses.includes(data.status)) {
-      errors.push(`Status must be one of: ${validStatuses.join(', ')}`);
-    }
-
-    // Featured validation
-    if (data.featured !== undefined && typeof data.featured !== 'boolean') {
-      errors.push('Featured must be a boolean');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    if (data.status && !validStatuses.includes(data.status)) errors.push(`Status must be one of: ${validStatuses.join(', ')}`);
+    if (data.featured !== undefined && typeof data.featured !== 'boolean') errors.push('Featured must be a boolean');
+    return { isValid: errors.length === 0, errors };
   }
 }
 

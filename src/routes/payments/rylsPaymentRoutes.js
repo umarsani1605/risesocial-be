@@ -21,8 +21,6 @@ import {
 async function rylsPaymentRoutes(fastify, options) {
   const paymentController = new RylsPaymentController();
 
-  console.log('[PaymentRoutes] Registering RYLS payment routes...');
-
   /**
    * Create Payment Transaction
    * POST /api/payments/ryls/transactions
@@ -31,9 +29,6 @@ async function rylsPaymentRoutes(fastify, options) {
   fastify.post('/ryls/transactions', {
     schema: createTransactionSchema,
     handler: async (request, reply) => {
-      console.log('[PaymentRoutes] POST /api/payments/ryls/transactions called');
-      console.log('[PaymentRoutes] Request body:', JSON.stringify(request.body, null, 2));
-
       try {
         return await paymentController.createTransaction(request, reply);
       } catch (error) {
@@ -51,10 +46,6 @@ async function rylsPaymentRoutes(fastify, options) {
   fastify.post('/notifications', {
     schema: webhookNotificationSchema,
     handler: async (request, reply) => {
-      console.log('[PaymentRoutes] POST /api/payments/notifications called');
-      console.log('[PaymentRoutes] Webhook payload received');
-      // Don't log full payload in routes for security, controller will handle it
-
       try {
         return await paymentController.handleWebhookNotification(request, reply);
       } catch (error) {
@@ -72,9 +63,6 @@ async function rylsPaymentRoutes(fastify, options) {
   fastify.get('/ryls/:registrationId/status', {
     schema: paymentStatusSchema,
     handler: async (request, reply) => {
-      console.log('[PaymentRoutes] GET /api/payments/ryls/:registrationId/status called');
-      console.log('[PaymentRoutes] Registration ID:', request.params.registrationId);
-
       try {
         return await paymentController.getPaymentStatus(request, reply);
       } catch (error) {
@@ -92,9 +80,6 @@ async function rylsPaymentRoutes(fastify, options) {
   fastify.get('/ryls/statistics', {
     schema: paymentStatisticsSchema,
     handler: async (request, reply) => {
-      console.log('[PaymentRoutes] GET /api/payments/ryls/statistics called');
-      console.log('[PaymentRoutes] Query params:', JSON.stringify(request.query, null, 2));
-
       try {
         return await paymentController.getPaymentStatistics(request, reply);
       } catch (error) {
@@ -112,9 +97,6 @@ async function rylsPaymentRoutes(fastify, options) {
   fastify.post('/ryls/:orderId/cancel', {
     schema: cancelPaymentSchema,
     handler: async (request, reply) => {
-      console.log('[PaymentRoutes] POST /api/payments/ryls/:orderId/cancel called');
-      console.log('[PaymentRoutes] Order ID:', request.params.orderId);
-
       try {
         return await paymentController.cancelPayment(request, reply);
       } catch (error) {
@@ -130,9 +112,21 @@ async function rylsPaymentRoutes(fastify, options) {
    * Basic health check for payment system
    */
   fastify.get('/health', {
+    schema: {
+      tags: ['RYLS Payments'],
+      summary: 'Payment system health check',
+      description: 'Returns the health status of the payment system',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+          },
+        },
+      },
+    },
     handler: async (request, reply) => {
-      console.log('[PaymentRoutes] GET /api/payments/health called');
-
       try {
         return await paymentController.healthCheck(request, reply);
       } catch (error) {
@@ -141,15 +135,6 @@ async function rylsPaymentRoutes(fastify, options) {
       }
     },
   });
-
-  console.log('[PaymentRoutes] RYLS payment routes registered successfully');
-  console.log('[PaymentRoutes] Available endpoints:');
-  console.log('   POST /api/payments/ryls/transactions - Create payment transaction');
-  console.log('   POST /api/payments/notifications - Webhook handler (generic)');
-  console.log('   GET /api/payments/ryls/:registrationId/status - Get payment status');
-  console.log('   GET /api/payments/ryls/statistics - Get payment statistics');
-  console.log('   POST /api/payments/ryls/:orderId/cancel - Cancel payment');
-  console.log('   GET /api/payments/health - Health check');
 }
 
 export default rylsPaymentRoutes;

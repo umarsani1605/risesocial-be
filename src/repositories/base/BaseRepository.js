@@ -84,7 +84,18 @@ export class BaseRepository {
    * @returns {Promise<number>} Record count
    */
   async count(where = {}) {
-    return await this.model.count({ where });
+    console.log('[BaseRepository] count called with:', { where });
+    console.log('[BaseRepository] this.model:', typeof this.model, !!this.model);
+
+    try {
+      const result = await this.model.count({ where });
+      console.log('[BaseRepository] count result:', result);
+      return result;
+    } catch (error) {
+      console.error('[BaseRepository] count error:', error.message);
+      console.error('[BaseRepository] count query attempted:', { where });
+      throw error;
+    }
   }
 
   /**

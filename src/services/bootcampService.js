@@ -1,4 +1,5 @@
 import { bootcampRepository } from '../repositories/bootcampRepository.js';
+import { getLogger } from '../lib/loggerContext.js';
 
 /**
  * Consolidated Bootcamp Service
@@ -9,6 +10,10 @@ export class BootcampService {
     this.bootcampRepository = bootcampRepository;
   }
 
+  get logger() {
+    return getLogger();
+  }
+
   // ==================== MAIN BOOTCAMP METHODS ====================
 
   /**
@@ -17,18 +22,25 @@ export class BootcampService {
    * @returns {Promise<Object>} Paginated bootcamps
    */
   async getAllBootcamps(options = {}) {
-    // Add some business logic for default includes
-    const enhancedOptions = {
-      ...options,
-      includeRelations: true, // Always include basic relations for listing
-    };
+    this.logger.info('[bootcampService] getAllBootcamps start');
+    try {
+      // Add some business logic for default includes
+      const enhancedOptions = {
+        ...options,
+        includeRelations: true, // Always include basic relations for listing
+      };
 
-    const result = await this.bootcampRepository.findWithPagination(enhancedOptions);
+      const result = await this.bootcampRepository.findWithPagination(enhancedOptions);
 
-    // Add computed fields to each bootcamp
-    result.data = result.data.map((bootcamp) => this.enhanceBootcamp(bootcamp));
+      // Add computed fields to each bootcamp
+      result.data = result.data.map((bootcamp) => this.enhanceBootcamp(bootcamp));
 
-    return result;
+      this.logger.info('[bootcampService] getAllBootcamps success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] getAllBootcamps error');
+      throw error;
+    }
   }
 
   /**
@@ -38,16 +50,23 @@ export class BootcampService {
    * @throws {Error} If bootcamp not found
    */
   async getBootcampBySlug(slug) {
-    const bootcamp = await this.bootcampRepository.findBySlug(slug);
+    this.logger.info({ slug }, '[bootcampService] getBootcampBySlug start');
+    try {
+      const bootcamp = await this.bootcampRepository.findBySlug(slug);
 
-    if (!bootcamp) {
-      const error = new Error(`Bootcamp dengan slug '${slug}' tidak ditemukan`);
-      error.statusCode = 404;
+      if (!bootcamp) {
+        const error = new Error(`Bootcamp dengan slug '${slug}' tidak ditemukan`);
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Add computed fields and business logic
+      const result = this.enhanceBootcampDetails(bootcamp);
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] getBootcampBySlug error');
       throw error;
     }
-
-    // Add computed fields and business logic
-    return this.enhanceBootcampDetails(bootcamp);
   }
 
   /**
@@ -56,8 +75,16 @@ export class BootcampService {
    * @returns {Promise<Array>} Featured bootcamps
    */
   async getFeaturedBootcamps(limit = 6) {
-    const bootcamps = await this.bootcampRepository.getFeatured(limit);
-    return bootcamps.map((bootcamp) => this.enhanceBootcamp(bootcamp));
+    this.logger.info({ limit }, '[bootcampService] getFeaturedBootcamps start');
+    try {
+      const bootcamps = await this.bootcampRepository.getFeatured(limit);
+      const result = bootcamps.map((bootcamp) => this.enhanceBootcamp(bootcamp));
+      this.logger.info('[bootcampService] getFeaturedBootcamps success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] getFeaturedBootcamps error');
+      throw error;
+    }
   }
 
   /**
@@ -68,36 +95,47 @@ export class BootcampService {
    * @throws {Error} If validation fails
    */
   async createBootcamp(bootcampData, userId) {
-    // Validate bootcamp data
-    await this.validateBootcampData(bootcampData);
+    this.logger.info('[bootcampService] createBootcamp start');
+    try {
+      // Validate bootcamp data
+      await this.validateBootcampData(bootcampData);
 
-    // Generate slug if not provided
-    if (!bootcampData.path_slug) {
-      bootcampData.path_slug = await this.generateUniqueSlug(bootcampData.title);
-    } else {
-      // Validate slug format and uniqueness
-      this.validateSlug(bootcampData.path_slug);
-      const slugExists = await this.bootcampRepository.slugExists(bootcampData.path_slug);
-      if (slugExists) {
-        const error = new Error('Bootcamp dengan slug ini sudah ada');
-        error.statusCode = 400;
-        throw error;
+      // Generate slug if not provided
+      if (!bootcampData.path_slug) {
+        bootcampData.path_slug = await this.generateUniqueSlug(bootcampData.title);
+      } else {
+        // Validate slug format and uniqueness
+        this.validateSlug(bootcampData.path_slug);
+        const slugExists = await this.bootcampRepository.slugExists(bootcampData.path_slug);
+        if (slugExists) {
+          const error = new Error('Bootcamp dengan slug ini sudah ada');
+          error.statusCode = 400;
+          throw error;
+        }
       }
+
+      // Set defaults and metadata
+      const bootcampDataWithDefaults = {
+        ...bootcampData,
+        status: bootcampData.status || 'DRAFT',
+        rating: 0,
+        rating_count: 0,
+        certificate: bootcampData.certificate || false,
+        portfolio: bootcampData.portfolio || false,
+        created_by: userId,
+        // Auto-generate meta fields
+        meta_title: bootcampData.meta_title || this.generateMetaTitle(bootcampData.title),
+        meta_description: bootcampData.meta_description || this.generateMetaDescription(bootcampData.description || ''),
+      };
+
+      const bootcamp = await this.bootcampRepository.create(bootcampDataWithDefaults);
+      const result = this.enhanceBootcamp(bootcamp);
+      this.logger.info('[bootcampService] createBootcamp success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] createBootcamp error');
+      throw error;
     }
-
-    // Set defaults and metadata
-    const bootcampDataWithDefaults = {
-      ...bootcampData,
-      status: bootcampData.status || 'DRAFT',
-      rating: 0,
-      rating_count: 0,
-      certificate: bootcampData.certificate || false,
-      portfolio: bootcampData.portfolio || false,
-      created_by: userId,
-    };
-
-    const bootcamp = await this.bootcampRepository.create(bootcampDataWithDefaults);
-    return this.enhanceBootcamp(bootcamp);
   }
 
   /**
@@ -108,32 +146,59 @@ export class BootcampService {
    * @throws {Error} If bootcamp not found or validation fails
    */
   async updateBootcamp(id, updateData) {
-    // Check if bootcamp exists
-    const existingBootcamp = await this.bootcampRepository.findById(id);
-    if (!existingBootcamp) {
-      const error = new Error('Bootcamp tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
-    }
-
-    // Validate update data
-    if (updateData.title || updateData.description) {
-      await this.validateBootcampData(updateData, true);
-    }
-
-    // Handle slug update
-    if (updateData.path_slug && updateData.path_slug !== existingBootcamp.path_slug) {
-      this.validateSlug(updateData.path_slug);
-      const slugExists = await this.bootcampRepository.slugExists(updateData.path_slug, id);
-      if (slugExists) {
-        const error = new Error('Bootcamp dengan slug ini sudah ada');
-        error.statusCode = 400;
+    this.logger.info({ id }, '[bootcampService] updateBootcamp start');
+    try {
+      // Check if bootcamp exists
+      const existingBootcamp = await this.bootcampRepository.findById(id);
+      if (!existingBootcamp) {
+        const error = new Error('Bootcamp tidak ditemukan');
+        error.statusCode = 404;
         throw error;
       }
-    }
 
-    const bootcamp = await this.bootcampRepository.update(id, updateData);
-    return this.enhanceBootcamp(bootcamp);
+      // Validate update data
+      if (updateData.title || updateData.description) {
+        await this.validateBootcampData(updateData, true);
+      }
+
+      // Handle slug update
+      if (updateData.path_slug && updateData.path_slug !== existingBootcamp.path_slug) {
+        this.validateSlug(updateData.path_slug);
+        const slugExists = await this.bootcampRepository.slugExists(updateData.path_slug, id);
+        if (slugExists) {
+          const error = new Error('Bootcamp dengan slug ini sudah ada');
+          error.statusCode = 400;
+          throw error;
+        }
+      }
+
+      // Auto-generate slug if title is updated
+      if (updateData.title && !updateData.path_slug) {
+        updateData.path_slug = this.generateSlug(updateData.title);
+        // Check if generated slug is unique
+        const slugExists = await this.bootcampRepository.slugExists(updateData.path_slug, id);
+        if (slugExists) {
+          // Add timestamp to make it unique
+          updateData.path_slug = `${updateData.path_slug}-${Date.now()}`;
+        }
+      }
+
+      // Auto-generate meta fields if title or description is updated
+      if (updateData.title && !updateData.meta_title) {
+        updateData.meta_title = this.generateMetaTitle(updateData.title);
+      }
+      if (updateData.description && !updateData.meta_description) {
+        updateData.meta_description = this.generateMetaDescription(updateData.description);
+      }
+
+      const bootcamp = await this.bootcampRepository.update(id, updateData);
+      const result = this.enhanceBootcamp(bootcamp);
+      this.logger.info('[bootcampService] updateBootcamp success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] updateBootcamp error');
+      throw error;
+    }
   }
 
   /**
@@ -143,15 +208,22 @@ export class BootcampService {
    * @throws {Error} If bootcamp not found
    */
   async deleteBootcamp(id) {
-    const bootcamp = await this.bootcampRepository.findById(id);
-    if (!bootcamp) {
-      const error = new Error('Bootcamp tidak ditemukan');
-      error.statusCode = 404;
+    this.logger.info({ id }, '[bootcampService] deleteBootcamp start');
+    try {
+      const bootcamp = await this.bootcampRepository.findById(id);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Soft delete by setting status to ARCHIVED
+      await this.bootcampRepository.update(id, { status: 'ARCHIVED' });
+      this.logger.info('[bootcampService] deleteBootcamp success');
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] deleteBootcamp error');
       throw error;
     }
-
-    // Soft delete by setting status to ARCHIVED
-    await this.bootcampRepository.update(id, { status: 'ARCHIVED' });
   }
 
   /**
@@ -159,7 +231,15 @@ export class BootcampService {
    * @returns {Promise<Array>} Available categories
    */
   async getCategories() {
-    return await this.bootcampRepository.getCategories();
+    this.logger.info('[bootcampService] getCategories start');
+    try {
+      const categories = await this.bootcampRepository.getCategories();
+      this.logger.info('[bootcampService] getCategories success');
+      return categories;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] getCategories error');
+      throw error;
+    }
   }
 
   /**
@@ -167,7 +247,15 @@ export class BootcampService {
    * @returns {Promise<Object>} Bootcamp statistics
    */
   async getStatistics() {
-    return await this.bootcampRepository.getBootcampStatistics();
+    this.logger.info('[bootcampService] getStatistics start');
+    try {
+      const stats = await this.bootcampRepository.getBootcampStatistics();
+      this.logger.info('[bootcampService] getStatistics success');
+      return stats;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] getStatistics error');
+      throw error;
+    }
   }
 
   // ==================== FAQ METHODS ====================
@@ -881,8 +969,9 @@ export class BootcampService {
       this.validateSlug(data.path_slug);
     }
 
-    if (data.category && !this.isValidCategory(data.category)) {
-      errors.push('Kategori tidak valid');
+    // Validate status
+    if (data.status && !['DRAFT', 'ACTIVE', 'ARCHIVED'].includes(data.status)) {
+      errors.push('Status harus DRAFT, ACTIVE, atau ARCHIVED');
     }
 
     if (errors.length > 0) {
@@ -890,6 +979,44 @@ export class BootcampService {
       error.statusCode = 400;
       throw error;
     }
+  }
+
+  /**
+   * Generate slug from title
+   * @private
+   * @param {string} title - Title to generate slug from
+   * @returns {string} Generated slug
+   */
+  generateSlug(title) {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  }
+
+  /**
+   * Generate meta title from title
+   * @private
+   * @param {string} title - Title to generate meta title from
+   * @returns {string} Generated meta title
+   */
+  generateMetaTitle(title) {
+    return title.trim();
+  }
+
+  /**
+   * Generate meta description from description
+   * @private
+   * @param {string} description - Description to generate meta description from
+   * @returns {string} Generated meta description
+   */
+  generateMetaDescription(description) {
+    const cleanDescription = description.trim();
+    // Limit to 160 characters for SEO
+    return cleanDescription.length > 160 ? cleanDescription.substring(0, 157) + '...' : cleanDescription;
   }
 
   /**
@@ -1043,17 +1170,6 @@ export class BootcampService {
       error.statusCode = 400;
       throw error;
     }
-  }
-
-  /**
-   * Check if category is valid
-   * @private
-   * @param {string} category - Category to validate
-   * @returns {boolean} Is valid category
-   */
-  isValidCategory(category) {
-    const validCategories = ['technology', 'design', 'business', 'marketing', 'data-science', 'programming', 'mobile-development', 'web-development'];
-    return validCategories.includes(category.toLowerCase());
   }
 
   /**
@@ -1712,6 +1828,626 @@ export class BootcampService {
     if (sessionCount <= 6) return 'Menengah';
     if (sessionCount <= 10) return 'Lanjutan';
     return 'Komprehensif';
+  }
+
+  // ==================== PRICING METHODS ====================
+
+  /**
+   * Create pricing for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {Object} data - Pricing data
+   * @returns {Promise<Object>} Created pricing
+   */
+  async createPricing(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampService] createPricing start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const pricing = await this.bootcampRepository.createPricing(bootcampId, data);
+
+      this.logger.info({ pricingId: pricing.id }, '[bootcampService] createPricing success');
+      return pricing;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] createPricing error');
+      throw error;
+    }
+  }
+
+  /**
+   * Update pricing for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} pricingId - Pricing ID
+   * @param {Object} data - Pricing data
+   * @returns {Promise<Object>} Updated pricing
+   */
+  async updatePricing(bootcampId, pricingId, data) {
+    this.logger.info({ bootcampId, pricingId, data }, '[bootcampService] updatePricing start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const pricing = await this.bootcampRepository.updatePricing(bootcampId, pricingId, data);
+
+      this.logger.info({ pricingId: pricing.id }, '[bootcampService] updatePricing success');
+      return pricing;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] updatePricing error');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete pricing for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} pricingId - Pricing ID
+   * @returns {Promise<Object>} Success message
+   */
+  async deletePricing(bootcampId, pricingId) {
+    this.logger.info({ bootcampId, pricingId }, '[bootcampService] deletePricing start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const result = await this.bootcampRepository.deletePricing(bootcampId, pricingId);
+
+      this.logger.info({ pricingId }, '[bootcampService] deletePricing success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] deletePricing error');
+      throw error;
+    }
+  }
+
+  // ==================== FEATURES METHODS ====================
+
+  /**
+   * Create feature for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {Object} data - Feature data
+   * @returns {Promise<Object>} Created feature
+   */
+  async createFeature(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampService] createFeature start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const feature = await this.bootcampRepository.createFeature(bootcampId, data);
+
+      this.logger.info({ featureId: feature.id }, '[bootcampService] createFeature success');
+      return feature;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] createFeature error');
+      throw error;
+    }
+  }
+
+  /**
+   * Update feature for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} featureId - Feature ID
+   * @param {Object} data - Feature data
+   * @returns {Promise<Object>} Updated feature
+   */
+  async updateFeature(bootcampId, featureId, data) {
+    this.logger.info({ bootcampId, featureId, data }, '[bootcampService] updateFeature start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const feature = await this.bootcampRepository.updateFeature(bootcampId, featureId, data);
+
+      this.logger.info({ featureId: feature.id }, '[bootcampService] updateFeature success');
+      return feature;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] updateFeature error');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete feature for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} featureId - Feature ID
+   * @returns {Promise<Object>} Success message
+   */
+  async deleteFeature(bootcampId, featureId) {
+    this.logger.info({ bootcampId, featureId }, '[bootcampService] deleteFeature start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const result = await this.bootcampRepository.deleteFeature(bootcampId, featureId);
+
+      this.logger.info({ featureId }, '[bootcampService] deleteFeature success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] deleteFeature error');
+      throw error;
+    }
+  }
+
+  // ==================== INSTRUCTORS METHODS ====================
+
+  /**
+   * Create instructor for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {Object} data - Instructor data
+   * @returns {Promise<Object>} Created instructor
+   */
+  async createInstructor(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampService] createInstructor start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const instructor = await this.bootcampRepository.createInstructor(bootcampId, data);
+
+      this.logger.info({ instructorId: instructor.instructor_id }, '[bootcampService] createInstructor success');
+      return instructor;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] createInstructor error');
+      throw error;
+    }
+  }
+
+  /**
+   * Update instructor for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} instructorId - Instructor ID
+   * @param {Object} data - Instructor data
+   * @returns {Promise<Object>} Updated instructor
+   */
+  async updateInstructor(bootcampId, instructorId, data) {
+    this.logger.info({ bootcampId, instructorId, data }, '[bootcampService] updateInstructor start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const instructor = await this.bootcampRepository.updateInstructor(bootcampId, instructorId, data);
+
+      this.logger.info({ instructorId: instructor.instructor_id }, '[bootcampService] updateInstructor success');
+      return instructor;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] updateInstructor error');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete instructor from bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} instructorId - Instructor ID
+   * @returns {Promise<Object>} Success message
+   */
+  async deleteInstructor(bootcampId, instructorId) {
+    this.logger.info({ bootcampId, instructorId }, '[bootcampService] deleteInstructor start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const result = await this.bootcampRepository.deleteInstructor(bootcampId, instructorId);
+
+      this.logger.info({ instructorId }, '[bootcampService] deleteInstructor success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] deleteInstructor error');
+      throw error;
+    }
+  }
+
+  // ==================== TOPICS METHODS ====================
+
+  /**
+   * Create topic for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {Object} data - Topic data
+   * @returns {Promise<Object>} Created topic
+   */
+  async createTopic(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampService] createTopic start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const topic = await this.bootcampRepository.createTopic(bootcampId, data);
+
+      this.logger.info({ topicId: topic.id }, '[bootcampService] createTopic success');
+      return topic;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] createTopic error');
+      throw error;
+    }
+  }
+
+  /**
+   * Update topic for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} topicId - Topic ID
+   * @param {Object} data - Topic data
+   * @returns {Promise<Object>} Updated topic
+   */
+  async updateTopic(bootcampId, topicId, data) {
+    this.logger.info({ bootcampId, topicId, data }, '[bootcampService] updateTopic start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const topic = await this.bootcampRepository.updateTopic(bootcampId, topicId, data);
+
+      this.logger.info({ topicId: topic.id }, '[bootcampService] updateTopic success');
+      return topic;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] updateTopic error');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete topic from bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} topicId - Topic ID
+   * @returns {Promise<Object>} Success message
+   */
+  async deleteTopic(bootcampId, topicId) {
+    this.logger.info({ bootcampId, topicId }, '[bootcampService] deleteTopic start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const result = await this.bootcampRepository.deleteTopic(bootcampId, topicId);
+
+      this.logger.info({ topicId }, '[bootcampService] deleteTopic success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] deleteTopic error');
+      throw error;
+    }
+  }
+
+  // ==================== TESTIMONIALS METHODS ====================
+
+  /**
+   * Create testimonial for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {Object} data - Testimonial data
+   * @returns {Promise<Object>} Created testimonial
+   */
+  async createTestimonial(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampService] createTestimonial start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const testimonial = await this.bootcampRepository.createTestimonial(bootcampId, data);
+
+      this.logger.info({ testimonialId: testimonial.id }, '[bootcampService] createTestimonial success');
+      return testimonial;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] createTestimonial error');
+      throw error;
+    }
+  }
+
+  /**
+   * Update testimonial for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} testimonialId - Testimonial ID
+   * @param {Object} data - Testimonial data
+   * @returns {Promise<Object>} Updated testimonial
+   */
+  async updateTestimonial(bootcampId, testimonialId, data) {
+    this.logger.info({ bootcampId, testimonialId, data }, '[bootcampService] updateTestimonial start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const testimonial = await this.bootcampRepository.updateTestimonial(bootcampId, testimonialId, data);
+
+      this.logger.info({ testimonialId: testimonial.id }, '[bootcampService] updateTestimonial success');
+      return testimonial;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] updateTestimonial error');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete testimonial from bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} testimonialId - Testimonial ID
+   * @returns {Promise<Object>} Success message
+   */
+  async deleteTestimonial(bootcampId, testimonialId) {
+    this.logger.info({ bootcampId, testimonialId }, '[bootcampService] deleteTestimonial start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const result = await this.bootcampRepository.deleteTestimonial(bootcampId, testimonialId);
+
+      this.logger.info({ testimonialId }, '[bootcampService] deleteTestimonial success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] deleteTestimonial error');
+      throw error;
+    }
+  }
+
+  // ==================== FAQs METHODS ====================
+
+  /**
+   * Create FAQ for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {Object} data - FAQ data
+   * @returns {Promise<Object>} Created FAQ
+   */
+  async createFaq(bootcampId, data) {
+    this.logger.info({ bootcampId, data }, '[bootcampService] createFaq start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const faq = await this.bootcampRepository.createFaq(bootcampId, data);
+
+      this.logger.info({ faqId: faq.id }, '[bootcampService] createFaq success');
+      return faq;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] createFaq error');
+      throw error;
+    }
+  }
+
+  /**
+   * Update FAQ for bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} faqId - FAQ ID
+   * @param {Object} data - FAQ data
+   * @returns {Promise<Object>} Updated FAQ
+   */
+  async updateFaq(bootcampId, faqId, data) {
+    this.logger.info({ bootcampId, faqId, data }, '[bootcampService] updateFaq start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const faq = await this.bootcampRepository.updateFaq(bootcampId, faqId, data);
+
+      this.logger.info({ faqId: faq.id }, '[bootcampService] updateFaq success');
+      return faq;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] updateFaq error');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete FAQ from bootcamp
+   * @param {number} bootcampId - Bootcamp ID
+   * @param {number} faqId - FAQ ID
+   * @returns {Promise<Object>} Success message
+   */
+  async deleteFaq(bootcampId, faqId) {
+    this.logger.info({ bootcampId, faqId }, '[bootcampService] deleteFaq start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        const error = new Error('Bootcamp not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const result = await this.bootcampRepository.deleteFaq(bootcampId, faqId);
+
+      this.logger.info({ faqId }, '[bootcampService] deleteFaq success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] deleteFaq error');
+      throw error;
+    }
+  }
+
+  // ==================== SESSION METHODS ====================
+
+  /**
+   * Create session for topic
+   */
+  async createSession(bootcampId, topicId, data) {
+    this.logger.info({ bootcampId, topicId, data }, '[bootcampService] createSession start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        throw new Error('Bootcamp not found');
+      }
+
+      // Validate topic exists and belongs to bootcamp
+      const topic = await this.bootcampRepository.findTopicById(topicId);
+      if (!topic || topic.bootcamp_id !== bootcampId) {
+        throw new Error('Topic not found or does not belong to bootcamp');
+      }
+
+      const session = await this.bootcampRepository.createSession(bootcampId, topicId, data);
+      this.logger.info({ sessionId: session.id }, '[bootcampService] createSession success');
+      return session;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] createSession error');
+      throw error;
+    }
+  }
+
+  /**
+   * Update session
+   */
+  async updateSession(bootcampId, topicId, sessionId, data) {
+    this.logger.info({ bootcampId, topicId, sessionId, data }, '[bootcampService] updateSession start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        throw new Error('Bootcamp not found');
+      }
+
+      // Validate topic exists and belongs to bootcamp
+      const topic = await this.bootcampRepository.findTopicById(topicId);
+      if (!topic || topic.bootcamp_id !== bootcampId) {
+        throw new Error('Topic not found or does not belong to bootcamp');
+      }
+
+      // Validate session exists and belongs to topic
+      const existingSession = await this.bootcampRepository.findSessionById(sessionId);
+      if (!existingSession || existingSession.topic_id !== topicId) {
+        throw new Error('Session not found or does not belong to topic');
+      }
+
+      const session = await this.bootcampRepository.updateSession(bootcampId, topicId, sessionId, data);
+      this.logger.info({ sessionId: session.id }, '[bootcampService] updateSession success');
+      return session;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] updateSession error');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete session
+   */
+  async deleteSession(bootcampId, topicId, sessionId) {
+    this.logger.info({ bootcampId, topicId, sessionId }, '[bootcampService] deleteSession start');
+
+    try {
+      // Validate bootcamp exists
+      const bootcamp = await this.bootcampRepository.findById(bootcampId);
+      if (!bootcamp) {
+        throw new Error('Bootcamp not found');
+      }
+
+      // Validate topic exists and belongs to bootcamp
+      const topic = await this.bootcampRepository.findTopicById(topicId);
+      if (!topic || topic.bootcamp_id !== bootcampId) {
+        throw new Error('Topic not found or does not belong to bootcamp');
+      }
+
+      // Validate session exists and belongs to topic
+      const existingSession = await this.bootcampRepository.findSessionById(sessionId);
+      if (!existingSession || existingSession.topic_id !== topicId) {
+        throw new Error('Session not found or does not belong to topic');
+      }
+
+      const result = await this.bootcampRepository.deleteSession(bootcampId, topicId, sessionId);
+      this.logger.info({ sessionId }, '[bootcampService] deleteSession success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[bootcampService] deleteSession error');
+      throw error;
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+import { getLogger } from '../lib/loggerContext.js';
 /**
  * EnrollmentService - Service layer untuk enrollment management
  * Menangani business logic dan enhanced objects untuk enrollment
@@ -7,27 +8,40 @@ class EnrollmentService {
     this.enrollmentRepository = enrollmentRepository;
   }
 
+  get logger() {
+    return getLogger();
+  }
+
   /**
    * Mendapatkan semua enrollment dengan enhanced objects
    * @param {Object} options - Options untuk filtering
    * @returns {Promise<Object>} - Enhanced enrollments dengan pagination
    */
   async getAllEnrollments(options = {}) {
-    const enrollments = await this.enrollmentRepository.findAllWithDetails(options);
+    this.logger.info('[enrollmentService] getAllEnrollments start');
+    try {
+      const enrollments = await this.enrollmentRepository.findAllWithDetails(options);
 
-    // Enhance objects
-    const enhancedEnrollments = enrollments.data.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
+      // Enhance objects
+      const enhancedEnrollments = enrollments.data.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
 
-    return {
-      data: enhancedEnrollments,
-      pagination: enrollments.pagination,
-      summary: {
-        total: enrollments.pagination.total,
-        page: enrollments.pagination.page,
-        per_page: enrollments.pagination.limit,
-        total_pages: enrollments.pagination.totalPages,
-      },
-    };
+      const result = {
+        data: enhancedEnrollments,
+        pagination: enrollments.pagination,
+        summary: {
+          total: enrollments.pagination.total,
+          page: enrollments.pagination.page,
+          per_page: enrollments.pagination.limit,
+          total_pages: enrollments.pagination.totalPages,
+        },
+      };
+
+      this.logger.info('[enrollmentService] getAllEnrollments success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] getAllEnrollments error');
+      throw error;
+    }
   }
 
   /**
@@ -36,12 +50,21 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Enhanced enrollment object
    */
   async getEnrollmentById(id) {
-    const enrollment = await this.enrollmentRepository.findById(id);
-    if (!enrollment) {
-      throw new Error('Enrollment tidak ditemukan');
-    }
+    this.logger.info({ id }, '[enrollmentService] getEnrollmentById start');
+    try {
+      const enrollment = await this.enrollmentRepository.findById(id);
+      if (!enrollment) {
+        const err = new Error('Enrollment tidak ditemukan');
+        throw err;
+      }
 
-    return this.enhanceEnrollmentObject(enrollment);
+      const result = this.enhanceEnrollmentObject(enrollment);
+      this.logger.info('[enrollmentService] getEnrollmentById success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] getEnrollmentById error');
+      throw error;
+    }
   }
 
   /**
@@ -51,12 +74,21 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Enhanced enrollment object
    */
   async getEnrollmentByUserAndBootcamp(userId, bootcampId) {
-    const enrollment = await this.enrollmentRepository.findByUserAndBootcamp(userId, bootcampId);
-    if (!enrollment) {
-      throw new Error('Enrollment tidak ditemukan');
-    }
+    this.logger.info({ userId, bootcampId }, '[enrollmentService] getEnrollmentByUserAndBootcamp start');
+    try {
+      const enrollment = await this.enrollmentRepository.findByUserAndBootcamp(userId, bootcampId);
+      if (!enrollment) {
+        const err = new Error('Enrollment tidak ditemukan');
+        throw err;
+      }
 
-    return this.enhanceEnrollmentObject(enrollment);
+      const result = this.enhanceEnrollmentObject(enrollment);
+      this.logger.info('[enrollmentService] getEnrollmentByUserAndBootcamp success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] getEnrollmentByUserAndBootcamp error');
+      throw error;
+    }
   }
 
   /**
@@ -66,22 +98,31 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Enhanced user enrollments
    */
   async getUserEnrollments(userId, options = {}) {
-    const enrollments = await this.enrollmentRepository.findByUserId(userId, options);
+    this.logger.info({ userId }, '[enrollmentService] getUserEnrollments start');
+    try {
+      const enrollments = await this.enrollmentRepository.findByUserId(userId, options);
 
-    // Enhance objects
-    const enhancedEnrollments = enrollments.data.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
+      // Enhance objects
+      const enhancedEnrollments = enrollments.data.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
 
-    return {
-      data: enhancedEnrollments,
-      pagination: enrollments.pagination,
-      summary: {
-        total: enrollments.pagination.total,
-        active: enhancedEnrollments.filter((e) => e.enrollment_status === 'ENROLLED').length,
-        completed: enhancedEnrollments.filter((e) => e.enrollment_status === 'COMPLETED').length,
-        cancelled: enhancedEnrollments.filter((e) => e.enrollment_status === 'CANCELLED').length,
-        average_progress: this.calculateAverageProgress(enhancedEnrollments),
-      },
-    };
+      const result = {
+        data: enhancedEnrollments,
+        pagination: enrollments.pagination,
+        summary: {
+          total: enrollments.pagination.total,
+          active: enhancedEnrollments.filter((e) => e.enrollment_status === 'ENROLLED').length,
+          completed: enhancedEnrollments.filter((e) => e.enrollment_status === 'COMPLETED').length,
+          cancelled: enhancedEnrollments.filter((e) => e.enrollment_status === 'CANCELLED').length,
+          average_progress: this.calculateAverageProgress(enhancedEnrollments),
+        },
+      };
+
+      this.logger.info('[enrollmentService] getUserEnrollments success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] getUserEnrollments error');
+      throw error;
+    }
   }
 
   /**
@@ -91,22 +132,31 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Enhanced bootcamp enrollments
    */
   async getBootcampEnrollments(bootcampId, options = {}) {
-    const enrollments = await this.enrollmentRepository.findByBootcampId(bootcampId, options);
+    this.logger.info({ bootcampId }, '[enrollmentService] getBootcampEnrollments start');
+    try {
+      const enrollments = await this.enrollmentRepository.findByBootcampId(bootcampId, options);
 
-    // Enhance objects
-    const enhancedEnrollments = enrollments.data.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
+      // Enhance objects
+      const enhancedEnrollments = enrollments.data.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
 
-    return {
-      data: enhancedEnrollments,
-      pagination: enrollments.pagination,
-      summary: {
-        total: enrollments.pagination.total,
-        active: enhancedEnrollments.filter((e) => e.enrollment_status === 'ENROLLED').length,
-        completed: enhancedEnrollments.filter((e) => e.enrollment_status === 'COMPLETED').length,
-        cancelled: enhancedEnrollments.filter((e) => e.enrollment_status === 'CANCELLED').length,
-        average_progress: this.calculateAverageProgress(enhancedEnrollments),
-      },
-    };
+      const result = {
+        data: enhancedEnrollments,
+        pagination: enrollments.pagination,
+        summary: {
+          total: enrollments.pagination.total,
+          active: enhancedEnrollments.filter((e) => e.enrollment_status === 'ENROLLED').length,
+          completed: enhancedEnrollments.filter((e) => e.enrollment_status === 'COMPLETED').length,
+          cancelled: enhancedEnrollments.filter((e) => e.enrollment_status === 'CANCELLED').length,
+          average_progress: this.calculateAverageProgress(enhancedEnrollments),
+        },
+      };
+
+      this.logger.info('[enrollmentService] getBootcampEnrollments success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] getBootcampEnrollments error');
+      throw error;
+    }
   }
 
   /**
@@ -115,16 +165,24 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Enhanced enrollment object
    */
   async createEnrollment(data) {
-    // Validasi enrollment
-    const validation = await this.enrollmentRepository.validateEnrollment(data);
-    if (!validation.valid) {
-      throw new Error(validation.message);
+    this.logger.info('[enrollmentService] createEnrollment start');
+    try {
+      // Validasi enrollment
+      const validation = await this.enrollmentRepository.validateEnrollment(data);
+      if (!validation.valid) {
+        const err = new Error(validation.message);
+        throw err;
+      }
+
+      // Buat enrollment
+      const enrollment = await this.enrollmentRepository.createEnrollment(data);
+      const result = this.enhanceEnrollmentObject(enrollment);
+      this.logger.info('[enrollmentService] createEnrollment success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] createEnrollment error');
+      throw error;
     }
-
-    // Buat enrollment
-    const enrollment = await this.enrollmentRepository.createEnrollment(data);
-
-    return this.enhanceEnrollmentObject(enrollment);
   }
 
   /**
@@ -134,14 +192,22 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Enhanced enrollment object
    */
   async updateProgress(enrollmentId, progressPercentage) {
-    // Validasi progress percentage
-    if (progressPercentage < 0 || progressPercentage > 100) {
-      throw new Error('Progress percentage harus antara 0 dan 100');
+    this.logger.info({ enrollmentId }, '[enrollmentService] updateProgress start');
+    try {
+      // Validasi progress percentage
+      if (progressPercentage < 0 || progressPercentage > 100) {
+        const err = new Error('Progress percentage harus antara 0 dan 100');
+        throw err;
+      }
+
+      const enrollment = await this.enrollmentRepository.updateProgress(enrollmentId, progressPercentage);
+      const result = this.enhanceEnrollmentObject(enrollment);
+      this.logger.info('[enrollmentService] updateProgress success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] updateProgress error');
+      throw error;
     }
-
-    const enrollment = await this.enrollmentRepository.updateProgress(enrollmentId, progressPercentage);
-
-    return this.enhanceEnrollmentObject(enrollment);
   }
 
   /**
@@ -151,15 +217,23 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Enhanced enrollment object
    */
   async updateStatus(enrollmentId, status) {
-    // Validasi status
-    const validStatuses = ['ENROLLED', 'COMPLETED', 'CANCELLED', 'SUSPENDED'];
-    if (!validStatuses.includes(status)) {
-      throw new Error('Status tidak valid');
+    this.logger.info({ enrollmentId, status }, '[enrollmentService] updateStatus start');
+    try {
+      // Validasi status
+      const validStatuses = ['ENROLLED', 'COMPLETED', 'CANCELLED', 'SUSPENDED'];
+      if (!validStatuses.includes(status)) {
+        const err = new Error('Status tidak valid');
+        throw err;
+      }
+
+      const enrollment = await this.enrollmentRepository.updateStatus(enrollmentId, status);
+      const result = this.enhanceEnrollmentObject(enrollment);
+      this.logger.info('[enrollmentService] updateStatus success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] updateStatus error');
+      throw error;
     }
-
-    const enrollment = await this.enrollmentRepository.updateStatus(enrollmentId, status);
-
-    return this.enhanceEnrollmentObject(enrollment);
   }
 
   /**
@@ -168,17 +242,26 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Enhanced enrollment statistics
    */
   async getEnrollmentStats(options = {}) {
-    const stats = await this.enrollmentRepository.getEnrollmentStats(options);
+    this.logger.info('[enrollmentService] getEnrollmentStats start');
+    try {
+      const stats = await this.enrollmentRepository.getEnrollmentStats(options);
 
-    return {
-      ...stats,
-      insights: {
-        completion_rate_category: this.categorizeCompletionRate(parseFloat(stats.completion_rate)),
-        cancellation_rate_category: this.categorizeCancellationRate(parseFloat(stats.cancellation_rate)),
-        performance_score: this.calculatePerformanceScore(stats),
-        recommendations: this.generateRecommendations(stats),
-      },
-    };
+      const result = {
+        ...stats,
+        insights: {
+          completion_rate_category: this.categorizeCompletionRate(parseFloat(stats.completion_rate)),
+          cancellation_rate_category: this.categorizeCancellationRate(parseFloat(stats.cancellation_rate)),
+          performance_score: this.calculatePerformanceScore(stats),
+          recommendations: this.generateRecommendations(stats),
+        },
+      };
+
+      this.logger.info('[enrollmentService] getEnrollmentStats success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] getEnrollmentStats error');
+      throw error;
+    }
   }
 
   /**
@@ -187,9 +270,17 @@ class EnrollmentService {
    * @returns {Promise<Array>} - Enhanced expiring enrollments
    */
   async getExpiringEnrollments(days = 7) {
-    const enrollments = await this.enrollmentRepository.getExpiringEnrollments(days);
+    this.logger.info({ days }, '[enrollmentService] getExpiringEnrollments start');
+    try {
+      const enrollments = await this.enrollmentRepository.getExpiringEnrollments(days);
 
-    return enrollments.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
+      const result = enrollments.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
+      this.logger.info('[enrollmentService] getExpiringEnrollments success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] getExpiringEnrollments error');
+      throw error;
+    }
   }
 
   /**
@@ -198,9 +289,17 @@ class EnrollmentService {
    * @returns {Promise<Array>} - Enhanced top learners
    */
   async getTopLearners(options = {}) {
-    const learners = await this.enrollmentRepository.getTopLearners(options);
+    this.logger.info('[enrollmentService] getTopLearners start');
+    try {
+      const learners = await this.enrollmentRepository.getTopLearners(options);
 
-    return learners.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
+      const result = learners.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
+      this.logger.info('[enrollmentService] getTopLearners success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] getTopLearners error');
+      throw error;
+    }
   }
 
   /**
@@ -210,13 +309,22 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Update result
    */
   async bulkUpdateStatus(enrollmentIds, status) {
-    // Validasi status
-    const validStatuses = ['ENROLLED', 'COMPLETED', 'CANCELLED', 'SUSPENDED'];
-    if (!validStatuses.includes(status)) {
-      throw new Error('Status tidak valid');
-    }
+    this.logger.info({ count: Array.isArray(enrollmentIds) ? enrollmentIds.length : 0, status }, '[enrollmentService] bulkUpdateStatus start');
+    try {
+      // Validasi status
+      const validStatuses = ['ENROLLED', 'COMPLETED', 'CANCELLED', 'SUSPENDED'];
+      if (!validStatuses.includes(status)) {
+        const err = new Error('Status tidak valid');
+        throw err;
+      }
 
-    return await this.enrollmentRepository.bulkUpdateStatus(enrollmentIds, status);
+      const result = await this.enrollmentRepository.bulkUpdateStatus(enrollmentIds, status);
+      this.logger.info('[enrollmentService] bulkUpdateStatus success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] bulkUpdateStatus error');
+      throw error;
+    }
   }
 
   /**
@@ -225,25 +333,34 @@ class EnrollmentService {
    * @returns {Promise<Object>} - Dashboard overview
    */
   async getDashboardOverview(options = {}) {
-    const [generalStats, recentEnrollments, topLearners, expiringEnrollments] = await Promise.all([
-      this.getEnrollmentStats(options),
-      this.getAllEnrollments({
-        ...options,
-        limit: 5,
-        include_user: true,
-        include_bootcamp: true,
-      }),
-      this.getTopLearners({ limit: 5 }),
-      this.getExpiringEnrollments(7),
-    ]);
+    this.logger.info('[enrollmentService] getDashboardOverview start');
+    try {
+      const [generalStats, recentEnrollments, topLearners, expiringEnrollments] = await Promise.all([
+        this.getEnrollmentStats(options),
+        this.getAllEnrollments({
+          ...options,
+          limit: 5,
+          include_user: true,
+          include_bootcamp: true,
+        }),
+        this.getTopLearners({ limit: 5 }),
+        this.getExpiringEnrollments(7),
+      ]);
 
-    return {
-      general_stats: generalStats,
-      recent_enrollments: recentEnrollments.data,
-      top_learners: topLearners,
-      expiring_enrollments: expiringEnrollments.slice(0, 5),
-      quick_actions: this.generateQuickActions(generalStats),
-    };
+      const result = {
+        general_stats: generalStats,
+        recent_enrollments: recentEnrollments.data,
+        top_learners: topLearners,
+        expiring_enrollments: expiringEnrollments.slice(0, 5),
+        quick_actions: this.generateQuickActions(generalStats),
+      };
+
+      this.logger.info('[enrollmentService] getDashboardOverview success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[enrollmentService] getDashboardOverview error');
+      throw error;
+    }
   }
 
   /**

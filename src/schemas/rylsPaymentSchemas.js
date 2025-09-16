@@ -8,7 +8,7 @@
  */
 const baseResponseSchema = {
   type: 'object',
-  required: ['success', 'message', 'timestamp'],
+
   properties: {
     success: { type: 'boolean' },
     message: { type: 'string' },
@@ -38,7 +38,7 @@ const createSuccessResponseSchema = (dataSchema) => ({
 
 const paymentStatusDataSchema = {
   type: 'object',
-  required: ['hasPayment', 'status', 'orderId', 'amount'],
+
   properties: {
     hasPayment: { type: 'boolean' },
     status: {
@@ -56,7 +56,7 @@ const paymentStatusDataSchema = {
 
 const paymentStatisticsDataSchema = {
   type: 'object',
-  required: ['totalPayments', 'pendingPayments', 'successfulPayments', 'failedPayments', 'totalAmountIdr', 'successRate'],
+
   properties: {
     totalPayments: { type: 'number' },
     pendingPayments: { type: 'number' },
@@ -69,7 +69,7 @@ const paymentStatisticsDataSchema = {
 
 const webhookProcessingDataSchema = {
   type: 'object',
-  required: ['success', 'orderId', 'transactionStatus', 'registrationStatus', 'paymentId'],
+
   properties: {
     success: { type: 'boolean' },
     orderId: { type: 'string' },
@@ -81,7 +81,7 @@ const webhookProcessingDataSchema = {
 
 export const webhookNotificationRequestSchema = {
   type: 'object',
-  required: ['order_id', 'transaction_status', 'status_code', 'gross_amount', 'signature_key'],
+
   properties: {
     order_id: { type: 'string' },
     transaction_status: {
@@ -140,7 +140,7 @@ export const paymentStatisticsResponseSchema = createSuccessResponseSchema(payme
 
 export const webhookNotificationResponseSchema = {
   type: 'object',
-  required: ['success'],
+
   properties: {
     success: { type: 'boolean' },
     message: { type: 'string' },
@@ -155,7 +155,7 @@ export const paymentErrorResponseSchema = errorResponseSchema;
  */
 export const registrationIdParamSchema = {
   type: 'object',
-  required: ['registrationId'],
+
   properties: {
     registrationId: { type: 'string', pattern: '^[0-9]+$' },
   },
@@ -163,7 +163,7 @@ export const registrationIdParamSchema = {
 
 export const orderIdParamSchema = {
   type: 'object',
-  required: ['orderId'],
+
   properties: {
     orderId: { type: 'string', pattern: '^RYLS[0-9]+$' },
   },
@@ -184,9 +184,12 @@ export const paymentStatusQuerySchema = {
  * Complete route schemas for Fastify
  */
 export const createTransactionSchema = {
+  tags: ['RYLS Payments'],
+  summary: 'Create payment transaction',
+  description: 'Creates a new payment transaction for RYLS registration',
   body: {
     type: 'object',
-    required: ['type', 'data'],
+
     properties: {
       type: {
         type: 'string',
@@ -233,6 +236,9 @@ export const createTransactionSchema = {
 };
 
 export const webhookNotificationSchema = {
+  tags: ['RYLS Payments'],
+  summary: 'Payment webhook notification',
+  description: 'Handles payment webhook notifications from Midtrans',
   body: webhookNotificationRequestSchema,
   response: {
     200: webhookNotificationResponseSchema,
@@ -242,6 +248,9 @@ export const webhookNotificationSchema = {
 };
 
 export const paymentStatusSchema = {
+  tags: ['RYLS Payments'],
+  summary: 'Get payment status',
+  description: 'Retrieves payment status for a specific RYLS registration',
   params: registrationIdParamSchema,
   querystring: paymentStatusQuerySchema,
   response: {
@@ -252,6 +261,9 @@ export const paymentStatusSchema = {
 };
 
 export const paymentStatisticsSchema = {
+  tags: ['RYLS Payments'],
+  summary: 'Get payment statistics',
+  description: 'Retrieves payment statistics for RYLS registrations',
   querystring: paymentStatisticsRequestSchema,
   response: {
     200: paymentStatisticsResponseSchema,
@@ -260,11 +272,14 @@ export const paymentStatisticsSchema = {
 };
 
 export const cancelPaymentSchema = {
+  tags: ['RYLS Payments'],
+  summary: 'Cancel payment',
+  description: 'Cancels a payment transaction by order ID',
   params: orderIdParamSchema,
   response: {
     200: createSuccessResponseSchema({
       type: 'object',
-      required: ['success', 'orderId', 'previousStatus', 'newStatus'],
+
       properties: {
         success: { type: 'boolean' },
         orderId: { type: 'string' },
@@ -277,8 +292,3 @@ export const cancelPaymentSchema = {
     500: paymentErrorResponseSchema,
   },
 };
-
-// Log schema configuration
-console.log('[PaymentSchemas] Payment validation schemas loaded');
-console.log('[PaymentSchemas] Available schemas: createTransaction, webhookNotification, paymentStatus, paymentStatistics, cancelPayment');
-console.log('[PaymentSchemas] Webhook accepts additional Midtrans fields for flexibility');

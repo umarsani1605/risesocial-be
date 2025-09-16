@@ -17,15 +17,13 @@ const fileUploadResponseSchema = {
         filePath: { type: 'string' },
         fileSize: { type: 'integer' },
         mimeType: { type: 'string' },
-        uploadType: { type: 'string', enum: ['ESSAY', 'HEADSHOT'] },
+        uploadType: { type: 'string', enum: ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'BOOTCAMP_IMAGE'] },
         uploadDate: { type: 'string', format: 'date-time' },
         fileUrl: { type: 'string' },
       },
-      required: ['id', 'originalName', 'fileSize', 'mimeType', 'uploadType', 'uploadDate', 'fileUrl'],
     },
     meta: { type: 'object' },
   },
-  required: ['success', 'message', 'data'],
 };
 
 // Enhanced file info response schema
@@ -43,17 +41,15 @@ const fileInfoResponseSchema = {
         fileSize: { type: 'integer' },
         fileSizeFormatted: { type: 'string' },
         mimeType: { type: 'string' },
-        uploadType: { type: 'string', enum: ['ESSAY', 'HEADSHOT'] },
+        uploadType: { type: 'string', enum: ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'BOOTCAMP_IMAGE'] },
         uploadDate: { type: 'string', format: 'date-time' },
         fileUrl: { type: 'string' },
         fileExtension: { type: 'string' },
         isImage: { type: 'boolean' },
         isPdf: { type: 'boolean' },
       },
-      required: ['id', 'originalName', 'fileName', 'fileSize', 'mimeType', 'uploadType', 'uploadDate', 'fileUrl'],
     },
   },
-  required: ['success', 'message', 'data'],
 };
 
 // Error response schema
@@ -67,7 +63,6 @@ const errorResponseSchema = {
       oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }, { type: 'object' }],
     },
   },
-  required: ['success', 'message'],
 };
 
 // Upload statistics response schema
@@ -88,7 +83,6 @@ const uploadStatsResponseSchema = {
         averageFileSize: { type: 'integer' },
         averageFileSizeFormatted: { type: 'string' },
       },
-      required: ['totalFiles', 'essayFiles', 'headshotFiles', 'totalSize', 'recentFiles', 'averageFileSize'],
     },
     meta: {
       type: 'object',
@@ -97,7 +91,6 @@ const uploadStatsResponseSchema = {
       },
     },
   },
-  required: ['success', 'message', 'data'],
 };
 
 // Files by type response schema
@@ -120,7 +113,7 @@ const filesByTypeResponseSchema = {
               fileSize: { type: 'integer' },
               fileSizeFormatted: { type: 'string' },
               mimeType: { type: 'string' },
-              uploadType: { type: 'string', enum: ['ESSAY', 'HEADSHOT'] },
+              uploadType: { type: 'string', enum: ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'BOOTCAMP_IMAGE'] },
               uploadDate: { type: 'string', format: 'date-time' },
               fileUrl: { type: 'string' },
             },
@@ -137,7 +130,6 @@ const filesByTypeResponseSchema = {
       },
     },
   },
-  required: ['success', 'message', 'data'],
 };
 
 // Health check response schema
@@ -164,7 +156,6 @@ const healthCheckResponseSchema = {
       },
     },
   },
-  required: ['success', 'message', 'data'],
 };
 
 // Cleanup response schema
@@ -189,7 +180,6 @@ const cleanupResponseSchema = {
       },
     },
   },
-  required: ['success', 'message', 'data'],
 };
 
 // Request parameter schemas
@@ -202,7 +192,6 @@ const fileIdParamSchema = {
       description: 'File ID (numeric)',
     },
   },
-  required: ['id'],
 };
 
 const uploadTypeParamSchema = {
@@ -210,11 +199,10 @@ const uploadTypeParamSchema = {
   properties: {
     uploadType: {
       type: 'string',
-      enum: ['ESSAY', 'HEADSHOT'],
+      enum: ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'BOOTCAMP_IMAGE'],
       description: 'Upload type filter',
     },
   },
-  required: ['uploadType'],
 };
 
 // Query parameter schemas
