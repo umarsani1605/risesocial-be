@@ -9,28 +9,28 @@ datasource db {
 
 /// User management domain - handles authentication, profiles, and settings
 model User {
-  id                Int                  @id @default(autoincrement())
-  username          String               @unique @db.VarChar(50)
-  first_name        String               @db.VarChar(100)
-  last_name         String               @db.VarChar(100)
-  avatar            String?              @db.VarChar(500)
-  email             String               @unique @db.VarChar(255)
-  phone             String?              @db.VarChar(20)
-  password          String               @db.VarChar(255)
+  id                Int                 @id @default(autoincrement())
+  username          String              @unique @db.VarChar(50)
+  first_name        String              @db.VarChar(100)
+  last_name         String              @db.VarChar(100)
+  avatar            String?             @db.VarChar(500)
+  email             String              @unique @db.VarChar(255)
+  phone             String?             @db.VarChar(20)
+  password          String              @db.VarChar(255)
   email_verified_at DateTime?
   phone_verified_at DateTime?
-  role              UserRole             @default(USER)
+  role              UserRole            @default(USER)
   gender            Gender?
-  country           String?              @db.VarChar(100)
-  province          String?              @db.VarChar(100)
-  city              String?              @db.VarChar(100)
-  last_education    String?              @db.VarChar(255)
-  current_job       String?              @db.VarChar(255)
-  current_company   String?              @db.VarChar(255)
+  country           String?             @db.VarChar(100)
+  province          String?             @db.VarChar(100)
+  city              String?             @db.VarChar(100)
+  last_education    String?             @db.VarChar(255)
+  current_job       String?             @db.VarChar(255)
+  current_company   String?             @db.VarChar(255)
   skills            String[]
-  created_at        DateTime             @default(now())
-  updated_at        DateTime             @updatedAt
-  enrollments       BootcampEnrollment[] @relation("UserEnrollmentRelation")
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  enrollments       AcademyEnrollment[] @relation("UserEnrollmentRelation")
   job_applications  JobApplication[]
   saved_jobs        UserSavedJob[]
   user_setting      UserSetting?
@@ -56,176 +56,167 @@ model UserSetting {
   @@map("user_settings")
 }
 
-/// Main bootcamp entity with comprehensive metadata and validation
-model Bootcamp {
-  id               Int                   @id @default(autoincrement())
-  title            String                @db.VarChar(255)
-  path_slug        String                @unique @db.VarChar(255)
+/// Main academy entity with comprehensive metadata and validation
+model Academy {
+  id               Int                  @id @default(autoincrement())
+  title            String               @db.VarChar(255)
+  path_slug        String               @unique @db.VarChar(255)
   description      String?
-  duration         String?               @db.VarChar(100)
-  format           String?               @db.VarChar(100)
-  category         String?               @db.VarChar(100)
-  image_url        String?               @db.VarChar(500)
-  rating           Float                 @default(0)
-  rating_count     Int                   @default(0)
-  certificate      Boolean               @default(false)
-  portfolio        Boolean               @default(false)
-  status           BootcampStatus        @default(ACTIVE)
-  meta_title       String?               @db.VarChar(255)
-  meta_description String?               @db.VarChar(500)
-  created_at       DateTime              @default(now())
-  updated_at       DateTime              @updatedAt
-  enrollments      BootcampEnrollment[]  @relation("BootcampEnrollmentRelation")
-  faqs             BootcampFaq[]         @relation("BootcampFaqRelation")
-  features         BootcampFeature[]     @relation("BootcampFeatureRelation")
-  instructors      BootcampInstructor[]  @relation("BootcampInstructorRelation")
-  pricing          BootcampPricing[]     @relation("BootcampPricingRelation")
-  testimonials     BootcampTestimonial[] @relation("BootcampTestimonialRelation")
-  topics           BootcampTopic[]       @relation("BootcampTopicRelation")
+  duration         String?              @db.VarChar(100)
+  format           String?              @db.VarChar(100)
+  category         String?              @db.VarChar(100)
+  image_url        String?              @db.VarChar(500)
+  rating           Float                @default(0)
+  rating_count     Int                  @default(0)
+  certificate      Boolean              @default(false)
+  portfolio        Boolean              @default(false)
+  status           AcademyStatus        @default(ACTIVE)
+  meta_title       String?              @db.VarChar(255)
+  meta_description String?              @db.VarChar(500)
+  created_at       DateTime             @default(now())
+  updated_at       DateTime             @updatedAt
+  enrollments      AcademyEnrollment[]  @relation("AcademyEnrollmentRelation")
+  faqs             AcademyFaq[]         @relation("AcademyFaqRelation")
+  features         AcademyFeature[]     @relation("AcademyFeatureRelation")
+  instructors      AcademyInstructor[]  @relation("AcademyInstructorRelation")
+  pricing          AcademyPricing[]     @relation("AcademyPricingRelation")
+  testimonials     AcademyTestimonial[] @relation("AcademyTestimonialRelation")
+  topics           AcademyTopic[]       @relation("AcademyTopicRelation")
 
   @@index([category, status])
   @@index([status])
   @@index([path_slug])
   @@index([created_at(sort: Desc)])
   @@index([rating(sort: Desc)])
-  @@map("bootcamps")
+  @@map("academies")
 }
 
-/// Bootcamp pricing tiers with validation
-model BootcampPricing {
-  id             Int                  @id @default(autoincrement())
-  bootcamp_id    Int
-  name           String               @db.VarChar(100)
+/// academy pricing tiers with validation
+model AcademyPricing {
+  id             Int                 @id @default(autoincrement())
+  academy_id     Int
+  name           String              @db.VarChar(100)
   original_price Int
   discount_price Int
-  tier_order     Int                  @default(1)
-  created_at     DateTime             @default(now())
-  enrollments    BootcampEnrollment[] @relation("EnrollmentPricingRelation")
-  bootcamp       Bootcamp             @relation("BootcampPricingRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+  order          Int                 @default(1)
+  created_at     DateTime            @default(now())
+  enrollments    AcademyEnrollment[] @relation("EnrollmentPricingRelation")
+  academy        Academy             @relation("AcademyPricingRelation", fields: [academy_id], references: [id], onDelete: Cascade)
 
-  @@index([bootcamp_id, tier_order])
-  @@map("bootcamp_pricing")
+  @@index([academy_id, order])
+  @@map("academy_pricing")
 }
 
-/// Bootcamp features and benefits
-model BootcampFeature {
-  id            Int      @id @default(autoincrement())
-  bootcamp_id   Int
-  title         String   @db.VarChar(255)
-  description   String?
-  icon          String?  @db.VarChar(100)
-  feature_order Int      @default(1)
-  created_at    DateTime @default(now())
-  bootcamp      Bootcamp @relation("BootcampFeatureRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
-
-  @@index([bootcamp_id, feature_order])
-  @@map("bootcamp_features")
-}
-
-/// Bootcamp curriculum topics
-model BootcampTopic {
-  id          Int               @id @default(autoincrement())
-  bootcamp_id Int
-  title       String            @db.VarChar(255)
+/// academy features and benefits
+model AcademyFeature {
+  id          Int      @id @default(autoincrement())
+  academy_id  Int
+  title       String   @db.VarChar(255)
   description String?
-  topic_order Int               @default(1)
-  created_at  DateTime          @default(now())
-  sessions    BootcampSession[] @relation("TopicSessionRelation")
-  bootcamp    Bootcamp          @relation("BootcampTopicRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+  icon        String?  @db.VarChar(100)
+  order       Int      @default(1)
+  created_at  DateTime @default(now())
+  academy     Academy  @relation("AcademyFeatureRelation", fields: [academy_id], references: [id], onDelete: Cascade)
 
-  @@index([bootcamp_id, topic_order])
-  @@map("bootcamp_topics")
+  @@index([academy_id, order])
+  @@map("academy_features")
+}
+
+/// academy curriculum topics
+model AcademyTopic {
+  id          Int              @id @default(autoincrement())
+  academy_id  Int
+  title       String           @db.VarChar(255)
+  description String?
+  order       Int              @default(1)
+  created_at  DateTime         @default(now())
+  sessions    AcademySession[] @relation("TopicSessionRelation")
+  academy     Academy          @relation("AcademyTopicRelation", fields: [academy_id], references: [id], onDelete: Cascade)
+
+  @@index([academy_id, order])
+  @@map("academy_topics")
 }
 
 /// Individual sessions within topics
-model BootcampSession {
-  id            Int           @id @default(autoincrement())
-  topic_id      Int
-  title         String        @db.VarChar(255)
-  session_order Int           @default(1)
-  created_at    DateTime      @default(now())
-  topic         BootcampTopic @relation("TopicSessionRelation", fields: [topic_id], references: [id], onDelete: Cascade)
+model AcademySession {
+  id         Int          @id @default(autoincrement())
+  topic_id   Int
+  title      String       @db.VarChar(255)
+  order      Int          @default(1)
+  created_at DateTime     @default(now())
+  topic      AcademyTopic @relation("TopicSessionRelation", fields: [topic_id], references: [id], onDelete: Cascade)
 
-  @@index([topic_id, session_order])
-  @@map("bootcamp_sessions")
+  @@index([topic_id, order])
+  @@map("academy_sessions")
 }
 
-/// Master instructor data
-model Instructor {
-  id                   Int                  @id @default(autoincrement())
-  name                 String               @db.VarChar(255)
-  job_title            String?              @db.VarChar(255)
-  avatar_url           String?              @db.VarChar(500)
-  description          String?
-  created_at           DateTime             @default(now())
-  updated_at           DateTime             @updatedAt
-  bootcamp_instructors BootcampInstructor[] @relation("InstructorBootcampRelation")
+/// academy instructors (denormalized - stores instructor data directly)
+model AcademyInstructor {
+  id          Int      @id @default(autoincrement())
+  academy_id  Int
+  name        String   @db.VarChar(255)
+  job_title   String?  @db.VarChar(255)
+  avatar_url  String?  @db.VarChar(500)
+  description String?
+  order       Int      @default(1)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  academy     Academy  @relation("AcademyInstructorRelation", fields: [academy_id], references: [id], onDelete: Cascade)
 
+  @@index([academy_id, order])
   @@index([name])
-  @@map("instructors")
-}
-
-/// Many-to-many relationship between bootcamps and instructors
-model BootcampInstructor {
-  bootcamp_id      Int
-  instructor_id    Int
-  instructor_order Int        @default(1)
-  bootcamp         Bootcamp   @relation("BootcampInstructorRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
-  instructor       Instructor @relation("InstructorBootcampRelation", fields: [instructor_id], references: [id], onDelete: Cascade)
-
-  @@id([bootcamp_id, instructor_id])
-  @@map("bootcamp_instructors")
+  @@map("academy_instructors")
 }
 
 /// Alumni testimonials and reviews
-model BootcampTestimonial {
-  id                Int      @id @default(autoincrement())
-  bootcamp_id       Int
-  name              String   @db.VarChar(255)
-  avatar_url        String?  @db.VarChar(500)
-  comment           String
-  testimonial_order Int      @default(1)
-  created_at        DateTime @default(now())
-  bootcamp          Bootcamp @relation("BootcampTestimonialRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+model AcademyTestimonial {
+  id         Int      @id @default(autoincrement())
+  academy_id Int
+  name       String   @db.VarChar(255)
+  avatar_url String?  @db.VarChar(500)
+  comment    String
+  order      Int      @default(1)
+  created_at DateTime @default(now())
+  academy    Academy  @relation("AcademyTestimonialRelation", fields: [academy_id], references: [id], onDelete: Cascade)
 
-  @@index([bootcamp_id, testimonial_order])
-  @@map("bootcamp_testimonials")
+  @@index([academy_id, order])
+  @@map("academy_testimonials")
 }
 
 /// Frequently asked questions
-model BootcampFaq {
-  id          Int      @id @default(autoincrement())
-  bootcamp_id Int
-  question    String
-  answer      String
-  faq_order   Int      @default(1)
-  created_at  DateTime @default(now())
-  bootcamp    Bootcamp @relation("BootcampFaqRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
+model AcademyFaq {
+  id         Int      @id @default(autoincrement())
+  academy_id Int
+  question   String
+  answer     String
+  order      Int      @default(1)
+  created_at DateTime @default(now())
+  academy    Academy  @relation("AcademyFaqRelation", fields: [academy_id], references: [id], onDelete: Cascade)
 
-  @@index([bootcamp_id, faq_order])
-  @@map("bootcamp_faqs")
+  @@index([academy_id, order])
+  @@map("academy_faqs")
 }
 
 /// User enrollments with progress tracking
-model BootcampEnrollment {
+model AcademyEnrollment {
   id                  Int              @id @default(autoincrement())
-  bootcamp_id         Int
+  academy_id          Int
   user_id             Int
   pricing_tier_id     Int?
   enrollment_status   EnrollmentStatus @default(ENROLLED)
   progress_percentage Int              @default(0)
   enrolled_at         DateTime         @default(now())
   completed_at        DateTime?
-  bootcamp            Bootcamp         @relation("BootcampEnrollmentRelation", fields: [bootcamp_id], references: [id], onDelete: Cascade)
-  pricing_tier        BootcampPricing? @relation("EnrollmentPricingRelation", fields: [pricing_tier_id], references: [id])
+  academy             Academy          @relation("AcademyEnrollmentRelation", fields: [academy_id], references: [id], onDelete: Cascade)
+  pricing_tier        AcademyPricing?  @relation("EnrollmentPricingRelation", fields: [pricing_tier_id], references: [id])
   user                User             @relation("UserEnrollmentRelation", fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([bootcamp_id, user_id], map: "uk_enrollment_user_bootcamp")
+  @@unique([academy_id, user_id], map: "uk_enrollment_user_academy")
   @@index([user_id])
-  @@index([bootcamp_id])
+  @@index([academy_id])
   @@index([enrollment_status])
   @@index([enrolled_at(sort: Desc)])
-  @@map("bootcamp_enrollments")
+  @@map("academy_enrollments")
 }
 
 /// Enhanced Companies table dengan full LinkedIn data
@@ -581,7 +572,7 @@ enum Gender {
   PREFER_NOT_TO_SAY
 }
 
-enum BootcampStatus {
+enum AcademyStatus {
   DRAFT
   ACTIVE
   ARCHIVED
