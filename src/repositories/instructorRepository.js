@@ -17,7 +17,7 @@ class InstructorRepository extends BaseRepository {
    */
   async findManyWithPagination(options = {}) {
     this.logger.info({ options }, '[instructorRepository] findManyWithPagination called');
-    const { page = 1, limit = 10, search, includeBootcamps = false } = options;
+    const { page = 1, limit = 10, search, includeAcademies = false } = options;
     const skip = (page - 1) * limit;
 
     const whereClause = {};
@@ -30,11 +30,11 @@ class InstructorRepository extends BaseRepository {
       ];
     }
 
-    const includeClause = includeBootcamps
+    const includeClause = includeAcademies
       ? {
-          bootcamp_instructors: {
+          academy_instructors: {
             include: {
-              bootcamp: { select: { id: true, title: true, path_slug: true, category: true, status: true } },
+              academy: { select: { id: true, title: true, path_slug: true, category: true, status: true } },
             },
             orderBy: { instructor_order: 'asc' },
           },
@@ -59,15 +59,15 @@ class InstructorRepository extends BaseRepository {
   }
 
   /**
-   * Mendapatkan instructor berdasarkan ID dengan bootcamp associations
+   * Mendapatkan instructor berdasarkan ID dengan academy associations
    */
-  async findByIdWithBootcamps(id, includeBootcamps = false) {
-    this.logger.info({ id, includeBootcamps }, '[instructorRepository] findByIdWithBootcamps called');
-    const includeClause = includeBootcamps
+  async findByIdWithAcademies(id, includeAcademies = false) {
+    this.logger.info({ id, includeAcademies }, '[instructorRepository] findByIdWithAcademies called');
+    const includeClause = includeAcademies
       ? {
-          bootcamp_instructors: {
+          academy_instructors: {
             include: {
-              bootcamp: {
+              academy: {
                 select: { id: true, title: true, path_slug: true, category: true, status: true, image_url: true, duration: true, rating: true },
               },
             },
@@ -96,48 +96,48 @@ class InstructorRepository extends BaseRepository {
   }
 
   /**
-   * Mendapatkan instructor yang belum di-assign ke bootcamp tertentu
+   * Mendapatkan instructor yang belum di-assign ke academy tertentu
    */
-  async findAvailableForBootcamp(bootcampId) {
-    this.logger.info({ bootcampId }, '[instructorRepository] findAvailableForBootcamp called');
-    return this.findMany({ where: { bootcamp_instructors: { none: { bootcamp_id: bootcampId } } }, orderBy: { name: 'asc' } });
+  async findAvailableForAcademy(academyId) {
+    this.logger.info({ academyId }, '[instructorRepository] findAvailableForAcademy called');
+    return this.findMany({ where: { academy_instructors: { none: { academy_id: academyId } } }, orderBy: { name: 'asc' } });
   }
 
   /**
-   * Mendapatkan instructor yang sudah di-assign ke bootcamp tertentu
+   * Mendapatkan instructor yang sudah di-assign ke academy tertentu
    */
-  async findByBootcampId(bootcampId) {
-    this.logger.info({ bootcampId }, '[instructorRepository] findByBootcampId called');
-    const bootcampInstructors = await this.prisma.bootcampInstructor.findMany({
-      where: { bootcamp_id: bootcampId },
+  async findByAcademyId(academyId) {
+    this.logger.info({ academyId }, '[instructorRepository] findByAcademyId called');
+    const academyInstructors = await this.prisma.academyInstructor.findMany({
+      where: { academy_id: academyId },
       include: { instructor: true },
       orderBy: { instructor_order: 'asc' },
     });
 
-    return bootcampInstructors.map((bi) => ({ ...bi.instructor, instructor_order: bi.instructor_order, bootcamp_id: bi.bootcamp_id }));
+    return academyInstructors.map((bi) => ({ ...bi.instructor, instructor_order: bi.instructor_order, academy_id: bi.academy_id }));
   }
 
   /**
-   * Mendapatkan bootcamp yang diajar oleh instructor tertentu
+   * Mendapatkan academy yang diajar oleh instructor tertentu
    */
-  async findBootcampsByInstructorId(instructorId) {
-    this.logger.info({ instructorId }, '[instructorRepository] findBootcampsByInstructorId called');
-    const bootcampInstructors = await this.prisma.bootcampInstructor.findMany({
+  async findAcademiesByInstructorId(instructorId) {
+    this.logger.info({ instructorId }, '[instructorRepository] findAcademiesByInstructorId called');
+    const academyInstructors = await this.prisma.academyInstructor.findMany({
       where: { instructor_id: instructorId },
-      include: { bootcamp: true },
+      include: { academy: true },
       orderBy: { instructor_order: 'asc' },
     });
 
-    return bootcampInstructors.map((bi) => ({ ...bi.bootcamp, instructor_order: bi.instructor_order, instructor_id: bi.instructor_id }));
+    return academyInstructors.map((bi) => ({ ...bi.academy, instructor_order: bi.instructor_order, instructor_id: bi.instructor_id }));
   }
 
   /**
-   * Mendapatkan instructor terpopuler berdasarkan jumlah bootcamp
+   * Mendapatkan instructor terpopuler berdasarkan jumlah academy
    */
   async findPopularInstructors(limit = 10) {
     this.logger.info({ limit }, '[instructorRepository] findPopularInstructors called');
     return this.findMany({
-      include: { bootcamp_instructors: { include: { bootcamp: { select: { id: true, title: true, status: true } } } } },
+      include: { academy_instructors: { include: { academy: { select: { id: true, title: true, status: true } } } } },
       orderBy: { created_at: 'desc' },
       take: limit,
     });
@@ -148,17 +148,17 @@ class InstructorRepository extends BaseRepository {
    */
   async getInstructorStats() {
     this.logger.info('[instructorRepository] getInstructorStats called');
-    const [totalInstructors, instructorsWithAvatar, instructorsWithDescription, instructorsWithJobTitle, totalBootcampAssociations] =
+    const [totalInstructors, instructorsWithAvatar, instructorsWithDescription, instructorsWithJobTitle, totalAcademyAssociations] =
       await Promise.all([
         this.count(),
         this.count({ where: { avatar_url: { not: null } } }),
         this.count({ where: { description: { not: null } } }),
         this.count({ where: { job_title: { not: null } } }),
-        this.prisma.bootcampInstructor.count(),
+        this.prisma.academyInstructor.count(),
       ]);
 
-    const instructorWithMostBootcamps = await this.prisma.instructor.findFirst({
-      include: { bootcamp_instructors: { include: { bootcamp: { select: { title: true } } } } },
+    const instructorWithMostAcademies = await this.prisma.instructor.findFirst({
+      include: { academy_instructors: { include: { academy: { select: { title: true } } } } },
       orderBy: { created_at: 'desc' },
     });
 
@@ -167,16 +167,16 @@ class InstructorRepository extends BaseRepository {
       instructors_with_avatar: instructorsWithAvatar,
       instructors_with_description: instructorsWithDescription,
       instructors_with_job_title: instructorsWithJobTitle,
-      total_bootcamp_associations: totalBootcampAssociations,
+      total_academy_associations: totalAcademyAssociations,
       profile_completion_rate:
         totalInstructors > 0
           ? Math.round(((instructorsWithAvatar + instructorsWithDescription + instructorsWithJobTitle) / (totalInstructors * 3)) * 100)
           : 0,
-      most_active_instructor: instructorWithMostBootcamps
+      most_active_instructor: instructorWithMostAcademies
         ? {
-            name: instructorWithMostBootcamps.name,
-            bootcamp_count: instructorWithMostBootcamps.bootcamp_instructors.length,
-            bootcamps: instructorWithMostBootcamps.bootcamp_instructors.map((bi) => bi.bootcamp.title),
+            name: instructorWithMostAcademies.name,
+            academy_count: instructorWithMostAcademies.academy_instructors.length,
+            academys: instructorWithMostAcademies.academy_instructors.map((bi) => bi.academy.title),
           }
         : null,
     };
@@ -224,9 +224,9 @@ class InstructorRepository extends BaseRepository {
       throw new Error('Instructor tidak ditemukan');
     }
 
-    const bootcampAssociations = await this.prisma.bootcampInstructor.count({ where: { instructor_id: id } });
-    if (bootcampAssociations > 0) {
-      throw new Error('Tidak dapat menghapus instructor yang masih di-assign ke bootcamp. Hapus assignment terlebih dahulu.');
+    const academyAssociations = await this.prisma.academyInstructor.count({ where: { instructor_id: id } });
+    if (academyAssociations > 0) {
+      throw new Error('Tidak dapat menghapus instructor yang masih di-assign ke academy. Hapus assignment terlebih dahulu.');
     }
 
     return this.delete(id);

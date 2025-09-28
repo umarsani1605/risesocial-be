@@ -9,9 +9,9 @@ import {
 } from './baseSchemas.js';
 
 /**
- * Base Bootcamp Entity Schema
+ * Base Academy Entity Schema
  */
-export const bootcampEntitySchema = {
+export const academyEntitySchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
@@ -34,17 +34,17 @@ export const bootcampEntitySchema = {
 };
 
 /**
- * Bootcamp Pricing Schema
+ * Academy Pricing Schema
  */
-export const bootcampPricingSchema = {
+export const academyPricingSchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
-    bootcamp_id: { type: 'integer' },
+    academy_id: { type: 'integer' },
     name: { type: 'string' },
     original_price: { type: 'integer' },
     discount_price: { type: 'integer' },
-    tier_order: { type: 'integer' },
+    order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
     discount_percentage: { type: 'integer' },
     formatted_original_price: { type: 'string' },
@@ -53,139 +53,133 @@ export const bootcampPricingSchema = {
 };
 
 /**
- * Bootcamp Feature Schema
+ * Academy Feature Schema
  */
-export const bootcampFeatureSchema = {
+export const academyFeatureSchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
-    bootcamp_id: { type: 'integer' },
+    academy_id: { type: 'integer' },
     title: { type: 'string' },
     description: { type: 'string' },
     icon: { type: 'string' },
-    feature_order: { type: 'integer' },
+    order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
   },
 };
 
 /**
- * Bootcamp Session Schema
+ * Academy Session Schema
  */
-export const bootcampSessionSchema = {
+export const academySessionSchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
     topic_id: { type: 'integer' },
     title: { type: 'string' },
-    session_order: { type: 'integer' },
+    order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
   },
 };
 
 /**
- * Bootcamp Topic Schema
+ * Academy Topic Schema
  */
-export const bootcampTopicSchema = {
+export const academyTopicSchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
-    bootcamp_id: { type: 'integer' },
+    academy_id: { type: 'integer' },
     title: { type: 'string' },
     description: { type: 'string' },
-    topic_order: { type: 'integer' },
+    order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
     sessions: {
       type: 'array',
-      items: bootcampSessionSchema,
+      items: academySessionSchema,
     },
   },
 };
 
 /**
- * Bootcamp Instructor Schema
+ * Academy Instructor Schema (denormalized)
  */
-export const bootcampInstructorSchema = {
-  type: 'object',
-  properties: {
-    bootcamp_id: { type: 'integer' },
-    instructor_id: { type: 'integer' },
-    instructor_order: { type: 'integer' },
-    instructor: {
-      type: 'object',
-      properties: {
-        id: { type: 'integer' },
-        name: { type: 'string' },
-        job_title: { type: 'string' },
-        avatar_url: { type: 'string' },
-        description: { type: 'string' },
-        created_at: { type: 'string', format: 'date-time' },
-        updated_at: { type: 'string', format: 'date-time' },
-      },
-    },
-  },
-};
-
-/**
- * Bootcamp Testimonial Schema
- */
-export const bootcampTestimonialSchema = {
+export const academyInstructorSchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
-    bootcamp_id: { type: 'integer' },
+    academy_id: { type: 'integer' },
+    name: { type: 'string' },
+    job_title: { type: 'string' },
+    avatar_url: { type: 'string' },
+    description: { type: 'string' },
+    order: { type: 'integer' },
+    created_at: { type: 'string', format: 'date-time' },
+    updated_at: { type: 'string', format: 'date-time' },
+  },
+};
+
+/**
+ * Academy Testimonial Schema
+ */
+export const academyTestimonialSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'integer' },
+    academy_id: { type: 'integer' },
     name: { type: 'string' },
     avatar_url: { type: 'string' },
     comment: { type: 'string' },
-    testimonial_order: { type: 'integer' },
+    order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
   },
 };
 
 /**
- * Bootcamp FAQ Schema
+ * Academy FAQ Schema
  */
-export const bootcampFaqSchema = {
+export const academyFaqSchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
-    bootcamp_id: { type: 'integer' },
+    academy_id: { type: 'integer' },
     question: { type: 'string' },
     answer: { type: 'string' },
-    faq_order: { type: 'integer' },
+    order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
   },
 };
 
 /**
- * Complete Bootcamp Detail Schema (with all relations)
+ * Complete Academy Detail Schema (with all relations)
  */
-export const bootcampDetailSchema = {
+export const academyDetailSchema = {
   type: 'object',
   properties: {
-    ...bootcampEntitySchema.properties,
+    ...academyEntitySchema.properties,
     pricing: {
       type: 'array',
-      items: bootcampPricingSchema,
+      items: academyPricingSchema,
     },
     features: {
       type: 'array',
-      items: bootcampFeatureSchema,
+      items: academyFeatureSchema,
     },
     topics: {
       type: 'array',
-      items: bootcampTopicSchema,
+      items: academyTopicSchema,
     },
     instructors: {
       type: 'array',
-      items: bootcampInstructorSchema,
+      items: academyInstructorSchema,
     },
     testimonials: {
       type: 'array',
-      items: bootcampTestimonialSchema,
+      items: academyTestimonialSchema,
     },
     faqs: {
       type: 'array',
-      items: bootcampFaqSchema,
+      items: academyFaqSchema,
     },
     // Additional computed fields
     isPopular: { type: 'boolean' },
@@ -193,7 +187,7 @@ export const bootcampDetailSchema = {
     enrollmentCount: { type: 'integer' },
     formattedPricing: {
       type: 'array',
-      items: bootcampPricingSchema,
+      items: academyPricingSchema,
     },
     instructorCount: { type: 'integer' },
     topicCount: { type: 'integer' },
@@ -206,9 +200,9 @@ export const bootcampDetailSchema = {
 };
 
 /**
- * Bootcamp Query Schema
+ * Academy Query Schema
  */
-export const bootcampQuerySchema = {
+export const academyQuerySchema = {
   type: 'object',
   properties: {
     ...paginationQuerySchema.properties,
@@ -224,12 +218,12 @@ export const bootcampQuerySchema = {
  */
 
 /**
- * User Bootcamp with Full Relations Schema
+ * User Academy with Full Relations Schema
  */
-export const userBootcampWithRelationsSchema = {
+export const userAcademyWithRelationsSchema = {
   type: 'object',
   properties: {
-    // Base bootcamp properties
+    // Base academy properties
     id: { type: 'integer' },
     title: { type: 'string' },
     path_slug: { type: 'string' },
@@ -251,27 +245,27 @@ export const userBootcampWithRelationsSchema = {
     // Relations
     pricing: {
       type: 'array',
-      items: bootcampPricingSchema,
+      items: academyPricingSchema,
     },
     features: {
       type: 'array',
-      items: bootcampFeatureSchema,
+      items: academyFeatureSchema,
     },
     instructors: {
       type: 'array',
-      items: bootcampInstructorSchema,
+      items: academyInstructorSchema,
     },
     topics: {
       type: 'array',
-      items: bootcampTopicSchema,
+      items: academyTopicSchema,
     },
     faqs: {
       type: 'array',
-      items: bootcampFaqSchema,
+      items: academyFaqSchema,
     },
     testimonials: {
       type: 'array',
-      items: bootcampTestimonialSchema,
+      items: academyTestimonialSchema,
     },
 
     // Computed fields
@@ -286,7 +280,7 @@ export const userBootcampWithRelationsSchema = {
     enrollmentCount: { type: 'integer' },
     formattedPricing: {
       type: 'array',
-      items: bootcampPricingSchema,
+      items: academyPricingSchema,
     },
     instructorCount: { type: 'integer' },
     topicCount: { type: 'integer' },
@@ -294,46 +288,26 @@ export const userBootcampWithRelationsSchema = {
   },
 };
 
-// GET /api/bootcamps - Get all bootcamps
-export const getAllBootcampsSchema = {
-  tags: ['User Bootcamps'],
-  summary: 'Get all bootcamps',
-  description: 'Retrieve all available bootcamps with pagination and filtering',
-  querystring: bootcampQuerySchema,
+// GET /api/academys - Get all academys
+export const getAllAcademiesSchema = {
+  tags: ['User Academies'],
+  summary: 'Get all academies',
+  description: 'Retrieve all available academies with pagination and filtering',
+  querystring: academyQuerySchema,
   response: {
     200: createPaginatedResponseSchema({
       type: 'array',
-      items: userBootcampWithRelationsSchema,
+      items: userAcademyWithRelationsSchema,
     }),
     500: createErrorResponseSchema(),
   },
 };
 
-// GET /api/bootcamps/featured - Get featured bootcamps
-export const getFeaturedBootcampsSchema = {
-  tags: ['User Bootcamps'],
-  summary: 'Get featured bootcamps',
-  description: 'Retrieve featured bootcamps',
-  querystring: {
-    type: 'object',
-    properties: {
-      limit: { type: 'integer', minimum: 1, maximum: 20, default: 6 },
-    },
-  },
-  response: {
-    200: createSuccessResponseSchema({
-      type: 'array',
-      items: bootcampEntitySchema,
-    }),
-    500: createErrorResponseSchema(),
-  },
-};
-
-// GET /api/bootcamps/categories - Get bootcamp categories
-export const getBootcampCategoriesSchema = {
-  tags: ['User Bootcamps'],
-  summary: 'Get bootcamp categories',
-  description: 'Retrieve available bootcamp categories',
+// GET /api/academys/categories - Get academy categories
+export const getAcademyCategoriesSchema = {
+  tags: ['User Academies'],
+  summary: 'Get academy categories',
+  description: 'Retrieve available academy categories',
   response: {
     200: createSuccessResponseSchema({
       type: 'array',
@@ -343,11 +317,11 @@ export const getBootcampCategoriesSchema = {
   },
 };
 
-// GET /api/bootcamps/:slug - Get bootcamp by slug
-export const getBootcampBySlugSchema = {
-  tags: ['User Bootcamps'],
-  summary: 'Get bootcamp by slug',
-  description: 'Retrieve detailed bootcamp information by slug',
+// GET /api/academys/:slug - Get academy by slug
+export const getAcademyBySlugSchema = {
+  tags: ['User Academies'],
+  summary: 'Get academy by slug',
+  description: 'Retrieve detailed academy information by slug',
   params: {
     type: 'object',
     properties: {
@@ -355,17 +329,17 @@ export const getBootcampBySlugSchema = {
     },
   },
   response: {
-    200: createSuccessResponseSchema(bootcampDetailSchema),
+    200: createSuccessResponseSchema(academyDetailSchema),
     404: createErrorResponseSchema(),
     500: createErrorResponseSchema(),
   },
 };
 
-// POST /api/admin/bootcamps - Create bootcamp
-export const createBootcampSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Create new bootcamp',
-  description: 'Create a new bootcamp (Admin only)',
+// POST /api/admin/academys - Create academy
+export const createAcademySchema = {
+  tags: ['Admin Academies'],
+  summary: 'Create new academy',
+  description: 'Create a new academy (Admin only)',
   security: [{ bearerAuth: [] }],
   body: {
     type: 'object',
@@ -385,18 +359,18 @@ export const createBootcampSchema = {
     },
   },
   response: {
-    201: createSuccessResponseSchema(bootcampEntitySchema),
+    201: createSuccessResponseSchema(academyEntitySchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     500: createErrorResponseSchema(),
   },
 };
 
-// PUT /api/admin/bootcamps/:id - Update bootcamp
-export const updateBootcampSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Update bootcamp',
-  description: 'Update an existing bootcamp (Admin only)',
+// PUT /api/admin/academys/:id - Update academy
+export const updateAcademySchema = {
+  tags: ['Admin Academies'],
+  summary: 'Update academy',
+  description: 'Update an existing academy (Admin only)',
   security: [{ bearerAuth: [] }],
   params: idParamSchema,
   body: {
@@ -417,7 +391,7 @@ export const updateBootcampSchema = {
     },
   },
   response: {
-    200: createSuccessResponseSchema(bootcampEntitySchema),
+    200: createSuccessResponseSchema(academyEntitySchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -425,11 +399,11 @@ export const updateBootcampSchema = {
   },
 };
 
-// DELETE /api/admin/bootcamps/:id - Delete bootcamp
-export const deleteBootcampSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Delete bootcamp',
-  description: 'Delete a bootcamp (Admin only)',
+// DELETE /api/admin/academys/:id - Delete academy
+export const deleteAcademySchema = {
+  tags: ['Admin Academies'],
+  summary: 'Delete academy',
+  description: 'Delete a academy (Admin only)',
   security: [{ bearerAuth: [] }],
   params: idParamSchema,
   response: {
@@ -441,12 +415,12 @@ export const deleteBootcampSchema = {
 };
 
 /**
- * Admin Bootcamp with Full Relations Schema
+ * Admin Academy with Full Relations Schema
  */
-export const adminBootcampWithRelationsSchema = {
+export const adminAcademyWithRelationsSchema = {
   type: 'object',
   properties: {
-    // Base bootcamp properties
+    // Base academy properties
     id: { type: 'integer' },
     title: { type: 'string' },
     path_slug: { type: 'string' },
@@ -468,27 +442,27 @@ export const adminBootcampWithRelationsSchema = {
     // Relations
     pricing: {
       type: 'array',
-      items: bootcampPricingSchema,
+      items: academyPricingSchema,
     },
     features: {
       type: 'array',
-      items: bootcampFeatureSchema,
+      items: academyFeatureSchema,
     },
     instructors: {
       type: 'array',
-      items: bootcampInstructorSchema,
+      items: academyInstructorSchema,
     },
     topics: {
       type: 'array',
-      items: bootcampTopicSchema,
+      items: academyTopicSchema,
     },
     faqs: {
       type: 'array',
-      items: bootcampFaqSchema,
+      items: academyFaqSchema,
     },
     testimonials: {
       type: 'array',
-      items: bootcampTestimonialSchema,
+      items: academyTestimonialSchema,
     },
 
     // Computed fields
@@ -503,7 +477,7 @@ export const adminBootcampWithRelationsSchema = {
     enrollmentCount: { type: 'integer' },
     formattedPricing: {
       type: 'array',
-      items: bootcampPricingSchema,
+      items: academyPricingSchema,
     },
     instructorCount: { type: 'integer' },
     topicCount: { type: 'integer' },
@@ -511,27 +485,27 @@ export const adminBootcampWithRelationsSchema = {
   },
 };
 
-// GET /api/admin/bootcamps - Get all bootcamps for admin
-export const getAdminBootcampsSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Get all bootcamps for admin',
-  description: 'Retrieve all bootcamps with pagination for admin dashboard',
-  querystring: bootcampQuerySchema,
+// GET /api/admin/academys - Get all academys for admin
+export const getAdminAcademiesSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Get all academys for admin',
+  description: 'Retrieve all academys with pagination for admin dashboard',
+  querystring: academyQuerySchema,
   response: {
     200: createPaginatedResponseSchema({
       type: 'array',
-      items: adminBootcampWithRelationsSchema,
+      items: adminAcademyWithRelationsSchema,
     }),
     401: createErrorResponseSchema(),
     500: createErrorResponseSchema(),
   },
 };
 
-// GET /api/admin/bootcamps/:slug - Get bootcamp by slug (Admin only)
-export const getAdminBootcampBySlugSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Get bootcamp by slug (Admin only)',
-  description: 'Retrieve a specific bootcamp by slug with full relations for admin dashboard',
+// GET /api/admin/academys/:slug - Get academy by slug (Admin only)
+export const getAdminAcademyBySlugSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Get academy by slug (Admin only)',
+  description: 'Retrieve a specific academy by slug with full relations for admin dashboard',
   params: {
     type: 'object',
     properties: {
@@ -540,27 +514,27 @@ export const getAdminBootcampBySlugSchema = {
     required: ['slug'],
   },
   response: {
-    200: createSuccessResponseSchema(adminBootcampWithRelationsSchema),
+    200: createSuccessResponseSchema(adminAcademyWithRelationsSchema),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
     500: createErrorResponseSchema(),
   },
 };
 
-// GET /api/admin/bootcamps/statistics - Get bootcamp statistics
-export const getBootcampStatisticsSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Get bootcamp statistics',
-  description: 'Retrieve bootcamp statistics (Admin only)',
+// GET /api/admin/academys/statistics - Get academy statistics
+export const getAcademyStatisticsSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Get academy statistics',
+  description: 'Retrieve academy statistics (Admin only)',
   security: [{ bearerAuth: [] }],
   response: {
     200: createSuccessResponseSchema({
       type: 'object',
       properties: {
-        totalBootcamps: { type: 'integer' },
-        activeBootcamps: { type: 'integer' },
-        draftBootcamps: { type: 'integer' },
-        archivedBootcamps: { type: 'integer' },
+        totalAcademies: { type: 'integer' },
+        activeAcademies: { type: 'integer' },
+        draftAcademies: { type: 'integer' },
+        archivedAcademies: { type: 'integer' },
         totalEnrollments: { type: 'integer' },
         averageRating: { type: 'number' },
       },
@@ -574,9 +548,9 @@ export const getBootcampStatisticsSchema = {
  * Pricing CRUD Schemas
  */
 export const createPricingSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Create pricing for bootcamp',
-  description: 'Add a new pricing tier to a bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Create pricing for academy',
+  description: 'Add a new pricing tier to a academy',
   params: {
     type: 'object',
     properties: {
@@ -590,12 +564,12 @@ export const createPricingSchema = {
       name: { type: 'string', minLength: 1, maxLength: 50 },
       original_price: { type: 'number', minimum: 0 },
       discount_price: { type: 'number', minimum: 0 },
-      tier_order: { type: 'number', minimum: 1 },
+      order: { type: 'number', minimum: 1 },
     },
-    required: ['name', 'original_price', 'discount_price', 'tier_order'],
+    required: ['name', 'original_price', 'discount_price', 'order'],
   },
   response: {
-    201: createSuccessResponseSchema(bootcampPricingSchema),
+    201: createSuccessResponseSchema(academyPricingSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -604,8 +578,8 @@ export const createPricingSchema = {
 };
 
 export const updatePricingSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Update pricing for bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Update pricing for academy',
   description: 'Update an existing pricing tier',
   params: {
     type: 'object',
@@ -621,12 +595,12 @@ export const updatePricingSchema = {
       name: { type: 'string', minLength: 1, maxLength: 50 },
       original_price: { type: 'number', minimum: 0 },
       discount_price: { type: 'number', minimum: 0 },
-      tier_order: { type: 'number', minimum: 1 },
+      order: { type: 'number', minimum: 1 },
     },
-    required: ['name', 'original_price', 'discount_price', 'tier_order'],
+    required: ['name', 'original_price', 'discount_price', 'order'],
   },
   response: {
-    200: createSuccessResponseSchema(bootcampPricingSchema),
+    200: createSuccessResponseSchema(academyPricingSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -635,9 +609,9 @@ export const updatePricingSchema = {
 };
 
 export const deletePricingSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Delete pricing for bootcamp',
-  description: 'Delete a pricing tier from bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Delete pricing for academy',
+  description: 'Delete a pricing tier from academy',
   params: {
     type: 'object',
     properties: {
@@ -658,9 +632,9 @@ export const deletePricingSchema = {
  * Features CRUD Schemas
  */
 export const createFeatureSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Create feature for bootcamp',
-  description: 'Add a new feature to a bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Create feature for academy',
+  description: 'Add a new feature to a academy',
   params: {
     type: 'object',
     properties: {
@@ -679,7 +653,7 @@ export const createFeatureSchema = {
     required: ['title', 'description', 'icon', 'feature_order'],
   },
   response: {
-    201: createSuccessResponseSchema(bootcampFeatureSchema),
+    201: createSuccessResponseSchema(academyFeatureSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -688,8 +662,8 @@ export const createFeatureSchema = {
 };
 
 export const updateFeatureSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Update feature for bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Update feature for academy',
   description: 'Update an existing feature',
   params: {
     type: 'object',
@@ -710,7 +684,7 @@ export const updateFeatureSchema = {
     required: ['title', 'description', 'icon', 'feature_order'],
   },
   response: {
-    200: createSuccessResponseSchema(bootcampFeatureSchema),
+    200: createSuccessResponseSchema(academyFeatureSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -719,9 +693,9 @@ export const updateFeatureSchema = {
 };
 
 export const deleteFeatureSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Delete feature for bootcamp',
-  description: 'Delete a feature from bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Delete feature for academy',
+  description: 'Delete a feature from academy',
   params: {
     type: 'object',
     properties: {
@@ -742,9 +716,9 @@ export const deleteFeatureSchema = {
  * Instructors CRUD Schemas
  */
 export const createInstructorSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Create instructor for bootcamp',
-  description: 'Add a new instructor to a bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Create instructor for academy',
+  description: 'Add a new instructor to a academy',
   params: {
     type: 'object',
     properties: {
@@ -761,7 +735,7 @@ export const createInstructorSchema = {
     required: ['instructor_id', 'instructor_order'],
   },
   response: {
-    201: createSuccessResponseSchema(bootcampInstructorSchema),
+    201: createSuccessResponseSchema(academyInstructorSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -770,8 +744,8 @@ export const createInstructorSchema = {
 };
 
 export const updateInstructorSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Update instructor for bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Update instructor for academy',
   description: 'Update an existing instructor assignment',
   params: {
     type: 'object',
@@ -789,7 +763,7 @@ export const updateInstructorSchema = {
     required: ['instructor_order'],
   },
   response: {
-    200: createSuccessResponseSchema(bootcampInstructorSchema),
+    200: createSuccessResponseSchema(academyInstructorSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -798,9 +772,9 @@ export const updateInstructorSchema = {
 };
 
 export const deleteInstructorSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Delete instructor from bootcamp',
-  description: 'Remove an instructor from bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Delete instructor from academy',
+  description: 'Remove an instructor from academy',
   params: {
     type: 'object',
     properties: {
@@ -821,9 +795,9 @@ export const deleteInstructorSchema = {
  * Topics CRUD Schemas
  */
 export const createTopicSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Create topic for bootcamp',
-  description: 'Add a new topic to a bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Create topic for academy',
+  description: 'Add a new topic to a academy',
   params: {
     type: 'object',
     properties: {
@@ -841,7 +815,7 @@ export const createTopicSchema = {
     required: ['title', 'description', 'topic_order'],
   },
   response: {
-    201: createSuccessResponseSchema(bootcampTopicSchema),
+    201: createSuccessResponseSchema(academyTopicSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -850,8 +824,8 @@ export const createTopicSchema = {
 };
 
 export const updateTopicSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Update topic for bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Update topic for academy',
   description: 'Update an existing topic',
   params: {
     type: 'object',
@@ -871,7 +845,7 @@ export const updateTopicSchema = {
     required: ['title', 'description', 'topic_order'],
   },
   response: {
-    200: createSuccessResponseSchema(bootcampTopicSchema),
+    200: createSuccessResponseSchema(academyTopicSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -880,9 +854,9 @@ export const updateTopicSchema = {
 };
 
 export const deleteTopicSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Delete topic from bootcamp',
-  description: 'Remove a topic from bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Delete topic from academy',
+  description: 'Remove a topic from academy',
   params: {
     type: 'object',
     properties: {
@@ -903,9 +877,9 @@ export const deleteTopicSchema = {
  * Testimonials CRUD Schemas
  */
 export const createTestimonialSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Create testimonial for bootcamp',
-  description: 'Add a new testimonial to a bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Create testimonial for academy',
+  description: 'Add a new testimonial to a academy',
   params: {
     type: 'object',
     properties: {
@@ -924,7 +898,7 @@ export const createTestimonialSchema = {
     required: ['name', 'comment', 'testimonial_order'],
   },
   response: {
-    201: createSuccessResponseSchema(bootcampTestimonialSchema),
+    201: createSuccessResponseSchema(academyTestimonialSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -933,8 +907,8 @@ export const createTestimonialSchema = {
 };
 
 export const updateTestimonialSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Update testimonial for bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Update testimonial for academy',
   description: 'Update an existing testimonial',
   params: {
     type: 'object',
@@ -955,7 +929,7 @@ export const updateTestimonialSchema = {
     required: ['name', 'comment', 'testimonial_order'],
   },
   response: {
-    200: createSuccessResponseSchema(bootcampTestimonialSchema),
+    200: createSuccessResponseSchema(academyTestimonialSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -964,9 +938,9 @@ export const updateTestimonialSchema = {
 };
 
 export const deleteTestimonialSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Delete testimonial from bootcamp',
-  description: 'Remove a testimonial from bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Delete testimonial from academy',
+  description: 'Remove a testimonial from academy',
   params: {
     type: 'object',
     properties: {
@@ -987,9 +961,9 @@ export const deleteTestimonialSchema = {
  * FAQs CRUD Schemas
  */
 export const createFaqSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Create FAQ for bootcamp',
-  description: 'Add a new FAQ to a bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Create FAQ for academy',
+  description: 'Add a new FAQ to a academy',
   params: {
     type: 'object',
     properties: {
@@ -1007,7 +981,7 @@ export const createFaqSchema = {
     required: ['question', 'answer', 'faq_order'],
   },
   response: {
-    201: createSuccessResponseSchema(bootcampFaqSchema),
+    201: createSuccessResponseSchema(academyFaqSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -1016,8 +990,8 @@ export const createFaqSchema = {
 };
 
 export const updateFaqSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Update FAQ for bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Update FAQ for academy',
   description: 'Update an existing FAQ',
   params: {
     type: 'object',
@@ -1037,7 +1011,7 @@ export const updateFaqSchema = {
     required: ['question', 'answer', 'faq_order'],
   },
   response: {
-    200: createSuccessResponseSchema(bootcampFaqSchema),
+    200: createSuccessResponseSchema(academyFaqSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -1046,9 +1020,9 @@ export const updateFaqSchema = {
 };
 
 export const deleteFaqSchema = {
-  tags: ['Admin Bootcamps'],
-  summary: 'Delete FAQ from bootcamp',
-  description: 'Remove a FAQ from bootcamp',
+  tags: ['Admin Academies'],
+  summary: 'Delete FAQ from academy',
+  description: 'Remove a FAQ from academy',
   params: {
     type: 'object',
     properties: {
@@ -1069,16 +1043,16 @@ export const deleteFaqSchema = {
  * Create Session Schema
  */
 export const createSessionSchema = {
-  tags: ['Admin Bootcamps'],
+  tags: ['Admin Academies'],
   summary: 'Create session for topic',
   description: 'Add a new session to a topic',
   params: {
     type: 'object',
     properties: {
-      bootcamp_id: { type: 'string', minLength: 1 },
+      academy_id: { type: 'string', minLength: 1 },
       topic_id: { type: 'string', minLength: 1 },
     },
-    required: ['bootcamp_id', 'topic_id'],
+    required: ['academy_id', 'topic_id'],
   },
   body: {
     type: 'object',
@@ -1089,7 +1063,7 @@ export const createSessionSchema = {
     required: ['title', 'session_order'],
   },
   response: {
-    201: createSuccessResponseSchema(bootcampSessionSchema),
+    201: createSuccessResponseSchema(academySessionSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -1101,17 +1075,17 @@ export const createSessionSchema = {
  * Update Session Schema
  */
 export const updateSessionSchema = {
-  tags: ['Admin Bootcamps'],
+  tags: ['Admin Academies'],
   summary: 'Update session',
   description: 'Update an existing session',
   params: {
     type: 'object',
     properties: {
-      bootcamp_id: { type: 'string', minLength: 1 },
+      academy_id: { type: 'string', minLength: 1 },
       topic_id: { type: 'string', minLength: 1 },
       session_id: { type: 'string', minLength: 1 },
     },
-    required: ['bootcamp_id', 'topic_id', 'session_id'],
+    required: ['academy_id', 'topic_id', 'session_id'],
   },
   body: {
     type: 'object',
@@ -1122,7 +1096,7 @@ export const updateSessionSchema = {
     required: ['title', 'session_order'],
   },
   response: {
-    200: createSuccessResponseSchema(bootcampSessionSchema),
+    200: createSuccessResponseSchema(academySessionSchema),
     400: createErrorResponseSchema(),
     401: createErrorResponseSchema(),
     404: createErrorResponseSchema(),
@@ -1134,17 +1108,17 @@ export const updateSessionSchema = {
  * Delete Session Schema
  */
 export const deleteSessionSchema = {
-  tags: ['Admin Bootcamps'],
+  tags: ['Admin Academies'],
   summary: 'Delete session',
   description: 'Delete a session from a topic',
   params: {
     type: 'object',
     properties: {
-      bootcamp_id: { type: 'string', minLength: 1 },
+      academy_id: { type: 'string', minLength: 1 },
       topic_id: { type: 'string', minLength: 1 },
       session_id: { type: 'string', minLength: 1 },
     },
-    required: ['bootcamp_id', 'topic_id', 'session_id'],
+    required: ['academy_id', 'topic_id', 'session_id'],
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),

@@ -1,5 +1,6 @@
 import { adminInstructorController } from '../../controllers/admin/instructorController.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { uploadMiddleware } from '../../middleware/fileUploadMiddleware.js';
 
 /**
  * Admin Instructor routes plugin
@@ -129,19 +130,19 @@ export default async function adminInstructorRoutes(fastify) {
     adminInstructorController.deleteInstructor
   );
 
-  // GET /api/admin/instructors/available/:bootcampId - Get available instructors for bootcamp (Admin only)
+  // GET /api/admin/instructors/available/:academyId - Get available instructors for academy (Admin only)
   fastify.get(
-    '/available/:bootcampId',
+    '/available/:academyId',
     {
       schema: {
         ...instructorTag,
-        description: 'Get available instructors for bootcamp (Admin only)',
+        description: 'Get available instructors for academy (Admin only)',
         params: {
           type: 'object',
           properties: {
-            bootcampId: { type: 'integer', minimum: 1 },
+            academyId: { type: 'integer', minimum: 1 },
           },
-          required: ['bootcampId'],
+          required: ['academyId'],
         },
         response: {
           200: {
@@ -157,22 +158,22 @@ export default async function adminInstructorRoutes(fastify) {
       },
       preHandler: authMiddleware,
     },
-    adminInstructorController.getAvailableInstructorsForBootcamp
+    adminInstructorController.getAvailableInstructorsForAcademy
   );
 
-  // POST /api/admin/instructors/assign/:bootcampId - Assign instructor to bootcamp (Admin only)
+  // POST /api/admin/instructors/assign/:academyId - Assign instructor to academy (Admin only)
   fastify.post(
-    '/assign/:bootcampId',
+    '/assign/:academyId',
     {
       schema: {
         ...instructorTag,
-        description: 'Assign instructor to bootcamp (Admin only)',
+        description: 'Assign instructor to academy (Admin only)',
         params: {
           type: 'object',
           properties: {
-            bootcampId: { type: 'integer', minimum: 1 },
+            academyId: { type: 'integer', minimum: 1 },
           },
-          required: ['bootcampId'],
+          required: ['academyId'],
         },
         body: {
           type: 'object',
@@ -196,23 +197,23 @@ export default async function adminInstructorRoutes(fastify) {
       },
       preHandler: authMiddleware,
     },
-    adminInstructorController.assignInstructorToBootcamp
+    adminInstructorController.assignInstructorToAcademy
   );
 
-  // DELETE /api/admin/instructors/remove/:bootcampId/:instructorId - Remove instructor from bootcamp (Admin only)
+  // DELETE /api/admin/instructors/remove/:academyId/:instructorId - Remove instructor from academy (Admin only)
   fastify.delete(
-    '/remove/:bootcampId/:instructorId',
+    '/remove/:academyId/:instructorId',
     {
       schema: {
         ...instructorTag,
-        description: 'Remove instructor from bootcamp (Admin only)',
+        description: 'Remove instructor from academy (Admin only)',
         params: {
           type: 'object',
           properties: {
-            bootcampId: { type: 'integer', minimum: 1 },
+            academyId: { type: 'integer', minimum: 1 },
             instructorId: { type: 'integer', minimum: 1 },
           },
-          required: ['bootcampId', 'instructorId'],
+          required: ['academyId', 'instructorId'],
         },
         response: {
           200: {
@@ -236,7 +237,7 @@ export default async function adminInstructorRoutes(fastify) {
       },
       preHandler: authMiddleware,
     },
-    adminInstructorController.removeInstructorFromBootcamp
+    adminInstructorController.removeInstructorFromAcademy
   );
 
   // GET /api/admin/instructors/statistics - Get instructor statistics (Admin only)
@@ -261,5 +262,43 @@ export default async function adminInstructorRoutes(fastify) {
       preHandler: authMiddleware,
     },
     adminInstructorController.getInstructorStats
+  );
+
+  // Upload instructor avatar
+  fastify.post(
+    '/:id/avatar',
+    {
+      preHandler: [authMiddleware, uploadMiddleware],
+      schema: {
+        description: 'Upload instructor avatar',
+        tags: ['Admin Instructors'],
+        consumes: ['multipart/form-data'],
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'integer' },
+                  name: { type: 'string' },
+                  avatar_url: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    adminInstructorController.uploadInstructorAvatar
   );
 }

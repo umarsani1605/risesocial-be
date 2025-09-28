@@ -19,7 +19,6 @@ class JobsController {
     try {
       req.log.info('[adminJobsController] createJob start');
       req.log.debug({ body: req.body }, '[adminJobsController] rawBody');
-      const errors = validationResult(req);
 
       const jobData = {
         ...req.body,
@@ -28,7 +27,7 @@ class JobsController {
 
       const job = await this.jobsService.createJob(jobData);
       req.log.info('[adminJobsController] createJob success');
-      return reply.send(successResponse(job, 'Job created successfully', 201));
+      return reply.send(successResponse(job, 'Job created successfully'));
     } catch (error) {
       req.log.error({ err: error }, '[adminJobsController] createJob error');
       return reply.send(errorResponse(error.message, 500));
@@ -44,13 +43,14 @@ class JobsController {
     try {
       req.log.info('[adminJobsController] updateJob start');
       req.log.debug({ params: req.params, body: req.body }, '[adminJobsController] raw');
-      const errors = validationResult(req);
 
       const { id } = req.params;
-      const job = await this.jobsService.updateJob(id, req.body);
+      const jobId = parseInt(id);
+
+      const job = await this.jobsService.updateJob(jobId, req.body);
 
       if (!job) {
-        req.log.info({ id }, '[adminJobsController] updateJob not_found');
+        req.log.info({ id: jobId }, '[adminJobsController] updateJob not_found');
         return reply.send(errorResponse('Job not found', 404));
       }
 
@@ -72,10 +72,16 @@ class JobsController {
       req.log.info('[adminJobsController] deleteJob start');
       req.log.debug({ params: req.params }, '[adminJobsController] rawParams');
       const { id } = req.params;
-      const success = await this.jobsService.deleteJob(id);
+      const jobId = parseInt(id);
+
+      if (isNaN(jobId)) {
+        return reply.send(errorResponse('Invalid job ID', 400));
+      }
+
+      const success = await this.jobsService.deleteJob(jobId);
 
       if (!success) {
-        req.log.info({ id }, '[adminJobsController] deleteJob not_found');
+        req.log.info({ id: jobId }, '[adminJobsController] deleteJob not_found');
         return reply.send(errorResponse('Job not found', 404));
       }
 
@@ -97,8 +103,8 @@ class JobsController {
       req.log.info('[adminJobsController] syncLinkedInJobs start');
       req.log.debug({ body: req.body }, '[adminJobsController] rawBody');
 
-      const { limit = 10, filter = {} } = req.body || {};
-      const options = { limit: parseInt(limit) || 10, filter };
+      const { filter = {} } = req.body || {};
+      const options = { filter };
 
       req.log.debug({ options }, '[adminJobsController] options');
       req.log.info('[adminJobsController] call jobsService.syncJobsFromLinkedIn');
@@ -125,7 +131,13 @@ class JobsController {
       req.log.info('[adminJobsController] getJobStatistics start');
       req.log.debug({ params: req.params }, '[adminJobsController] rawParams');
       const { id } = req.params;
-      const stats = await this.jobsService.getJobStatistics(id);
+      const jobId = parseInt(id);
+
+      if (isNaN(jobId)) {
+        return reply.send(errorResponse('Invalid job ID', 400));
+      }
+
+      const stats = await this.jobsService.getJobStatistics(jobId);
       req.log.info('[adminJobsController] getJobStatistics success');
       return reply.send(successResponse(stats, 'Job statistics retrieved successfully'));
     } catch (error) {

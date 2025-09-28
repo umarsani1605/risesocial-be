@@ -26,7 +26,7 @@ export class UserInstructorController {
         page: parseInt(request.query.page) || 1,
         limit: parseInt(request.query.limit) || 10,
         search: request.query.search,
-        includeBootcamps: request.query.include_bootcamps === 'true',
+        includeAcademies: request.query.include_academies === 'true',
       };
 
       const result = await this.instructorService.getAllInstructors(options);
@@ -50,9 +50,9 @@ export class UserInstructorController {
       request.log.debug({ params: request.params, query: request.query }, '[userInstructorController] rawParams');
 
       const { id } = request.params;
-      const includeBootcamps = request.query.include_bootcamps === 'true';
+      const includeAcademies = request.query.include_academies === 'true';
 
-      const instructor = await this.instructorService.getInstructorById(parseInt(id), includeBootcamps);
+      const instructor = await this.instructorService.getInstructorById(parseInt(id), includeAcademies);
 
       if (!instructor) {
         request.log.info({ id }, '[userInstructorController] getInstructorById not_found');
@@ -158,61 +158,61 @@ export class UserInstructorController {
   }
 
   /**
-   * Get instructors by bootcamp ID
+   * Get instructors by academy ID
    * @param {Object} request - Fastify request
    * @param {Object} reply - Fastify reply
    */
-  async getInstructorsByBootcampId(request, reply) {
+  async getInstructorsByAcademyId(request, reply) {
     try {
-      request.log.info('[userInstructorController] getInstructorsByBootcampId start');
+      request.log.info('[userInstructorController] getInstructorsByAcademyId start');
       request.log.debug({ params: request.params }, '[userInstructorController] rawParams');
 
-      const { bootcampId } = request.params;
-      const instructors = await this.instructorService.getInstructorsByBootcampId(parseInt(bootcampId));
+      const { academyId } = request.params;
+      const instructors = await this.instructorService.getInstructorsByAcademyId(parseInt(academyId));
 
-      request.log.info('[userInstructorController] getInstructorsByBootcampId success');
+      request.log.info('[userInstructorController] getInstructorsByAcademyId success');
       return reply.send(
         successResponse(
           {
             instructors,
             total: instructors.length,
-            bootcamp_id: parseInt(bootcampId),
+            academy_id: parseInt(academyId),
           },
-          'Instructor bootcamp berhasil diambil'
+          'Instructor academy berhasil diambil'
         )
       );
     } catch (error) {
-      request.log.error({ err: error }, '[userInstructorController] getInstructorsByBootcampId error');
+      request.log.error({ err: error }, '[userInstructorController] getInstructorsByAcademyId error');
       return reply.send(errorResponse('Internal server error', 500, error.message));
     }
   }
 
   /**
-   * Get bootcamps by instructor ID
+   * Get academies by instructor ID
    * @param {Object} request - Fastify request
    * @param {Object} reply - Fastify reply
    */
-  async getBootcampsByInstructorId(request, reply) {
+  async getAcademiesByInstructorId(request, reply) {
     try {
-      request.log.info('[userInstructorController] getBootcampsByInstructorId start');
+      request.log.info('[userInstructorController] getAcademiesByInstructorId start');
       request.log.debug({ params: request.params }, '[userInstructorController] rawParams');
 
       const { instructorId } = request.params;
-      const bootcamps = await this.instructorService.getBootcampsByInstructorId(parseInt(instructorId));
+      const academies = await this.instructorService.getAcademiesByInstructorId(parseInt(instructorId));
 
-      request.log.info('[userInstructorController] getBootcampsByInstructorId success');
+      request.log.info('[userInstructorController] getAcademiesByInstructorId success');
       return reply.send(
         successResponse(
           {
-            bootcamps,
-            total: bootcamps.length,
+            academies,
+            total: academies.length,
             instructor_id: parseInt(instructorId),
           },
-          'Bootcamp instructor berhasil diambil'
+          'Academy instructor berhasil diambil'
         )
       );
     } catch (error) {
-      request.log.error({ err: error }, '[userInstructorController] getBootcampsByInstructorId error');
+      request.log.error({ err: error }, '[userInstructorController] getAcademiesByInstructorId error');
       return reply.send(errorResponse('Internal server error', 500, error.message));
     }
   }

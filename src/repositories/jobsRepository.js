@@ -281,6 +281,32 @@ export class JobsRepository extends BaseRepository {
   }
 
   /**
+   * Find jobs by list of LinkedIn job IDs
+   * @param {Array<string|number>} linkedinIds
+   * @returns {Promise<Array<Object>>}
+   */
+  async findJobsByLinkedInIds(linkedinIds) {
+    this.logger.debug({ size: linkedinIds?.length }, '[jobsRepository] findJobsByLinkedInIds');
+    const ids = (linkedinIds || []).map((v) => String(v));
+    return await this.model.findMany({
+      where: { linkedin_job_id: { in: ids } },
+      select: { id: true, linkedin_job_id: true },
+    });
+  }
+
+  /**
+   * Create Job AI Insights record
+   * @param {Object} data - includes job_id and AI fields mapped to schema
+   * @returns {Promise<Object>}
+   */
+  async createJobAIInsights(data) {
+    this.logger.debug({ job_id: data.job_id }, '[jobsRepository] createJobAIInsights');
+    return await prisma.jobAIInsights.create({
+      data,
+    });
+  }
+
+  /**
    * Find location by details
    * @param {Object} locationData - Location data
    * @returns {Promise<Object|null>} Location or null
@@ -310,10 +336,133 @@ export class JobsRepository extends BaseRepository {
   }
 
   /**
+   * Find company by ID
+   * @param {number} id - Company ID
+   * @returns {Promise<Object|null>} Company or null
+   */
+  async findCompanyById(id) {
+    this.logger.debug({ id }, '[jobsRepository] findCompanyById');
+    return await prisma.company.findUnique({
+      where: { id },
+    });
+  }
+
+  /**
+   * Find company by LinkedIn slug
+   * @param {string} slug - LinkedIn company slug
+   * @returns {Promise<Object|null>} Company or null
+   */
+  async findCompanyBySlug(slug) {
+    this.logger.debug({ slug }, '[jobsRepository] findCompanyBySlug');
+    return await prisma.company.findUnique({
+      where: { slug },
+    });
+  }
+
+  /**
+   * Create company from LinkedIn data
+   * @param {Object} linkedinJob - LinkedIn job data
+   * @returns {Promise<Object>} Created company
+   */
+  async createCompanyFromLinkedIn(linkedinJob) {
+    this.logger.info({ organization: linkedinJob.organization }, '[jobsRepository] createCompanyFromLinkedIn');
+
+    const companyData = {
+      // Core fields
+      name: linkedinJob.organization,
+      slug: linkedinJob.linkedin_org_slug,
+      logo_url: linkedinJob.organization_logo,
+      website_url: linkedinJob.linkedin_org_url,
+      industry: linkedinJob.linkedin_org_industry,
+      headquarters: linkedinJob.linkedin_org_headquarters,
+      description: linkedinJob.linkedin_org_description,
+
+      // LinkedIn specific fields
+      linkedin_url: linkedinJob.organization_url,
+      linkedin_slug: linkedinJob.linkedin_org_slug,
+      linkedin_employees: linkedinJob.linkedin_org_employees,
+      linkedin_size: linkedinJob.linkedin_org_size,
+      linkedin_slogan: linkedinJob.linkedin_org_slogan,
+      linkedin_followers: linkedinJob.linkedin_org_followers,
+      linkedin_type: linkedinJob.linkedin_org_type,
+      linkedin_founded_date: linkedinJob.linkedin_org_foundeddate,
+      linkedin_specialties: linkedinJob.linkedin_org_specialties,
+      linkedin_locations: linkedinJob.linkedin_org_locations,
+      linkedin_is_recruitment_agency: linkedinJob.linkedin_org_recruitment_agency_derived,
+    };
+
+    return await prisma.company.create({
+      data: companyData,
+    });
+  }
+
+  /**
    * Search companies with filtering and pagination
    * @param {Object} options - Search and filter options
    * @returns {Promise<Object>} Paginated result with data and meta
    */
+  /**
+   * Update job with company and location relations
+   * @param {number} id - Job ID
+   * @param {Object} jobData - Job update data
+   * @param {Object} companyData - Company update data
+   * @param {Object} locationData - Location update data
+   * @returns {Promise<Object>} Updated job with relations
+   */
+  async updateWithRelations(id, jobData, companyData, locationData) {
+    this.logger.info({ id, jobData, companyData, locationData }, '[jobsRepository] updateWithRelations start');
+
+    return await prisma.$transaction(async (tx) => {
+      // Update company if provided
+      if (companyData && Object.keys(companyData).length > 0) {
+        const existingJob = await tx.job.findUnique({
+          where: { id },
+          include: { company: true },
+        });
+
+        if (existingJob?.company) {
+          await tx.company.update({
+            where: { id: existingJob.company.id },
+            data: companyData,
+          });
+        }
+      }
+
+      // Update location if provided
+      if (locationData && Object.keys(locationData).length > 0) {
+        const existingJob = await tx.job.findUnique({
+          where: { id },
+          include: { location: true },
+        });
+
+        if (existingJob?.location) {
+          await tx.jobLocation.update({
+            where: { id: existingJob.location.id },
+            data: locationData,
+          });
+        }
+      }
+
+      // Update job
+      const updatedJob = await tx.job.update({
+        where: { id },
+        data: jobData,
+        include: {
+          company: true,
+          location: true,
+          _count: {
+            select: {
+              applications: true,
+            },
+          },
+        },
+      });
+
+      this.logger.info({ updatedJob }, '[jobsRepository] updateWithRelations success');
+      return updatedJob;
+    });
+  }
+
   async searchCompanies(options = {}) {
     this.logger.info({ options }, '[jobsRepository] searchCompanies start');
 

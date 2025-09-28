@@ -19,7 +19,7 @@ export default async function adminEnrollmentRoutes(fastify) {
           type: 'object',
           properties: {
             user_id: { type: 'integer', minimum: 1 },
-            bootcamp_id: { type: 'integer', minimum: 1 },
+            academy_id: { type: 'integer', minimum: 1 },
             enrollment_status: {
               type: 'string',
               enum: ['ENROLLED', 'COMPLETED', 'CANCELLED', 'SUSPENDED'],
@@ -31,7 +31,7 @@ export default async function adminEnrollmentRoutes(fastify) {
             page: { type: 'integer', minimum: 1, default: 1 },
             limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
             include_user: { type: 'boolean', default: false },
-            include_bootcamp: { type: 'boolean', default: false },
+            include_academy: { type: 'boolean', default: false },
             include_pricing: { type: 'boolean', default: false },
           },
         },
@@ -52,19 +52,19 @@ export default async function adminEnrollmentRoutes(fastify) {
     adminEnrollmentController.getAllEnrollments
   );
 
-  // GET /api/admin/enrollments/bootcamp/:bootcampId - Get bootcamp enrollments (Admin only)
+  // GET /api/admin/enrollments/academy/:academyId - Get academy enrollments (Admin only)
   fastify.get(
-    '/bootcamp/:bootcampId',
+    '/academy/:academyId',
     {
       schema: {
         ...enrollmentTag,
-        description: 'Get enrollments for specific bootcamp (Admin only)',
+        description: 'Get enrollments for specific academy (Admin only)',
         params: {
           type: 'object',
           properties: {
-            bootcampId: { type: 'integer', minimum: 1 },
+            academyId: { type: 'integer', minimum: 1 },
           },
-          required: ['bootcampId'],
+          required: ['academyId'],
         },
         querystring: {
           type: 'object',
@@ -93,7 +93,7 @@ export default async function adminEnrollmentRoutes(fastify) {
       },
       preHandler: authMiddleware,
     },
-    adminEnrollmentController.getBootcampEnrollments
+    adminEnrollmentController.getAcademyEnrollments
   );
 
   // POST /api/admin/enrollments - Create new enrollment (Admin only)
@@ -105,10 +105,10 @@ export default async function adminEnrollmentRoutes(fastify) {
         description: 'Create new enrollment (Admin only)',
         body: {
           type: 'object',
-          required: ['user_id', 'bootcamp_id', 'pricing_tier_id'],
+          required: ['user_id', 'academy_id', 'pricing_tier_id'],
           properties: {
             user_id: { type: 'integer', minimum: 1 },
-            bootcamp_id: { type: 'integer', minimum: 1 },
+            academy_id: { type: 'integer', minimum: 1 },
             pricing_tier_id: { type: 'integer', minimum: 1 },
             enrollment_status: {
               type: 'string',
@@ -153,7 +153,7 @@ export default async function adminEnrollmentRoutes(fastify) {
           type: 'object',
           properties: {
             user_id: { type: 'integer', minimum: 1 },
-            bootcamp_id: { type: 'integer', minimum: 1 },
+            academy_id: { type: 'integer', minimum: 1 },
             pricing_tier_id: { type: 'integer', minimum: 1 },
             enrollment_status: {
               type: 'string',

@@ -29,7 +29,8 @@ export class LinkedInJobSearch {
   async searchJobs(options = {}) {
     this.logger.info('[linkedinJobSearch] searchJobs start');
 
-    const { limit = 5, filter = {} } = options;
+    const { filter = {} } = options;
+    const FIXED_LIMIT = 10; // fixed limit defined at integration layer
 
     try {
       const hasWhitespace = (val) => /\s/.test(String(val));
@@ -50,10 +51,13 @@ export class LinkedInJobSearch {
 
       const params = new URLSearchParams();
 
-      params.append('limit', String(limit));
+      params.append('limit', String(FIXED_LIMIT));
+      // Always include job description and AI-enriched fields
+      params.append('description_type', 'text');
+      params.append('include_ai', 'true');
 
       // Phrase-like filters → OR with single quotes for multi-word
-      appendPhrasesOr(params, 'title_filter', filter.title_filter);
+      appendPhrasesOr(params, 'advanced_title_filter', filter.advanced_title_filter);
       appendPhrasesOr(params, 'location_filter', filter.location_filter);
       appendPhrasesOr(params, 'description_filter', filter.description_filter);
       appendPhrasesOr(params, 'organization_description_filter', filter.organization_description_filter);
@@ -64,10 +68,12 @@ export class LinkedInJobSearch {
       appendCommaList(params, 'industry_filter', filter.industry_filter);
       appendCommaList(params, 'seniority_filter', filter.seniority_filter);
 
-      const url = `${BASE_URL}?${params.toString()}`;
+      const url = `${BASE_URL}/active-jb-7d?${params.toString()}`;
 
       this.logger.info({ params: params.toString() }, '[linkedinJobSearch] built params');
       this.logger.info({ url }, '[linkedinJobSearch] request GET');
+
+      this.logger.info({ limit: FIXED_LIMIT }, '[linkedinJobSearch] request params');
 
       const response = await fetch(url, {
         method: 'GET',
@@ -76,7 +82,7 @@ export class LinkedInJobSearch {
 
       if (!response.ok) {
         this.logger.error({ status: response.status, statusText: response.statusText }, '[linkedinJobSearch] response error');
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        throw new Error(`Request failed: ${response.statusText}`);
       }
 
       const rateLimitData = {

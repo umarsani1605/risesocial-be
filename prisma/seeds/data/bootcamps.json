@@ -1,5 +1,5 @@
 {
-  "bootcamps": [
+  "academies": [
     {
       "title": "ESG (Environmental, Social, and Governance)",
       "path_slug": "bootcamp-esg",
@@ -20,13 +20,13 @@
           "name": "1 Tema",
           "original_price": 2390000,
           "discount_price": 1390000,
-          "tier_order": 1
+          "order": 1
         },
         {
           "name": "3 Tema",
           "original_price": 4790000,
           "discount_price": 3790000,
-          "tier_order": 2
+          "order": 2
         }
       ],
       "features": [
@@ -34,62 +34,62 @@
           "title": "Full Stack Material + Real Study Case",
           "description": "Equip participants with full stack material in ESG + real study case",
           "icon": "heroicons:clipboard-document-check",
-          "feature_order": 1
+          "order": 1
         },
         {
           "title": "Comprehensive Module",
           "description": "Comprehensive module, learn in 3 months with experts",
           "icon": "heroicons:clipboard-document-list",
-          "feature_order": 2
+          "order": 2
         },
         {
           "title": "Talent Showcase",
           "description": "Talent showcase for companies with participant's presentation and portfolio",
           "icon": "heroicons:presentation-chart-bar",
-          "feature_order": 3
+          "order": 3
         },
         {
           "title": "Job Accelerator",
           "description": "Access to job opportunities from our hiring partners",
           "icon": "heroicons:briefcase",
-          "feature_order": 4
+          "order": 4
         }
       ],
       "topics": [
         {
           "title": "Dasar-Dasar ESG",
           "description": "Memahami konsep dasar ESG, standar internasional, dan regulasi yang berlaku di berbagai industri.",
-          "topic_order": 1,
+          "order": 1,
           "sessions": [
-            { "title": "Perkenalan ESG", "session_order": 1 },
-            { "title": "Lingkungan (Environmental) dalam ESG", "session_order": 2 },
-            { "title": "Sosial (Social) dalam ESG", "session_order": 3 },
-            { "title": "Tata Kelola (Governance) dalam ESG", "session_order": 4 },
-            { "title": "Studi kasus", "session_order": 5 }
+            { "title": "Perkenalan ESG", "order": 1 },
+            { "title": "Lingkungan (Environmental) dalam ESG", "order": 2 },
+            { "title": "Sosial (Social) dalam ESG", "order": 3 },
+            { "title": "Tata Kelola (Governance) dalam ESG", "order": 4 },
+            { "title": "Studi kasus", "order": 5 }
           ]
         },
         {
           "title": "Penerapan ESG dalam Bisnis dan Korporasi",
           "description": "Mempelajari perencanaan, implementasi, hingga evaluasi ESG dalam bisnis dan korporasi.",
-          "topic_order": 2,
+          "order": 2,
           "sessions": [
-            { "title": "Pendahuluan", "session_order": 1 },
-            { "title": "Perencanaan ESG dalam Bisnis dan Korporasi", "session_order": 2 },
-            { "title": "Implementasi ESG dalam Bisnis dan Korporasi", "session_order": 3 },
-            { "title": "Evaluasi penerapan ESG dalam bisnis dan korporasi", "session_order": 4 },
-            { "title": "Studi kasus", "session_order": 5 }
+            { "title": "Pendahuluan", "order": 1 },
+            { "title": "Perencanaan ESG dalam Bisnis dan Korporasi", "order": 2 },
+            { "title": "Implementasi ESG dalam Bisnis dan Korporasi", "order": 3 },
+            { "title": "Evaluasi penerapan ESG dalam bisnis dan korporasi", "order": 4 },
+            { "title": "Studi kasus", "order": 5 }
           ]
         },
         {
           "title": "Pembuatan ESG Report",
           "description": "Mendalami pembuatan ESG report yang komprehensif dan sesuai standar internasional.",
-          "topic_order": 3,
+          "order": 3,
           "sessions": [
-            { "title": "Pendahuluan", "session_order": 1 },
-            { "title": "Persiapan penulisan ESG Report", "session_order": 2 },
-            { "title": "Penulisan dan Pelaporan ESG Report", "session_order": 3 },
-            { "title": "Evaluasi dan Analisis ESG Report", "session_order": 4 },
-            { "title": "Studi Kasus", "session_order": 5 }
+            { "title": "Pendahuluan", "order": 1 },
+            { "title": "Persiapan penulisan ESG Report", "order": 2 },
+            { "title": "Penulisan dan Pelaporan ESG Report", "order": 3 },
+            { "title": "Evaluasi dan Analisis ESG Report", "order": 4 },
+            { "title": "Studi Kasus", "order": 5 }
           ]
         }
       ],

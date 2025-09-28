@@ -1,4 +1,5 @@
 import { TestimonialsService } from '../../services/testimonialsService.js';
+import { fileUploadService } from '../../services/fileUploadService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 /**
@@ -19,7 +20,6 @@ export class AdminTestimonialsController {
     try {
       req.log.info('[adminTestimonialsController] createTestimonial start');
       req.log.debug({ body: req.body }, '[adminTestimonialsController] rawBody');
-      const errors = validationResult(req);
 
       const testimonial = await this.testimonialsService.createTestimonial(req.body);
       req.log.info('[adminTestimonialsController] createTestimonial success');
@@ -39,7 +39,6 @@ export class AdminTestimonialsController {
     try {
       req.log.info('[adminTestimonialsController] updateTestimonial start');
       req.log.debug({ params: req.params, body: req.body }, '[adminTestimonialsController] rawParams');
-      const errors = validationResult(req);
 
       const { id } = req.params;
       const testimonial = await this.testimonialsService.updateTestimonial(id, req.body);
@@ -235,6 +234,42 @@ export class AdminTestimonialsController {
     } catch (error) {
       req.log.error({ err: error }, '[adminTestimonialsController] rejectTestimonial error');
       return reply.send(errorResponse(error.message, 500));
+    }
+  }
+
+  /**
+   * Upload testimonial avatar (Admin only)
+   * @param {Object} request - Fastify request
+   * @param {Object} reply - Fastify reply
+   */
+  async uploadTestimonialAvatar(request, reply) {
+    try {
+      request.log.info('[adminTestimonialsController] uploadTestimonialAvatar start');
+
+      const { id } = request.params;
+      const { file } = request;
+
+      if (!file) {
+        return reply.status(400).send(errorResponse('No file uploaded', 400));
+      }
+
+      // Upload file using service
+      const uploadResult = await fileUploadService.uploadFile(file, {
+        uploadType: 'TESTIMONIAL_AVATAR',
+        maxSize: 2 * 1024 * 1024, // 2MB for testimonial avatar
+        allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+      });
+
+      // Update testimonial with new avatar URL
+      const testimonial = await this.testimonialsService.updateTestimonial(Number(id), {
+        avatar_url: uploadResult.fileUrl,
+      });
+
+      request.log.info('[adminTestimonialsController] uploadTestimonialAvatar success');
+      return reply.status(200).send(successResponse(testimonial, 'Testimonial avatar uploaded successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminTestimonialsController] uploadTestimonialAvatar error');
+      return reply.status(500).send(errorResponse('Failed to upload testimonial avatar', 500, error.message));
     }
   }
 }

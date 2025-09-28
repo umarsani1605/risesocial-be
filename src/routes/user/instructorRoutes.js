@@ -20,7 +20,7 @@ export default async function userInstructorRoutes(fastify) {
             page: { type: 'integer', minimum: 1, default: 1 },
             limit: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
             search: { type: 'string' },
-            include_bootcamps: { type: 'boolean', default: false },
+            include_academies: { type: 'boolean', default: false },
           },
         },
         response: {
@@ -128,19 +128,19 @@ export default async function userInstructorRoutes(fastify) {
     userInstructorController.getInstructorsByJobTitle
   );
 
-  // GET /api/instructors/bootcamp/:bootcampId - Get instructors by bootcamp ID
+  // GET /api/instructors/academy/:academyId - Get instructors by academy ID
   fastify.get(
-    '/bootcamp/:bootcampId',
+    '/academy/:academyId',
     {
       schema: {
         ...instructorTag,
-        description: 'Get instructors by bootcamp ID',
+        description: 'Get instructors by academy ID',
         params: {
           type: 'object',
           properties: {
-            bootcampId: { type: 'integer', minimum: 1 },
+            academyId: { type: 'integer', minimum: 1 },
           },
-          required: ['bootcampId'],
+          required: ['academyId'],
         },
         response: {
           200: {
@@ -155,7 +155,7 @@ export default async function userInstructorRoutes(fastify) {
         },
       },
     },
-    userInstructorController.getInstructorsByBootcampId
+    userInstructorController.getInstructorsByAcademyId
   );
 
   // GET /api/instructors/:id - Get instructor by ID
@@ -175,7 +175,7 @@ export default async function userInstructorRoutes(fastify) {
         querystring: {
           type: 'object',
           properties: {
-            include_bootcamps: { type: 'boolean', default: false },
+            include_academies: { type: 'boolean', default: false },
           },
         },
         response: {
@@ -202,13 +202,13 @@ export default async function userInstructorRoutes(fastify) {
     userInstructorController.getInstructorById
   );
 
-  // GET /api/instructors/:instructorId/bootcamps - Get bootcamps by instructor ID
+  // GET /api/instructors/:instructorId/academies - Get academies by instructor ID
   fastify.get(
-    '/:instructorId/bootcamps',
+    '/:instructorId/academies',
     {
       schema: {
         ...instructorTag,
-        description: 'Get bootcamps by instructor ID',
+        description: 'Get academies by instructor ID',
         params: {
           type: 'object',
           properties: {
@@ -229,6 +229,6 @@ export default async function userInstructorRoutes(fastify) {
         },
       },
     },
-    userInstructorController.getBootcampsByInstructorId
+    userInstructorController.getAcademiesByInstructorId
   );
 }

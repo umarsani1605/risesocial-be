@@ -23,7 +23,7 @@ fs.ensureDirSync(imagesDir);
  * @param {Object} file - File from request.file()
  * @param {Array} allowedTypes - Allowed MIME types
  * @param {number} maxSize - Maximum file size in bytes
- * @param {string} uploadType - Type of upload ('ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'BOOTCAMP_IMAGE')
+ * @param {string} uploadType - Type of upload ('ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'ACADEMY_IMAGE')
  * @returns {Object} Processed file info
  */
 const processUploadedFile = async (file, allowedTypes, maxSize, uploadType) => {
@@ -157,24 +157,55 @@ export const uploadPaymentProof = async (request, reply) => {
 };
 
 /**
- * Bootcamp image upload handler (Images only)
+ * Academy image upload handler (Images only)
  * @param {Object} request - Fastify request
  * @param {Object} reply - Fastify reply
  */
-export const uploadBootcampImage = async (request, reply) => {
+export const uploadAcademyImage = async (request, reply) => {
   try {
-    request.log.info('[fileUploadMiddleware] uploadBootcampImage start');
-    const file = await request.file();
+    request.log.info('[fileUploadMiddleware] uploadAcademyImage start');
 
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024; // 5MB untuk optimasi
+    // Parse FormData fields
+    const formData = {};
+    const parts = request.parts();
 
-    const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'BOOTCAMP_IMAGE');
+    for await (const part of parts) {
+      if (part.type === 'file') {
+        // Handle file upload
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        const maxSize = 5 * 1024 * 1024; // 5MB untuk optimasi
+        const processedFile = await processUploadedFile(part, allowedTypes, maxSize, 'ACADEMY_IMAGE');
+        request.uploadedFile = processedFile;
+        request.log.info('[fileUploadMiddleware] file processed');
+      } else {
+        // Handle form fields
+        let value = part.value;
 
-    request.uploadedFile = processedFile;
-    request.log.info('[fileUploadMiddleware] uploadBootcampImage success');
+        // Convert numeric fields to numbers
+        if (
+          part.fieldname === 'order' ||
+          part.fieldname === 'tier_order' ||
+          part.fieldname === 'feature_order' ||
+          part.fieldname === 'session_order' ||
+          part.fieldname === 'topic_order'
+        ) {
+          value = parseInt(value, 10);
+        }
+
+        // Convert boolean fields to booleans
+        if (part.fieldname === 'certificate' || part.fieldname === 'portfolio') {
+          value = value === 'true';
+        }
+
+        formData[part.fieldname] = value;
+      }
+    }
+
+    // Set parsed form data to request body
+    request.body = formData;
+    request.log.info('[fileUploadMiddleware] uploadAcademyImage success');
   } catch (error) {
-    request.log.error({ err: error }, '[fileUploadMiddleware] uploadBootcampImage error');
+    request.log.error({ err: error }, '[fileUploadMiddleware] uploadAcademyImage error');
     reply.status(400).send({
       success: false,
       message: error.message || 'File upload failed',
@@ -198,5 +229,30 @@ export const deleteFile = async (filePath) => {
   } catch (err) {
     logger.error({ err }, '[fileUploadMiddleware] deleteFile error');
     return false;
+  }
+};
+
+/**
+ * Simple upload middleware for Fastify
+ * @param {Object} request - Fastify request
+ * @param {Object} reply - Fastify reply
+ */
+export const uploadMiddleware = async (request, reply) => {
+  try {
+    request.log.info('[fileUploadMiddleware] uploadMiddleware start');
+    const file = await request.file();
+
+    if (file) {
+      request.file = file;
+      request.log.info('[fileUploadMiddleware] file attached to request');
+    }
+
+    request.log.info('[fileUploadMiddleware] uploadMiddleware success');
+  } catch (error) {
+    request.log.error({ err: error }, '[fileUploadMiddleware] uploadMiddleware error');
+    reply.status(400).send({
+      success: false,
+      message: error.message || 'File upload failed',
+    });
   }
 };

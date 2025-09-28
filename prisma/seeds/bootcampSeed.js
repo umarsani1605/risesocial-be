@@ -10,64 +10,64 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load JSON data
-const loadBootcampData = () => {
+const loadAcademyData = () => {
   try {
-    const dataPath = join(__dirname, 'data', 'bootcamps.json');
+    const dataPath = join(__dirname, 'data', 'academys.json');
     const rawData = readFileSync(dataPath, 'utf8');
     return JSON.parse(rawData);
   } catch (error) {
-    console.error('❌ Error loading bootcamp data:', error);
+    console.error('❌ Error loading academy data:', error);
     throw error;
   }
 };
 
 // Data validation function
-const validateBootcampData = (bootcamps) => {
-  console.log('   🔍 Validating bootcamp data...');
+const validateAcademyData = (academies) => {
+  console.log('   🔍 Validating academy data...');
 
   const errors = [];
 
-  bootcamps.forEach((bootcamp, index) => {
+  academies.forEach((academy, index) => {
     // Required fields validation
-    if (!bootcamp.title || bootcamp.title.length < 1) {
-      errors.push(`Bootcamp ${index + 1}: title is required`);
+    if (!academy.title || academy.title.length < 1) {
+      errors.push(`Academy ${index + 1}: title is required`);
     }
-    if (!bootcamp.path_slug || bootcamp.path_slug.length < 1) {
-      errors.push(`Bootcamp ${index + 1}: path_slug is required`);
+    if (!academy.path_slug || academy.path_slug.length < 1) {
+      errors.push(`Academy ${index + 1}: path_slug is required`);
     }
 
     // Validate rating range
-    if (bootcamp.rating && (bootcamp.rating < 0 || bootcamp.rating > 5)) {
-      errors.push(`Bootcamp ${index + 1}: rating must be between 0 and 5`);
+    if (academy.rating && (academy.rating < 0 || academy.rating > 5)) {
+      errors.push(`Academy ${index + 1}: rating must be between 0 and 5`);
     }
 
     // Validate rating_count
-    if (bootcamp.rating_count && bootcamp.rating_count < 0) {
-      errors.push(`Bootcamp ${index + 1}: rating_count must be positive`);
+    if (academy.rating_count && academy.rating_count < 0) {
+      errors.push(`Academy ${index + 1}: rating_count must be positive`);
     }
 
     // Validate pricing
-    if (bootcamp.pricing) {
-      bootcamp.pricing.forEach((price, priceIndex) => {
+    if (academy.pricing) {
+      academy.pricing.forEach((price, priceIndex) => {
         if (price.original_price <= 0) {
-          errors.push(`Bootcamp ${index + 1}, Pricing ${priceIndex + 1}: original_price must be positive`);
+          errors.push(`Academy ${index + 1}, Pricing ${priceIndex + 1}: original_price must be positive`);
         }
         if (price.discount_price <= 0) {
-          errors.push(`Bootcamp ${index + 1}, Pricing ${priceIndex + 1}: discount_price must be positive`);
+          errors.push(`Academy ${index + 1}, Pricing ${priceIndex + 1}: discount_price must be positive`);
         }
         if (price.discount_price > price.original_price) {
-          errors.push(`Bootcamp ${index + 1}, Pricing ${priceIndex + 1}: discount_price cannot exceed original_price`);
+          errors.push(`Academy ${index + 1}, Pricing ${priceIndex + 1}: discount_price cannot exceed original_price`);
         }
       });
     }
 
     // Validate order fields
     ['features', 'topics', 'testimonials', 'faqs'].forEach((field) => {
-      if (bootcamp[field]) {
-        bootcamp[field].forEach((item, itemIndex) => {
-          const orderField = `${field.slice(0, -1)}_order`;
+      if (academy[field]) {
+        academy[field].forEach((item, itemIndex) => {
+          const orderField = 'order';
           if (item[orderField] && item[orderField] <= 0) {
-            errors.push(`Bootcamp ${index + 1}, ${field} ${itemIndex + 1}: ${orderField} must be positive`);
+            errors.push(`Academy ${index + 1}, ${field} ${itemIndex + 1}: ${orderField} must be positive`);
           }
         });
       }
@@ -79,46 +79,44 @@ const validateBootcampData = (bootcamps) => {
     throw new Error(`Data validation failed: ${errors.join(', ')}`);
   }
 
-  console.log('   ✅ All bootcamp data validated successfully');
+  console.log('   ✅ All academy data validated successfully');
 };
 
 // Helper function to prepare bulk data
-const prepareBulkData = (bootcampId, items, extraFields = {}) => {
+const prepareBulkData = (academyId, items, extraFields = {}) => {
   return items.map((item) => ({
-    bootcamp_id: bootcampId,
+    academy_id: academyId,
     ...item,
     ...extraFields,
   }));
 };
 
-export async function seedBootcamps() {
-  console.log('🗑️  Cleaning existing bootcamp data...');
+export async function seedAcademies() {
+  console.log('🗑️  Cleaning existing academy data...');
 
   try {
     // Clean existing data dalam transaction dengan urutan yang benar
     await prisma.$transaction(async (tx) => {
-      await tx.bootcampEnrollment.deleteMany();
-      await tx.bootcampFaq.deleteMany();
-      await tx.bootcampTestimonial.deleteMany();
-      await tx.bootcampInstructor.deleteMany();
-      await tx.instructor.deleteMany();
-      await tx.bootcampSession.deleteMany();
-      await tx.bootcampTopic.deleteMany();
-      await tx.bootcampFeature.deleteMany();
-      await tx.bootcampPricing.deleteMany();
-      await tx.bootcamp.deleteMany();
+      await tx.academyEnrollment.deleteMany();
+      await tx.academyFaq.deleteMany();
+      await tx.academyTestimonial.deleteMany();
+      await tx.academyInstructor.deleteMany();
+      await tx.academySession.deleteMany();
+      await tx.academyTopic.deleteMany();
+      await tx.academyFeature.deleteMany();
+      await tx.academyPricing.deleteMany();
+      await tx.academy.deleteMany();
 
       // Reset auto-increment sequences untuk semua tabel
       const sequences = [
-        'bootcamps_id_seq',
-        'bootcamp_pricing_id_seq',
-        'bootcamp_features_id_seq',
-        'bootcamp_topics_id_seq',
-        'bootcamp_sessions_id_seq',
-        'instructors_id_seq',
-        'bootcamp_testimonials_id_seq',
-        'bootcamp_faqs_id_seq',
-        'bootcamp_enrollments_id_seq',
+        'academies_id_seq',
+        'academy_pricing_id_seq',
+        'academy_features_id_seq',
+        'academy_topics_id_seq',
+        'academy_sessions_id_seq',
+        'academy_testimonials_id_seq',
+        'academy_faqs_id_seq',
+        'academy_enrollments_id_seq',
       ];
 
       for (const seq of sequences) {
@@ -126,34 +124,34 @@ export async function seedBootcamps() {
       }
     });
 
-    console.log('✅ Deleted all existing bootcamp data and reset sequences.');
+    console.log('✅ Deleted all existing academy data and reset sequences.');
 
     // Load and validate data
-    const { bootcamps } = loadBootcampData();
-    console.log(`📊 Loaded ${bootcamps.length} bootcamps from JSON`);
+    const { academies } = loadAcademyData();
+    console.log(`📊 Loaded ${academies.length} academies from JSON`);
 
     // Validate data
-    validateBootcampData(bootcamps);
+    validateAcademyData(academies);
 
-    console.log('📚 Creating bootcamps with optimized bulk operations...');
+    console.log('📚 Creating academies with optimized bulk operations...');
 
-    // Process each bootcamp dalam transaction
-    for (const [index, bootcampData] of bootcamps.entries()) {
-      console.log(`\n   📖 Processing bootcamp ${index + 1}: ${bootcampData.title}`);
+    // Process each academy dalam transaction
+    for (const [index, academyData] of academies.entries()) {
+      console.log(`\n   📖 Processing academy ${index + 1}: ${academyData.title}`);
 
       await prisma.$transaction(async (tx) => {
-        // 1. Create main bootcamp
-        const { pricing, features, topics, instructors, testimonials, faqs, ...bootcampFields } = bootcampData;
+        // 1. Create main academy
+        const { pricing, features, topics, instructors, testimonials, faqs, ...academyFields } = academyData;
 
-        const bootcamp = await tx.bootcamp.create({
-          data: bootcampFields,
+        const academy = await tx.academy.create({
+          data: academyFields,
         });
-        console.log(`      ✅ Created bootcamp: ${bootcamp.title}`);
+        console.log(`      ✅ Created academy: ${academy.title}`);
 
         // 2. Bulk create pricing tiers
         if (pricing && pricing.length > 0) {
-          const pricingData = prepareBulkData(bootcamp.id, pricing);
-          await tx.bootcampPricing.createMany({
+          const pricingData = prepareBulkData(academy.id, pricing);
+          await tx.academyPricing.createMany({
             data: pricingData,
             skipDuplicates: true,
           });
@@ -162,8 +160,8 @@ export async function seedBootcamps() {
 
         // 3. Bulk create features
         if (features && features.length > 0) {
-          const featuresData = prepareBulkData(bootcamp.id, features);
-          await tx.bootcampFeature.createMany({
+          const featuresData = prepareBulkData(academy.id, features);
+          await tx.academyFeature.createMany({
             data: featuresData,
             skipDuplicates: true,
           });
@@ -178,9 +176,9 @@ export async function seedBootcamps() {
             const { sessions, ...topicFields } = topicData;
 
             // Create topic
-            const topic = await tx.bootcampTopic.create({
+            const topic = await tx.academyTopic.create({
               data: {
-                bootcamp_id: bootcamp.id,
+                academy_id: academy.id,
                 ...topicFields,
               },
             });
@@ -192,7 +190,7 @@ export async function seedBootcamps() {
                 ...session,
               }));
 
-              await tx.bootcampSession.createMany({
+              await tx.academySession.createMany({
                 data: sessionsData,
                 skipDuplicates: true,
               });
@@ -224,11 +222,11 @@ export async function seedBootcamps() {
 
           // Bulk create relationships
           const instructorRelations = instructorIds.map((rel) => ({
-            bootcamp_id: bootcamp.id,
+            academy_id: academy.id,
             ...rel,
           }));
 
-          await tx.bootcampInstructor.createMany({
+          await tx.academyInstructor.createMany({
             data: instructorRelations,
             skipDuplicates: true,
           });
@@ -238,8 +236,8 @@ export async function seedBootcamps() {
 
         // 6. Bulk create testimonials
         if (testimonials && testimonials.length > 0) {
-          const testimonialsData = prepareBulkData(bootcamp.id, testimonials);
-          await tx.bootcampTestimonial.createMany({
+          const testimonialsData = prepareBulkData(academy.id, testimonials);
+          await tx.academyTestimonial.createMany({
             data: testimonialsData,
             skipDuplicates: true,
           });
@@ -248,8 +246,8 @@ export async function seedBootcamps() {
 
         // 7. Bulk create FAQs
         if (faqs && faqs.length > 0) {
-          const faqsData = prepareBulkData(bootcamp.id, faqs);
-          await tx.bootcampFaq.createMany({
+          const faqsData = prepareBulkData(academy.id, faqs);
+          await tx.academyFaq.createMany({
             data: faqsData,
             skipDuplicates: true,
           });
@@ -260,17 +258,17 @@ export async function seedBootcamps() {
 
     // Final summary
     const finalStats = await prisma.$transaction(async (tx) => {
-      const bootcampCount = await tx.bootcamp.count();
-      const pricingCount = await tx.bootcampPricing.count();
-      const featureCount = await tx.bootcampFeature.count();
-      const topicCount = await tx.bootcampTopic.count();
-      const sessionCount = await tx.bootcampSession.count();
+      const academyCount = await tx.academy.count();
+      const pricingCount = await tx.academyPricing.count();
+      const featureCount = await tx.academyFeature.count();
+      const topicCount = await tx.academyTopic.count();
+      const sessionCount = await tx.academySession.count();
       const instructorCount = await tx.instructor.count();
-      const testimonialCount = await tx.bootcampTestimonial.count();
-      const faqCount = await tx.bootcampFaq.count();
+      const testimonialCount = await tx.academyTestimonial.count();
+      const faqCount = await tx.academyFaq.count();
 
       return {
-        bootcampCount,
+        academyCount,
         pricingCount,
         featureCount,
         topicCount,
@@ -281,8 +279,8 @@ export async function seedBootcamps() {
       };
     });
 
-    console.log('\n📊 Bootcamp seeding summary:');
-    console.log(`   📚 Bootcamps: ${finalStats.bootcampCount}`);
+    console.log('\n📊 Academy seeding summary:');
+    console.log(`   📚 Academies: ${finalStats.academyCount}`);
     console.log(`   💰 Pricing tiers: ${finalStats.pricingCount}`);
     console.log(`   ⭐ Features: ${finalStats.featureCount}`);
     console.log(`   📖 Topics: ${finalStats.topicCount}`);
@@ -298,7 +296,7 @@ export async function seedBootcamps() {
     console.log('   ✅ Auto-increment sequence reset');
     console.log('   ✅ Optimized relationship creation');
   } catch (error) {
-    console.error('❌ Error seeding bootcamp data:', error);
+    console.error('❌ Error seeding academy data:', error);
     throw error;
   }
 }

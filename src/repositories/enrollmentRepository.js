@@ -2,12 +2,12 @@ import { BaseRepository } from './base/BaseRepository.js';
 import { getLogger } from '../lib/loggerContext.js';
 
 /**
- * EnrollmentRepository - Repository untuk mengelola enrollment bootcamp
+ * EnrollmentRepository - Repository untuk mengelola enrollment academy
  * Menggunakan BaseRepository pattern dengan tambahan method khusus enrollment
  */
 class EnrollmentRepository extends BaseRepository {
   constructor(prisma) {
-    super(prisma, 'bootcampEnrollment');
+    super(prisma, 'academyEnrollment');
   }
 
   get logger() {
@@ -21,7 +21,7 @@ class EnrollmentRepository extends BaseRepository {
     this.logger.info({ options }, '[enrollmentRepository] findAllWithDetails called');
     const {
       user_id,
-      bootcamp_id,
+      academy_id,
       enrollment_status,
       progress_min,
       progress_max,
@@ -30,7 +30,7 @@ class EnrollmentRepository extends BaseRepository {
       page = 1,
       limit = 10,
       include_user = false,
-      include_bootcamp = false,
+      include_academy = false,
       include_pricing = false,
     } = options;
 
@@ -38,7 +38,7 @@ class EnrollmentRepository extends BaseRepository {
     const include = {};
 
     if (user_id) where.user_id = user_id;
-    if (bootcamp_id) where.bootcamp_id = bootcamp_id;
+    if (academy_id) where.academy_id = academy_id;
     if (enrollment_status) where.enrollment_status = enrollment_status;
     if (progress_min !== undefined) where.progress_percentage = { gte: progress_min };
     if (progress_max !== undefined) {
@@ -59,8 +59,8 @@ class EnrollmentRepository extends BaseRepository {
       };
     }
 
-    if (include_bootcamp) {
-      include.bootcamp = {
+    if (include_academy) {
+      include.academy = {
         select: {
           id: true,
           title: true,
@@ -90,14 +90,14 @@ class EnrollmentRepository extends BaseRepository {
   }
 
   /**
-   * Mendapatkan enrollment berdasarkan user dan bootcamp
+   * Mendapatkan enrollment berdasarkan user dan academy
    */
-  async findByUserAndBootcamp(userId, bootcampId) {
-    this.logger.info({ userId, bootcampId }, '[enrollmentRepository] findByUserAndBootcamp called');
+  async findByUserAndAcademy(userId, academyId) {
+    this.logger.info({ userId, academyId }, '[enrollmentRepository] findByUserAndAcademy called');
     return await this.model.findUnique({
-      where: { bootcamp_id_user_id: { bootcamp_id: bootcampId, user_id: userId } },
+      where: { academy_id_user_id: { academy_id: academyId, user_id: userId } },
       include: {
-        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true, category: true, duration: true } },
+        academy: { select: { id: true, title: true, path_slug: true, image_url: true, category: true, duration: true } },
         pricing_tier: { select: { id: true, name: true, original_price: true, discount_price: true } },
       },
     });
@@ -124,7 +124,7 @@ class EnrollmentRepository extends BaseRepository {
       this.model.findMany({
         where,
         include: {
-          bootcamp: {
+          academy: {
             select: {
               id: true,
               title: true,
@@ -150,13 +150,13 @@ class EnrollmentRepository extends BaseRepository {
   }
 
   /**
-   * Mendapatkan enrollment berdasarkan bootcamp ID
+   * Mendapatkan enrollment berdasarkan academy ID
    */
-  async findByBootcampId(bootcampId, options = {}) {
-    this.logger.info({ bootcampId }, '[enrollmentRepository] findByBootcampId called');
+  async findByAcademyId(academyId, options = {}) {
+    this.logger.info({ academyId }, '[enrollmentRepository] findByAcademyId called');
     const { enrollment_status, progress_min, progress_max, page = 1, limit = 10 } = options;
 
-    const where = { bootcamp_id: bootcampId };
+    const where = { academy_id: academyId };
     if (enrollment_status) where.enrollment_status = enrollment_status;
     if (progress_min !== undefined) where.progress_percentage = { gte: progress_min };
     if (progress_max !== undefined) {
@@ -189,7 +189,7 @@ class EnrollmentRepository extends BaseRepository {
     this.logger.info('[enrollmentRepository] createEnrollment called');
     const enrollmentData = {
       user_id: data.user_id,
-      bootcamp_id: data.bootcamp_id,
+      academy_id: data.academy_id,
       pricing_tier_id: data.pricing_tier_id || null,
       enrollment_status: data.enrollment_status || 'ENROLLED',
       progress_percentage: data.progress_percentage || 0,
@@ -198,7 +198,7 @@ class EnrollmentRepository extends BaseRepository {
     return await this.model.create({
       data: enrollmentData,
       include: {
-        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true, category: true, duration: true } },
+        academy: { select: { id: true, title: true, path_slug: true, image_url: true, category: true, duration: true } },
         user: { select: { id: true, username: true, first_name: true, last_name: true, email: true } },
         pricing_tier: { select: { id: true, name: true, original_price: true, discount_price: true } },
       },
@@ -220,7 +220,7 @@ class EnrollmentRepository extends BaseRepository {
       where: { id: enrollmentId },
       data: updateData,
       include: {
-        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true } },
+        academy: { select: { id: true, title: true, path_slug: true, image_url: true } },
         user: { select: { id: true, username: true, first_name: true, last_name: true } },
       },
     });
@@ -241,7 +241,7 @@ class EnrollmentRepository extends BaseRepository {
       where: { id: enrollmentId },
       data: updateData,
       include: {
-        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true } },
+        academy: { select: { id: true, title: true, path_slug: true, image_url: true } },
         user: { select: { id: true, username: true, first_name: true, last_name: true } },
       },
     });
@@ -252,10 +252,10 @@ class EnrollmentRepository extends BaseRepository {
    */
   async getEnrollmentStats(options = {}) {
     this.logger.info({ options }, '[enrollmentRepository] getEnrollmentStats called');
-    const { bootcamp_id, user_id, date_from, date_to } = options;
+    const { academy_id, user_id, date_from, date_to } = options;
 
     const where = {};
-    if (bootcamp_id) where.bootcamp_id = bootcamp_id;
+    if (academy_id) where.academy_id = academy_id;
     if (user_id) where.user_id = user_id;
     if (date_from || date_to) {
       where.enrolled_at = {};
@@ -296,7 +296,7 @@ class EnrollmentRepository extends BaseRepository {
       },
       include: {
         user: { select: { id: true, first_name: true, last_name: true, email: true } },
-        bootcamp: { select: { id: true, title: true, path_slug: true, duration: true } },
+        academy: { select: { id: true, title: true, path_slug: true, duration: true } },
       },
       orderBy: { enrolled_at: 'asc' },
     });
@@ -307,16 +307,16 @@ class EnrollmentRepository extends BaseRepository {
    */
   async getTopLearners(options = {}) {
     this.logger.info({ options }, '[enrollmentRepository] getTopLearners called');
-    const { limit = 10, bootcamp_id } = options;
+    const { limit = 10, academy_id } = options;
 
     const where = { enrollment_status: 'ENROLLED' };
-    if (bootcamp_id) where.bootcamp_id = bootcamp_id;
+    if (academy_id) where.academy_id = academy_id;
 
     return await this.model.findMany({
       where,
       include: {
         user: { select: { id: true, username: true, first_name: true, last_name: true, avatar: true } },
-        bootcamp: { select: { id: true, title: true, path_slug: true, image_url: true } },
+        academy: { select: { id: true, title: true, path_slug: true, image_url: true } },
       },
       orderBy: [{ progress_percentage: 'desc' }, { enrolled_at: 'asc' }],
       take: limit,
@@ -328,25 +328,25 @@ class EnrollmentRepository extends BaseRepository {
    */
   async validateEnrollment(data) {
     this.logger.info('[enrollmentRepository] validateEnrollment called');
-    const { user_id, bootcamp_id, pricing_tier_id } = data;
+    const { user_id, academy_id, pricing_tier_id } = data;
 
-    const existingEnrollment = await this.findByUserAndBootcamp(user_id, bootcamp_id);
+    const existingEnrollment = await this.findByUserAndAcademy(user_id, academy_id);
     if (existingEnrollment) {
-      return { valid: false, message: 'User sudah terdaftar di bootcamp ini', existing_enrollment: existingEnrollment };
+      return { valid: false, message: 'User sudah terdaftar di academy ini', existing_enrollment: existingEnrollment };
     }
 
-    const bootcamp = await this.prisma.bootcamp.findUnique({ where: { id: bootcamp_id }, select: { id: true, title: true, status: true } });
-    if (!bootcamp) {
-      return { valid: false, message: 'Bootcamp tidak ditemukan' };
+    const academy = await this.prisma.academy.findUnique({ where: { id: academy_id }, select: { id: true, title: true, status: true } });
+    if (!academy) {
+      return { valid: false, message: 'Academy tidak ditemukan' };
     }
-    if (bootcamp.status !== 'ACTIVE') {
-      return { valid: false, message: 'Bootcamp tidak tersedia untuk pendaftaran' };
+    if (academy.status !== 'ACTIVE') {
+      return { valid: false, message: 'Academy tidak tersedia untuk pendaftaran' };
     }
 
     if (pricing_tier_id) {
-      const pricingTier = await this.prisma.bootcampPricing.findFirst({ where: { id: pricing_tier_id, bootcamp_id } });
+      const pricingTier = await this.prisma.academyPricing.findFirst({ where: { id: pricing_tier_id, academy_id } });
       if (!pricingTier) {
-        return { valid: false, message: 'Pricing tier tidak valid untuk bootcamp ini' };
+        return { valid: false, message: 'Pricing tier tidak valid untuk academy ini' };
       }
     }
 

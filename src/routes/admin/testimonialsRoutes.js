@@ -1,5 +1,6 @@
 import { adminTestimonialsController } from '../../controllers/admin/testimonialsController.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { uploadMiddleware } from '../../middleware/fileUploadMiddleware.js';
 
 /**
  * Admin Testimonials routes plugin
@@ -317,5 +318,43 @@ export default async function adminTestimonialsRoutes(fastify) {
       preHandler: authMiddleware,
     },
     adminTestimonialsController.rejectTestimonial
+  );
+
+  // Upload testimonial avatar
+  fastify.post(
+    '/:id/avatar',
+    {
+      preHandler: [authMiddleware, uploadMiddleware],
+      schema: {
+        description: 'Upload testimonial avatar',
+        tags: ['Admin Testimonials'],
+        consumes: ['multipart/form-data'],
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'integer' },
+                  name: { type: 'string' },
+                  avatar_url: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    adminTestimonialsController.uploadTestimonialAvatar
   );
 }

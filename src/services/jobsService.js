@@ -20,8 +20,6 @@ export class JobsService {
 
     const result = await jobsRepository.searchJobs(options);
 
-    result.data = result.data.map((job) => this.enhanceJob(job));
-
     this.logger.info({ count: result.data.length }, '[jobsService] searchJobs result');
 
     return result;
@@ -42,7 +40,7 @@ export class JobsService {
       throw error;
     }
 
-    return this.enhanceJobDetails(job);
+    return job;
   }
 
   /**
@@ -60,7 +58,7 @@ export class JobsService {
       throw error;
     }
 
-    return this.enhanceJobDetails(job);
+    return job;
   }
 
   /**
@@ -79,7 +77,7 @@ export class JobsService {
     };
 
     const jobs = await jobsRepository.getRecommendations(userProfile, preferences.limit || 10);
-    return jobs.map((job) => this.enhanceJob(job));
+    return jobs;
   }
 
   /**
@@ -118,7 +116,7 @@ export class JobsService {
     };
 
     const job = await jobsRepository.create(jobDataWithDefaults);
-    return this.enhanceJob(job);
+    return job;
   }
 
   /**
@@ -154,17 +152,19 @@ export class JobsService {
     }
 
     // Handle date fields
-    if (updateData.application_deadline) {
-      updateData.application_deadline = new Date(updateData.application_deadline);
+    if (updateData.posted_date) {
+      updateData.posted_date = new Date(updateData.posted_date);
+    }
+    if (updateData.valid_until) {
+      updateData.valid_until = new Date(updateData.valid_until);
     }
 
-    // Ensure skills is an array
-    if (updateData.skills) {
-      updateData.skills = Array.isArray(updateData.skills) ? updateData.skills : [];
-    }
+    // Extract nested objects for separate handling
+    const { company, location, ...jobUpdateData } = updateData;
 
-    const job = await jobsRepository.update(id, updateData);
-    return this.enhanceJob(job);
+    // Update job with nested objects
+    const job = await jobsRepository.updateWithRelations(id, jobUpdateData, company, location);
+    return job;
   }
 
   /**
@@ -182,54 +182,6 @@ export class JobsService {
     }
 
     await jobsRepository.delete(id);
-  }
-
-  /**
-   * Enhance job object with computed fields
-   * @private
-   * @param {Object} job - Raw job data
-   * @returns {Object} Enhanced job
-   */
-  enhanceJob(job) {
-    const now = new Date();
-    const postedDate = new Date(job.posted_date);
-    const daysSincePosted = Math.floor((now - postedDate) / (1000 * 60 * 60 * 24));
-
-    return {
-      ...job,
-      daysSincePosted,
-      isRecent: daysSincePosted <= 7,
-      isExpiringSoon: job.application_deadline ? Math.floor((new Date(job.application_deadline) - now) / (1000 * 60 * 60 * 24)) <= 3 : false,
-      applicationCount: job._count?.applications || 0,
-      salaryRange: this.formatSalaryRange(job.salary_min, job.salary_max),
-      formattedSalary: {
-        min: job.salary_min ? this.formatCurrency(job.salary_min) : null,
-        max: job.salary_max ? this.formatCurrency(job.salary_max) : null,
-      },
-      relativePostedDate: this.getRelativeDate(postedDate),
-      skillsCount: job.skills ? job.skills.length : 0,
-      isHighPaying: job.salary_max && job.salary_max > 15000000, // 15M IDR
-      workType: job.is_remote ? 'Remote' : 'On-site',
-    };
-  }
-
-  /**
-   * Enhance job details with additional computed fields
-   * @private
-   * @param {Object} job - Raw job data
-   * @returns {Object} Enhanced job details
-   */
-  enhanceJobDetails(job) {
-    const enhanced = this.enhanceJob(job);
-
-    return {
-      ...enhanced,
-      descriptionWordCount: job.description ? job.description.split(' ').length : 0,
-      estimatedReadTime: job.description
-        ? Math.ceil(job.description.split(' ').length / 200) // 200 words per minute
-        : 0,
-      similarJobsQuery: this.generateSimilarJobsQuery(job),
-    };
   }
 
   /**
@@ -368,85 +320,6 @@ export class JobsService {
   }
 
   /**
-   * Format salary range
-   * @private
-   * @param {number} min - Minimum salary
-   * @param {number} max - Maximum salary
-   * @returns {string} Formatted salary range
-   */
-  formatSalaryRange(min, max) {
-    if (!min && !max) return 'Salary not specified';
-    if (!min) return `Up to ${this.formatCurrency(max)}`;
-    if (!max) return `From ${this.formatCurrency(min)}`;
-    if (min === max) return this.formatCurrency(min);
-    return `${this.formatCurrency(min)} - ${this.formatCurrency(max)}`;
-  }
-
-  /**
-   * Format currency to IDR
-   * @private
-   * @param {number} amount - Amount to format
-   * @returns {string} Formatted currency
-   */
-  formatCurrency(amount) {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  }
-
-  /**
-   * Get relative date string
-   * @private
-   * @param {Date} date - Date to format
-   * @returns {string} Relative date string
-   */
-  getRelativeDate(date) {
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-    const diffMinutes = Math.floor(diffTime / (1000 * 60));
-
-    if (diffMinutes < 60) {
-      return `${diffMinutes} minutes ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours} hours ago`;
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else if (diffDays < 30) {
-      const weeks = Math.floor(diffDays / 7);
-      return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
-    } else {
-      return date.toLocaleDateString('id-ID', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    }
-  }
-
-  /**
-   * Generate query for finding similar jobs
-   * @private
-   * @param {Object} job - Job object
-   * @returns {Object} Query object for similar jobs
-   */
-  generateSimilarJobsQuery(job) {
-    return {
-      skills: job.skills || [],
-      location: job.location,
-      jobType: job.job_type,
-      experienceLevel: job.experience_level,
-      excludeId: job.id,
-    };
-  }
-
-  /**
    * Generate slug from title
    * @private
    * @param {string} title - Job title
@@ -554,34 +427,46 @@ export class JobsService {
         }
 
         let locationId = null;
-        if (linkedinJob.locations_raw && linkedinJob.locations_raw.length > 0) {
-          const location = linkedinJob.locations_raw[0];
-
+        {
           const locationData = {
-            city: location.address?.addressLocality || null,
-            region: location.address?.addressRegion || null,
-            country: location.address?.addressCountry || 'Indonesia',
-            latitude: location.latitude ? parseFloat(location.latitude) : null,
-            longitude: location.longitude ? parseFloat(location.longitude) : null,
-            timezone: 'Asia/Jakarta', // Default timezone for Indonesia
-            raw_location_data: location,
-            location_type: 'office', // Default location type
-            is_remote: linkedinJob.remote_derived || false,
+            city: linkedinJob.cities_derived?.[0],
+            region: linkedinJob.regions_derived?.[0],
+            country: linkedinJob.countries_derived?.[0],
+            latitude: linkedinJob.lats_derived?.[0],
+            longitude: linkedinJob.lngs_derived?.[0],
+            timezone: linkedinJob.timezones_derived?.[0],
+            raw_location_data: linkedinJob.locations_raw?.[0],
+            is_remote: linkedinJob.remote_derived,
           };
 
-          const existingLocation = await jobsRepository.findLocationByDetails(locationData);
-          if (existingLocation) {
-            locationId = existingLocation.id;
-          } else {
-            const newLocation = await jobsRepository.createLocation(locationData);
-            locationId = newLocation.id;
+          if (locationData.city || locationData.region || locationData.country || locationData.latitude || locationData.longitude) {
+            const existingLocation = await jobsRepository.findLocationByDetails(locationData);
+            if (existingLocation) {
+              locationId = existingLocation.id;
+            } else {
+              const newLocation = await jobsRepository.createLocation(locationData);
+              locationId = newLocation.id;
+            }
           }
+        }
+
+        // Find or create company from LinkedIn data
+        let companyId;
+        const existingCompany = await jobsRepository.findCompanyBySlug(linkedinJob.linkedin_org_slug);
+
+        if (existingCompany) {
+          companyId = existingCompany.id;
+          this.logger.debug({ companyId, organization: linkedinJob.organization }, '[jobsService] using existing company');
+        } else {
+          const newCompany = await jobsRepository.createCompanyFromLinkedIn(linkedinJob);
+          companyId = newCompany.id;
+          this.logger.info({ companyId, organization: linkedinJob.organization }, '[jobsService] created new company from LinkedIn data');
         }
 
         const jobData = {
           title: linkedinJob.title,
           slug: this.generateSlug(linkedinJob.title),
-          company_id: 1, // Default company ID, will be updated later
+          company_id: companyId,
           location_id: locationId,
           linkedin_job_id: linkedinJob.id,
           external_url: linkedinJob.url,
@@ -589,7 +474,7 @@ export class JobsService {
           valid_until: linkedinJob.date_validthrough ? new Date(linkedinJob.date_validthrough) : null,
           employment_type: linkedinJob.employment_type?.[0] || 'FULL_TIME',
           seniority_level: linkedinJob.seniority || 'MID_LEVEL',
-          description: linkedinJob.title,
+          description: linkedinJob.description_text || '',
           salary_raw: linkedinJob.salary_raw ? JSON.stringify(linkedinJob.salary_raw) : null,
           location_requirements_raw: linkedinJob.location_requirements_raw ? JSON.stringify(linkedinJob.location_requirements_raw) : null,
           source_type: 'jobboard',
@@ -597,14 +482,13 @@ export class JobsService {
           source_domain: linkedinJob.source_domain,
           source_url: linkedinJob.url,
           direct_apply: linkedinJob.directapply || false,
-          status: 'ACTIVE',
+          status: 'active',
           api_created_at: new Date(),
         };
 
         jobsToSave.push(jobData);
       }
 
-      // Save jobs to database
       let savedCount = 0;
 
       if (jobsToSave.length > 0) {
@@ -615,6 +499,50 @@ export class JobsService {
         this.logger.info({ result }, '[jobsService] createMany result');
 
         savedCount = result.count || jobsToSave.length;
+
+        // Persist AI insights for newly saved jobs
+        try {
+          const linkedinIds = linkedinJobs.map((j) => j.id);
+          const savedJobs = await jobsRepository.findJobsByLinkedInIds(linkedinIds);
+          let aiSaved = 0;
+
+          for (const lj of linkedinJobs) {
+            const job = savedJobs.find((sj) => sj.linkedin_job_id === String(lj.id) || sj.linkedin_job_id === lj.id);
+            if (!job) continue;
+
+            const aiPayload = {
+              ai_salary_currency: lj.ai_salary_currency,
+              ai_salary_value: lj.ai_salary_value,
+              ai_salary_min_value: lj.ai_salary_minvalue,
+              ai_salary_max_value: lj.ai_salary_maxvalue,
+              ai_salary_unit_text: lj.ai_salary_unittext,
+              ai_benefits: lj.ai_benefits,
+              ai_experience_level: lj.ai_experience_level,
+              ai_work_arrangement: lj.ai_work_arrangement,
+              ai_work_arrangement_days: lj.ai_work_arrangement_office_days,
+              ai_remote_location: lj.ai_remote_location,
+              ai_remote_location_derived: lj.ai_remote_location_derived,
+              ai_key_skills: lj.ai_key_skills,
+              ai_core_responsibilities: lj.ai_core_responsibilities,
+              ai_requirements_summary: lj.ai_requirements_summary,
+              ai_working_hours: lj.ai_working_hours ? String(lj.ai_working_hours) : null,
+              ai_job_language: lj.ai_job_language,
+              ai_visa_sponsorship: lj.ai_visa_sponsorship,
+              ai_hiring_manager_name: lj.ai_hiring_manager_name,
+              ai_hiring_manager_email: lj.ai_hiring_manager_email_address,
+            };
+
+            const hasAny = Object.values(aiPayload).some((v) => v !== null && v !== undefined);
+            if (!hasAny) continue;
+
+            await jobsRepository.createJobAIInsights({ job_id: job.id, ...aiPayload });
+            aiSaved++;
+          }
+
+          this.logger.info({ aiSaved }, '[jobsService] AI insights saved');
+        } catch (aiErr) {
+          this.logger.error({ err: aiErr }, '[jobsService] save AI insights failed');
+        }
       }
 
       this.logger.info({ totalJobs: linkedinJobs.length, saved: savedCount, skipped: skippedCount }, '[jobsService] sync done');
@@ -641,29 +569,12 @@ export class JobsService {
     this.logger.info({ options }, '[jobsService] getCompanies start');
     try {
       const result = await jobsRepository.searchCompanies(options);
-
-      // Enhance company data with additional computed fields
-      result.data = result.data.map((company) => this.enhanceCompany(company));
-
       this.logger.info({ count: result.data.length }, '[jobsService] getCompanies success');
       return result;
     } catch (error) {
       this.logger.error({ err: error }, '[jobsService] getCompanies error');
       throw error;
     }
-  }
-
-  /**
-   * Enhance company data with computed fields
-   * @param {Object} company - Company data from database
-   * @returns {Object} Enhanced company data
-   */
-  enhanceCompany(company) {
-    return {
-      ...company,
-      // Add any computed fields here if needed
-      // For example: formattedFoundedDate, isLargeCompany, etc.
-    };
   }
 }
 

@@ -47,20 +47,20 @@ export default async function userEnrollmentRoutes(fastify) {
     userEnrollmentController.getEnrollmentById
   );
 
-  // GET /api/enrollments/user/:userId/bootcamp/:bootcampId - Get enrollment by user and bootcamp
+  // GET /api/enrollments/user/:userId/academy/:academyId - Get enrollment by user and academy
   fastify.get(
-    '/user/:userId/bootcamp/:bootcampId',
+    '/user/:userId/academy/:academyId',
     {
       schema: {
         ...enrollmentTag,
-        description: 'Get enrollment by user and bootcamp',
+        description: 'Get enrollment by user and academy',
         params: {
           type: 'object',
           properties: {
             userId: { type: 'integer', minimum: 1 },
-            bootcampId: { type: 'integer', minimum: 1 },
+            academyId: { type: 'integer', minimum: 1 },
           },
-          required: ['userId', 'bootcampId'],
+          required: ['userId', 'academyId'],
         },
         response: {
           200: {
@@ -84,7 +84,7 @@ export default async function userEnrollmentRoutes(fastify) {
       },
       preHandler: optionalAuthMiddleware,
     },
-    userEnrollmentController.getEnrollmentByUserAndBootcamp
+    userEnrollmentController.getEnrollmentByUserAndAcademy
   );
 
   // GET /api/enrollments/user/:userId - Get user enrollments

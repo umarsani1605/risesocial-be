@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { seedUsers } from './userSeed.js';
-import { seedBootcamps } from './bootcampSeed.js';
+import { seedAcademies } from './academySeed.js';
 import { seedJobs } from './jobsSeed.js';
 import { seedTestimonials } from './testimonialsSeed.js';
 import { seedPrograms } from './programsSeed.js';
@@ -17,9 +17,9 @@ async function main() {
     await seedUsers();
     console.log('✅ Users seeding completed\n');
 
-    console.log('📚 Seeding bootcamps...');
-    await seedBootcamps();
-    console.log('✅ Bootcamps seeding completed\n');
+    console.log('📚 Seeding academies...');
+    await seedAcademies();
+    console.log('✅ Academies seeding completed\n');
 
     console.log('💼 Seeding jobs (Full LinkedIn API)...');
     await seedJobs();

@@ -1,11 +1,12 @@
 import { userService } from '../../services/userService.js';
+import { fileUploadService } from '../../services/fileUploadService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 /**
  * User Self-Management HTTP controllers
  * Handles user settings, profile, and self-management requests
  */
-export class UserUserController {
+export class UserController {
   /**
    * Get current user profile
    * @param {Object} request - Fastify request
@@ -49,7 +50,7 @@ export class UserUserController {
   };
 
   /**
-   * Update user settings
+   * Update user settings (key-value structure)
    * @param {Object} request - Fastify request
    * @param {Object} reply - Fastify reply
    */
@@ -58,9 +59,15 @@ export class UserUserController {
       request.log.info('[userUserController] updateUserSettings start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');
       const { userId } = request.user;
-      const settings = await userService.updateUserSettings(userId, request.body);
+      const { settings } = request.body;
+
+      if (!settings || !Array.isArray(settings)) {
+        return reply.status(400).send(errorResponse('Settings array is required', 400));
+      }
+
+      const updatedSettings = await userService.updateUserSettings(userId, settings);
       request.log.info('[userUserController] updateUserSettings success');
-      return reply.send(successResponse(settings, 'Settings updated successfully'));
+      return reply.send(successResponse(updatedSettings, 'Settings updated successfully'));
     } catch (error) {
       request.log.error({ err: error }, '[userUserController] updateUserSettings error');
       return reply.status(500).send(errorResponse('Failed to update settings', 500, error.message));
@@ -68,48 +75,96 @@ export class UserUserController {
   };
 
   /**
-   * Check username availability (Public utility)
+   * Update user account information
    * @param {Object} request - Fastify request
    * @param {Object} reply - Fastify reply
    */
-  checkUsernameAvailability = async (request, reply) => {
+  updateUserAccount = async (request, reply) => {
     try {
-      request.log.info('[userUserController] checkUsernameAvailability start');
-      request.log.debug({ params: request.params }, '[userUserController] rawParams');
-      const { username } = request.params;
-      const result = await userService.checkUsernameAvailability(username);
-      request.log.info('[userUserController] checkUsernameAvailability success');
-      return reply.send(successResponse(result, 'Username availability checked'));
+      request.log.info('[userUserController] updateUserAccount start');
+      request.log.debug({ body: request.body }, '[userUserController] rawBody');
+      const { userId } = request.user;
+      const accountData = request.body;
+
+      const updatedUser = await userService.updateUserAccount(userId, accountData);
+      request.log.info('[userUserController] updateUserAccount success');
+      return reply.send(successResponse(updatedUser, 'Account updated successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userUserController] checkUsernameAvailability error');
-      return reply.status(500).send(errorResponse('Failed to check username', 500, error.message));
+      request.log.error({ err: error }, '[userUserController] updateUserAccount error');
+
+      if (error.statusCode === 400) {
+        return reply.status(400).send(errorResponse(error.message, 400));
+      }
+
+      return reply.status(500).send(errorResponse('Failed to update account', 500, error.message));
     }
   };
 
   /**
-   * Generate username suggestions (Public utility)
+   * Update user password
    * @param {Object} request - Fastify request
    * @param {Object} reply - Fastify reply
    */
-  generateUsernameSuggestions = async (request, reply) => {
+  updateUserPassword = async (request, reply) => {
     try {
-      request.log.info('[userUserController] generateUsernameSuggestions start');
-      request.log.debug({ query: request.query }, '[userUserController] rawQuery');
-      const { first_name, last_name } = request.query;
+      request.log.info('[userUserController] updateUserPassword start');
+      request.log.debug({ body: request.body }, '[userUserController] rawBody');
+      const { userId } = request.user;
+      const { password, repeatPassword } = request.body;
 
-      if (!first_name || !last_name) {
-        return reply.status(400).send(errorResponse('first_name and last_name are required', 400));
+      if (!password || !repeatPassword) {
+        return reply.status(400).send(errorResponse('Password and repeat password are required', 400));
       }
 
-      const suggestions = await userService.generateUsernameSuggestions(first_name, last_name);
-      request.log.info('[userUserController] generateUsernameSuggestions success');
-      return reply.send(successResponse(suggestions, 'Username suggestions generated'));
+      if (password !== repeatPassword) {
+        return reply.status(400).send(errorResponse('Passwords do not match', 400));
+      }
+
+      await userService.updateUserPassword(userId, password);
+      request.log.info('[userUserController] updateUserPassword success');
+      return reply.send(successResponse(null, 'Password updated successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userUserController] generateUsernameSuggestions error');
-      return reply.status(500).send(errorResponse('Failed to generate username suggestions', 500, error.message));
+      request.log.error({ err: error }, '[userUserController] updateUserPassword error');
+      return reply.status(500).send(errorResponse('Failed to update password', 500, error.message));
+    }
+  };
+
+  /**
+   * Upload user avatar
+   * @param {Object} request - Fastify request
+   * @param {Object} reply - Fastify reply
+   */
+  uploadUserAvatar = async (request, reply) => {
+    try {
+      request.log.info('[userUserController] uploadUserAvatar start');
+
+      const { userId } = request.user;
+      const { file } = request;
+
+      if (!file) {
+        return reply.status(400).send(errorResponse('No file uploaded', 400));
+      }
+
+      // Upload file using service
+      const uploadResult = await fileUploadService.uploadFile(file, {
+        uploadType: 'USER_AVATAR',
+        maxSize: 2 * 1024 * 1024, // 2MB for user avatar
+        allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+      });
+
+      // Update user with new avatar URL
+      const user = await userService.updateUser(userId, {
+        avatar_url: uploadResult.fileUrl,
+      });
+
+      request.log.info('[userUserController] uploadUserAvatar success');
+      return reply.status(200).send(successResponse(user, 'User avatar uploaded successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[userUserController] uploadUserAvatar error');
+      return reply.status(500).send(errorResponse('Failed to upload user avatar', 500, error.message));
     }
   };
 }
 
 // Export instance
-export const userUserController = new UserUserController();
+export const userController = new UserController();

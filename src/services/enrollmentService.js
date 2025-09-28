@@ -68,25 +68,25 @@ class EnrollmentService {
   }
 
   /**
-   * Mendapatkan enrollment berdasarkan user dan bootcamp
+   * Mendapatkan enrollment berdasarkan user dan academy
    * @param {number} userId - ID user
-   * @param {number} bootcampId - ID bootcamp
+   * @param {number} academyId - ID academy
    * @returns {Promise<Object>} - Enhanced enrollment object
    */
-  async getEnrollmentByUserAndBootcamp(userId, bootcampId) {
-    this.logger.info({ userId, bootcampId }, '[enrollmentService] getEnrollmentByUserAndBootcamp start');
+  async getEnrollmentByUserAndAcademy(userId, academyId) {
+    this.logger.info({ userId, academyId }, '[enrollmentService] getEnrollmentByUserAndAcademy start');
     try {
-      const enrollment = await this.enrollmentRepository.findByUserAndBootcamp(userId, bootcampId);
+      const enrollment = await this.enrollmentRepository.findByUserAndAcademy(userId, academyId);
       if (!enrollment) {
         const err = new Error('Enrollment tidak ditemukan');
         throw err;
       }
 
       const result = this.enhanceEnrollmentObject(enrollment);
-      this.logger.info('[enrollmentService] getEnrollmentByUserAndBootcamp success');
+      this.logger.info('[enrollmentService] getEnrollmentByUserAndAcademy success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[enrollmentService] getEnrollmentByUserAndBootcamp error');
+      this.logger.error({ err: error }, '[enrollmentService] getEnrollmentByUserAndAcademy error');
       throw error;
     }
   }
@@ -126,15 +126,15 @@ class EnrollmentService {
   }
 
   /**
-   * Mendapatkan enrollment berdasarkan bootcamp ID
-   * @param {number} bootcampId - ID bootcamp
+   * Mendapatkan enrollment berdasarkan academy ID
+   * @param {number} academyId - ID academy
    * @param {Object} options - Options untuk filtering
-   * @returns {Promise<Object>} - Enhanced bootcamp enrollments
+   * @returns {Promise<Object>} - Enhanced academy enrollments
    */
-  async getBootcampEnrollments(bootcampId, options = {}) {
-    this.logger.info({ bootcampId }, '[enrollmentService] getBootcampEnrollments start');
+  async getAcademyEnrollments(academyId, options = {}) {
+    this.logger.info({ academyId }, '[enrollmentService] getAcademyEnrollments start');
     try {
-      const enrollments = await this.enrollmentRepository.findByBootcampId(bootcampId, options);
+      const enrollments = await this.enrollmentRepository.findByAcademyId(academyId, options);
 
       // Enhance objects
       const enhancedEnrollments = enrollments.data.map((enrollment) => this.enhanceEnrollmentObject(enrollment));
@@ -151,10 +151,10 @@ class EnrollmentService {
         },
       };
 
-      this.logger.info('[enrollmentService] getBootcampEnrollments success');
+      this.logger.info('[enrollmentService] getAcademyEnrollments success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[enrollmentService] getBootcampEnrollments error');
+      this.logger.error({ err: error }, '[enrollmentService] getAcademyEnrollments error');
       throw error;
     }
   }
@@ -341,7 +341,7 @@ class EnrollmentService {
           ...options,
           limit: 5,
           include_user: true,
-          include_bootcamp: true,
+          include_academy: true,
         }),
         this.getTopLearners({ limit: 5 }),
         this.getExpiringEnrollments(7),
@@ -425,19 +425,19 @@ class EnrollmentService {
           }
         : null,
 
-      // Bootcamp info (jika ada)
-      bootcamp_info: enrollment.bootcamp
+      // Academy info (jika ada)
+      academy_info: enrollment.academy
         ? {
-            id: enrollment.bootcamp.id,
-            title: enrollment.bootcamp.title,
-            slug: enrollment.bootcamp.path_slug,
-            image_url: enrollment.bootcamp.image_url,
-            category: enrollment.bootcamp.category,
-            duration: enrollment.bootcamp.duration,
-            rating: enrollment.bootcamp.rating,
-            has_certificate: enrollment.bootcamp.certificate,
-            has_portfolio: enrollment.bootcamp.portfolio,
-            rating_display: enrollment.bootcamp.rating ? `⭐ ${enrollment.bootcamp.rating}/5` : 'Belum ada rating',
+            id: enrollment.academy.id,
+            title: enrollment.academy.title,
+            slug: enrollment.academy.path_slug,
+            image_url: enrollment.academy.image_url,
+            category: enrollment.academy.category,
+            duration: enrollment.academy.duration,
+            rating: enrollment.academy.rating,
+            has_certificate: enrollment.academy.certificate,
+            has_portfolio: enrollment.academy.portfolio,
+            rating_display: enrollment.academy.rating ? `⭐ ${enrollment.academy.rating}/5` : 'Belum ada rating',
           }
         : null,
 
@@ -685,7 +685,7 @@ class EnrollmentService {
       recommendations.push({
         type: 'cancellation',
         priority: 'high',
-        message: 'Analisis penyebab pembatalan dan perbaiki konten bootcamp',
+        message: 'Analisis penyebab pembatalan dan perbaiki konten academy',
       });
     }
 

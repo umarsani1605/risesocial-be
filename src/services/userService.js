@@ -244,7 +244,7 @@ export class UserService {
    */
   async getCurrentUser(userId) {
     this.logger.info({ userId }, '[userService] getCurrentUser start');
-    const user = await userRepository.findById(userId, { include: { user_setting: true } });
+    const user = await userRepository.findById(userId);
 
     if (!user) {
       const error = new Error('User not found');
@@ -258,76 +258,82 @@ export class UserService {
   }
 
   /**
-   * Get user settings
+   * Get user settings (key-value structure)
    */
   async getUserSettings(userId) {
     this.logger.info('[userService] getUserSettings start');
-    let userSettings = await userSettingsRepository.findByUserId(userId);
+    this.logger.debug({ userId }, '[userService] params');
 
-    if (!userSettings) {
-      userSettings = await userSettingsRepository.createDefault(userId);
+    try {
+      const settings = await userSettingsRepository.getUserSettings(userId);
+      this.logger.info('[userService] getUserSettings success');
+      return settings;
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] getUserSettings error');
+      throw error;
     }
-
-    this.logger.info('[userService] getUserSettings success');
-    return userSettings;
   }
 
   /**
-   * Update user settings
+   * Update user settings (key-value structure)
    */
-  async updateUserSettings(userId, settingsData) {
+  async updateUserSettings(userId, settingsArray) {
     this.logger.info('[userService] updateUserSettings start');
-    this.logger.debug({ userId, settingsData }, '[userService] raw');
-    const result = await userSettingsRepository.upsertByUserId(userId, settingsData);
-    this.logger.info('[userService] updateUserSettings success');
-    return result;
-  }
+    this.logger.debug({ userId, settingsArray }, '[userService] raw');
 
-  /**
-   * Check username availability
-   */
-  async checkUsernameAvailability(username) {
-    this.logger.info('[userService] checkUsernameAvailability start');
-    const exists = await userRepository.usernameExists(username);
-    this.logger.info('[userService] checkUsernameAvailability success');
-    return { username, available: !exists };
-  }
-
-  /**
-   * Generate username suggestions
-   */
-  async generateUsernameSuggestions(firstName, lastName) {
-    this.logger.info('[userService] generateUsernameSuggestions start');
-    const suggestions = [];
-    const baseUsername = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
-
-    for (let i = 0; i < 5; i++) {
-      let username;
-      if (i === 0) username = baseUsername;
-      else username = `${baseUsername}${Math.floor(Math.random() * 1000)}`;
-      const exists = await userRepository.usernameExists(username);
-      suggestions.push({ username, available: !exists });
+    try {
+      const result = await userSettingsRepository.updateUserSettings(userId, settingsArray);
+      this.logger.info('[userService] updateUserSettings success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] updateUserSettings error');
+      throw error;
     }
-
-    this.logger.info('[userService] generateUsernameSuggestions success');
-    return suggestions;
   }
 
   /**
-   * Generate unique username
+   * Update user account information
    */
-  async generateUniqueUsername(firstName, lastName) {
-    this.logger.debug({ firstName, lastName }, '[userService] generateUniqueUsername');
-    const baseUsername = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
-    let username = baseUsername;
-    let counter = 1;
+  async updateUserAccount(userId, accountData) {
+    this.logger.info('[userService] updateUserAccount start');
+    this.logger.debug({ userId, accountData }, '[userService] raw');
 
-    while (await userRepository.usernameExists(username)) {
-      username = `${baseUsername}${counter}`;
-      counter++;
+    try {
+      // Check email uniqueness if email is being updated
+      if (accountData.email) {
+        const existingUser = await userRepository.findByEmail(accountData.email);
+        if (existingUser && existingUser.id !== userId) {
+          const error = new Error('Email already exists');
+          error.statusCode = 400;
+          throw error;
+        }
+      }
+
+      const updatedUser = await userRepository.updateUser(userId, accountData);
+      this.logger.info('[userService] updateUserAccount success');
+      return this.excludePassword(updatedUser);
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] updateUserAccount error');
+      throw error;
     }
+  }
 
-    return username;
+  /**
+   * Update user password
+   */
+  async updateUserPassword(userId, password) {
+    this.logger.info('[userService] updateUserPassword start');
+    this.logger.debug({ userId }, '[userService] params');
+
+    try {
+      const hashedPassword = await bcrypt.hash(password, 12);
+      const updatedUser = await userRepository.updateUser(userId, { password: hashedPassword });
+      this.logger.info('[userService] updateUserPassword success');
+      return this.excludePassword(updatedUser);
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] updateUserPassword error');
+      throw error;
+    }
   }
 
   /**

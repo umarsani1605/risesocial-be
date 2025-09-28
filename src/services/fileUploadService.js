@@ -24,7 +24,7 @@ export class FileUploadService {
     this.logger.info('[fileUploadService] processFileUpload start');
     this.logger.debug({ fileName: fileData?.originalname, uploadType }, '[fileUploadService] rawInput');
     try {
-      const validTypes = ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'BOOTCAMP_IMAGE'];
+      const validTypes = ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR'];
       if (!validTypes.includes(uploadType)) {
         throw new Error(`Invalid upload type: ${uploadType}`);
       }
@@ -176,6 +176,16 @@ export class FileUploadService {
     return `${baseUrl}/api/uploads/${fileId}`;
   }
 
+  /**
+   * Generate public URL for file without saving to database
+   * Used for academy images, instructor avatars, testimonial avatars
+   */
+  generatePublicFileUrl(fileData) {
+    const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+    const relativePath = fileData.relativePath || fileData.path;
+    return `${baseUrl}/${relativePath}`;
+  }
+
   enhanceFileObject(file) {
     return {
       id: file.id,
@@ -252,3 +262,5 @@ export class FileUploadService {
     }
   }
 }
+
+export const fileUploadService = new FileUploadService();

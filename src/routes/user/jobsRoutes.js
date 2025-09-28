@@ -1,6 +1,5 @@
 import UserJobsController from '../../controllers/user/jobsController.js';
 import { optionalAuthMiddleware } from '../../middleware/auth.js';
-import { getAllJobsSchema, getJobByIdSchema, searchJobsSchema, getJobStatsSchema, getCompaniesSchema } from '../../schemas/jobsSchemas.js';
 
 const userJobsController = new UserJobsController();
 
@@ -17,7 +16,6 @@ export async function jobsRoutes(fastify) {
     {
       schema: {
         ...jobsTag,
-        querystring: getAllJobsSchema.querystring,
       },
       preHandler: optionalAuthMiddleware,
     },
@@ -30,12 +28,6 @@ export async function jobsRoutes(fastify) {
     {
       schema: {
         ...jobsTag,
-        querystring: {
-          type: 'object',
-          properties: {
-            limit: { type: 'integer', minimum: 1, maximum: 20, default: 6 },
-          },
-        },
       },
     },
     userJobsController.getFeaturedJobs
@@ -47,20 +39,6 @@ export async function jobsRoutes(fastify) {
     {
       schema: {
         ...jobsTag,
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: {
-                type: 'array',
-                items: { type: 'string' },
-              },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
       },
     },
     userJobsController.getJobCategories
@@ -72,8 +50,6 @@ export async function jobsRoutes(fastify) {
     {
       schema: {
         ...jobsTag,
-        querystring: getCompaniesSchema.querystring,
-        response: getCompaniesSchema.response,
       },
       preHandler: optionalAuthMiddleware,
     },
@@ -84,7 +60,9 @@ export async function jobsRoutes(fastify) {
   fastify.get(
     '/search',
     {
-      schema: { ...searchJobsSchema, ...jobsTag },
+      schema: {
+        ...jobsTag,
+      },
     },
     userJobsController.searchJobs
   );
@@ -93,7 +71,9 @@ export async function jobsRoutes(fastify) {
   fastify.get(
     '/:id',
     {
-      schema: { ...getJobByIdSchema, ...jobsTag },
+      schema: {
+        ...jobsTag,
+      },
       preHandler: optionalAuthMiddleware,
     },
     userJobsController.getJobById
@@ -105,19 +85,6 @@ export async function jobsRoutes(fastify) {
     {
       schema: {
         ...jobsTag,
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-          required: ['id'],
-        },
-        querystring: {
-          type: 'object',
-          properties: {
-            limit: { type: 'integer', minimum: 1, maximum: 20, default: 5 },
-          },
-        },
       },
     },
     userJobsController.getJobRecommendations

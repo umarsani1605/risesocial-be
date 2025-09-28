@@ -23,7 +23,7 @@ export class AdminEnrollmentController {
 
       const options = {
         user_id: request.query.user_id ? parseInt(request.query.user_id) : undefined,
-        bootcamp_id: request.query.bootcamp_id ? parseInt(request.query.bootcamp_id) : undefined,
+        academy_id: request.query.academy_id ? parseInt(request.query.academy_id) : undefined,
         enrollment_status: request.query.enrollment_status,
         progress_min: request.query.progress_min ? parseInt(request.query.progress_min) : undefined,
         progress_max: request.query.progress_max ? parseInt(request.query.progress_max) : undefined,
@@ -32,7 +32,7 @@ export class AdminEnrollmentController {
         page: request.query.page ? parseInt(request.query.page) : 1,
         limit: request.query.limit ? parseInt(request.query.limit) : 10,
         include_user: request.query.include_user === 'true',
-        include_bootcamp: request.query.include_bootcamp === 'true',
+        include_academy: request.query.include_academy === 'true',
         include_pricing: request.query.include_pricing === 'true',
       };
 
@@ -47,16 +47,16 @@ export class AdminEnrollmentController {
   }
 
   /**
-   * Get bootcamp enrollments (Admin only)
+   * Get academy enrollments (Admin only)
    * @param {Object} request - Fastify request
    * @param {Object} reply - Fastify reply
    */
-  async getBootcampEnrollments(request, reply) {
+  async getAcademyEnrollments(request, reply) {
     try {
-      request.log.info('[adminEnrollmentController] getBootcampEnrollments start');
+      request.log.info('[adminEnrollmentController] getAcademyEnrollments start');
       request.log.debug({ params: request.params, query: request.query }, '[adminEnrollmentController] rawParams');
 
-      const { bootcampId } = request.params;
+      const { academyId } = request.params;
       const options = {
         enrollment_status: request.query.enrollment_status,
         progress_min: request.query.progress_min ? parseInt(request.query.progress_min) : undefined,
@@ -65,13 +65,13 @@ export class AdminEnrollmentController {
         limit: request.query.limit ? parseInt(request.query.limit) : 10,
       };
 
-      const enrollments = await this.enrollmentService.getBootcampEnrollments(parseInt(bootcampId), options);
+      const enrollments = await this.enrollmentService.getAcademyEnrollments(parseInt(academyId), options);
 
-      request.log.info('[adminEnrollmentController] getBootcampEnrollments success');
-      return reply.send(successResponse(enrollments, 'Enrollment bootcamp berhasil ditemukan'));
+      request.log.info('[adminEnrollmentController] getAcademyEnrollments success');
+      return reply.send(successResponse(enrollments, 'Enrollment academy berhasil ditemukan'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminEnrollmentController] getBootcampEnrollments error');
-      return reply.status(500).send(errorResponse('Gagal mendapatkan enrollment bootcamp', 500, error.message));
+      request.log.error({ err: error }, '[adminEnrollmentController] getAcademyEnrollments error');
+      return reply.status(500).send(errorResponse('Gagal mendapatkan enrollment academy', 500, error.message));
     }
   }
 
@@ -87,7 +87,7 @@ export class AdminEnrollmentController {
 
       const enrollmentData = {
         user_id: request.body.user_id,
-        bootcamp_id: request.body.bootcamp_id,
+        academy_id: request.body.academy_id,
         pricing_tier_id: request.body.pricing_tier_id,
         enrollment_status: request.body.enrollment_status,
         progress_percentage: request.body.progress_percentage,

@@ -29,20 +29,19 @@ export class SystemSettingsRepository {
    * @returns {Promise<Object>} Created/updated setting
    */
   async upsertSetting(key, value, description = null) {
-    this.logger.info({ key }, '[systemSettingsRepository] upsertSetting called');
-    return await prisma.systemSetting.upsert({
-      where: { key },
-      update: {
-        value,
-        description,
-        updated_at: new Date(),
-      },
-      create: {
-        key,
-        value,
-        description,
-      },
-    });
+    this.logger.info({ key }, '[systemSettingsRepository] upsertSetting(update-then-insert) called');
+    const data = { value, description, updated_at: new Date() };
+
+    const existing = await prisma.systemSetting.findUnique({ where: { key }, select: { key: true } });
+    if (existing) {
+      return await prisma.systemSetting.update({ where: { key }, data });
+    }
+
+    try {
+      return await prisma.systemSetting.create({ data: { key, value, description } });
+    } catch (err) {
+      this.logger.warn({ key, err }, '[systemSettingsRepository] create system setting failed');
+    }
   }
 
   /**

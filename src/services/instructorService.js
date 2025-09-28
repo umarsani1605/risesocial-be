@@ -1,12 +1,12 @@
 import { getLogger } from '../lib/loggerContext.js';
 import InstructorRepository from '../repositories/instructorRepository.js';
-// Note: bootcampInstructorRepository.js sudah dihapus, perlu implementasi ulang
+// Note: academyInstructorRepository.js sudah dihapus, perlu implementasi ulang
 
 class InstructorService {
   constructor() {
     this.instructorRepository = new InstructorRepository();
-    // TODO: Implement bootcampInstructorRepository functionality
-    this.bootcampInstructorRepository = null;
+    // TODO: Implement academyInstructorRepository functionality
+    this.academyInstructorRepository = null;
   }
 
   get logger() {
@@ -45,10 +45,10 @@ class InstructorService {
   /**
    * Mendapatkan instructor berdasarkan ID
    */
-  async getInstructorById(id, includeBootcamps = false) {
-    this.logger.info({ id, includeBootcamps }, '[instructorService] getInstructorById start');
+  async getInstructorById(id, includeAcademies = false) {
+    this.logger.info({ id, includeAcademies }, '[instructorService] getInstructorById start');
     try {
-      const instructor = await this.instructorRepository.findByIdWithBootcamps(id, includeBootcamps);
+      const instructor = await this.instructorRepository.findByIdWithAcademies(id, includeAcademies);
       const result = instructor ? this.enhanceInstructorObject(instructor) : null;
       this.logger.info('[instructorService] getInstructorById success');
       return result;
@@ -142,49 +142,49 @@ class InstructorService {
   }
 
   /**
-   * Mendapatkan instructor yang tersedia untuk bootcamp
+   * Mendapatkan instructor yang tersedia untuk academy
    */
-  async getAvailableInstructorsForBootcamp(bootcampId) {
-    this.logger.info({ bootcampId }, '[instructorService] getAvailableInstructorsForBootcamp start');
+  async getAvailableInstructorsForAcademy(academyId) {
+    this.logger.info({ academyId }, '[instructorService] getAvailableInstructorsForAcademy start');
     try {
-      const instructors = await this.instructorRepository.findAvailableForBootcamp(bootcampId);
+      const instructors = await this.instructorRepository.findAvailableForAcademy(academyId);
       const result = instructors.map((instructor) => this.enhanceInstructorObject(instructor));
-      this.logger.info('[instructorService] getAvailableInstructorsForBootcamp success');
+      this.logger.info('[instructorService] getAvailableInstructorsForAcademy success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[instructorService] getAvailableInstructorsForBootcamp error');
+      this.logger.error({ err: error }, '[instructorService] getAvailableInstructorsForAcademy error');
       throw error;
     }
   }
 
   /**
-   * Mendapatkan instructor untuk bootcamp tertentu
+   * Mendapatkan instructor untuk academy tertentu
    */
-  async getInstructorsByBootcampId(bootcampId) {
-    this.logger.info({ bootcampId }, '[instructorService] getInstructorsByBootcampId start');
+  async getInstructorsByAcademyId(academyId) {
+    this.logger.info({ academyId }, '[instructorService] getInstructorsByAcademyId start');
     try {
-      const instructors = await this.instructorRepository.findByBootcampId(bootcampId);
+      const instructors = await this.instructorRepository.findByAcademyId(academyId);
       const result = instructors.map((instructor) => this.enhanceInstructorObject(instructor));
-      this.logger.info('[instructorService] getInstructorsByBootcampId success');
+      this.logger.info('[instructorService] getInstructorsByAcademyId success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[instructorService] getInstructorsByBootcampId error');
+      this.logger.error({ err: error }, '[instructorService] getInstructorsByAcademyId error');
       throw error;
     }
   }
 
   /**
-   * Mendapatkan bootcamp yang diajar oleh instructor
+   * Mendapatkan academy yang diajar oleh instructor
    */
-  async getBootcampsByInstructorId(instructorId) {
-    this.logger.info({ instructorId }, '[instructorService] getBootcampsByInstructorId start');
+  async getAcademiesByInstructorId(instructorId) {
+    this.logger.info({ instructorId }, '[instructorService] getAcademiesByInstructorId start');
     try {
-      const bootcamps = await this.instructorRepository.findBootcampsByInstructorId(instructorId);
-      const result = bootcamps.map((bootcamp) => this.enhanceBootcampObject(bootcamp));
-      this.logger.info('[instructorService] getBootcampsByInstructorId success');
+      const academies = await this.instructorRepository.findAcademiesByInstructorId(instructorId);
+      const result = academies.map((academy) => this.enhanceAcademyObject(academy));
+      this.logger.info('[instructorService] getAcademiesByInstructorId success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[instructorService] getBootcampsByInstructorId error');
+      this.logger.error({ err: error }, '[instructorService] getAcademiesByInstructorId error');
       throw error;
     }
   }
@@ -208,40 +208,40 @@ class InstructorService {
   /**
    * Assign/Remove/Reorder/Batch/Detail (belum diimplementasikan)
    */
-  async assignInstructorToBootcamp(bootcampId, instructorId, instructorOrder = null) {
-    this.logger.info({ bootcampId, instructorId }, '[instructorService] assignInstructorToBootcamp start');
-    throw new Error('BootcampInstructorRepository belum diimplementasikan');
+  async assignInstructorToAcademy(academyId, instructorId, instructorOrder = null) {
+    this.logger.info({ academyId, instructorId }, '[instructorService] assignInstructorToAcademy start');
+    throw new Error('AcademyInstructorRepository belum diimplementasikan');
   }
 
-  async removeInstructorFromBootcamp(bootcampId, instructorId) {
-    this.logger.info({ bootcampId, instructorId }, '[instructorService] removeInstructorFromBootcamp start');
-    throw new Error('BootcampInstructorRepository belum diimplementasikan');
+  async removeInstructorFromAcademy(academyId, instructorId) {
+    this.logger.info({ academyId, instructorId }, '[instructorService] removeInstructorFromAcademy start');
+    throw new Error('AcademyInstructorRepository belum diimplementasikan');
   }
 
-  async reorderInstructorsInBootcamp(bootcampId, orderData) {
-    this.logger.info({ bootcampId }, '[instructorService] reorderInstructorsInBootcamp start');
-    throw new Error('BootcampInstructorRepository belum diimplementasikan');
+  async reorderInstructorsInAcademy(academyId, orderData) {
+    this.logger.info({ academyId }, '[instructorService] reorderInstructorsInAcademy start');
+    throw new Error('AcademyInstructorRepository belum diimplementasikan');
   }
 
-  async batchAssignInstructors(bootcampId, instructorIds) {
+  async batchAssignInstructors(academyId, instructorIds) {
     this.logger.info(
-      { bootcampId, count: Array.isArray(instructorIds) ? instructorIds.length : 0 },
+      { academyId, count: Array.isArray(instructorIds) ? instructorIds.length : 0 },
       '[instructorService] batchAssignInstructors start'
     );
-    throw new Error('BootcampInstructorRepository belum diimplementasikan');
+    throw new Error('AcademyInstructorRepository belum diimplementasikan');
   }
 
-  async batchRemoveInstructors(bootcampId, instructorIds) {
+  async batchRemoveInstructors(academyId, instructorIds) {
     this.logger.info(
-      { bootcampId, count: Array.isArray(instructorIds) ? instructorIds.length : 0 },
+      { academyId, count: Array.isArray(instructorIds) ? instructorIds.length : 0 },
       '[instructorService] batchRemoveInstructors start'
     );
-    throw new Error('BootcampInstructorRepository belum diimplementasikan');
+    throw new Error('AcademyInstructorRepository belum diimplementasikan');
   }
 
-  async getAssignmentDetail(bootcampId, instructorId) {
-    this.logger.info({ bootcampId, instructorId }, '[instructorService] getAssignmentDetail start');
-    throw new Error('BootcampInstructorRepository belum diimplementasikan');
+  async getAssignmentDetail(academyId, instructorId) {
+    this.logger.info({ academyId, instructorId }, '[instructorService] getAssignmentDetail start');
+    throw new Error('AcademyInstructorRepository belum diimplementasikan');
   }
 
   /**
@@ -252,7 +252,7 @@ class InstructorService {
     try {
       const [instructorStats, assignmentStats] = await Promise.all([
         this.instructorRepository.getInstructorStats(),
-        this.bootcampInstructorRepository.getAssignmentStats(),
+        this.academyInstructorRepository.getAssignmentStats(),
       ]);
 
       const result = {
@@ -275,7 +275,7 @@ class InstructorService {
    * @returns {Object} Enhanced instructor object
    */
   enhanceInstructorObject(instructor) {
-    const bootcampCount = instructor.bootcamp_instructors ? instructor.bootcamp_instructors.length : 0;
+    const academyCount = instructor.academy_instructors ? instructor.academy_instructors.length : 0;
 
     return {
       ...instructor,
@@ -286,29 +286,29 @@ class InstructorService {
       experience_level: this.getExperienceLevel(instructor.job_title),
       expertise_areas: this.extractExpertiseAreas(instructor.description),
       seniority_badge: this.getSeniorityBadge(instructor.job_title),
-      bootcamp_count: bootcampCount,
+      academy_count: academyCount,
       instructor_type: this.getInstructorType(instructor.job_title),
       display_name: this.getDisplayName(instructor),
       created_at_formatted: this.formatDate(instructor.created_at),
       updated_at_formatted: this.formatDate(instructor.updated_at),
       short_description: this.getShortDescription(instructor.description),
-      bootcamps: instructor.bootcamp_instructors ? instructor.bootcamp_instructors.map((bi) => this.enhanceBootcampObject(bi.bootcamp)) : [],
+      academies: instructor.academy_instructors ? instructor.academy_instructors.map((ai) => this.enhanceAcademyObject(ai.academy)) : [],
     };
   }
 
   /**
-   * Enhance bootcamp object untuk context instructor
-   * @param {Object} bootcamp - Raw bootcamp object
-   * @returns {Object} Enhanced bootcamp object
+   * Enhance academy object untuk context instructor
+   * @param {Object} academy - Raw academy object
+   * @returns {Object} Enhanced academy object
    */
-  enhanceBootcampObject(bootcamp) {
+  enhanceAcademyObject(academy) {
     return {
-      ...bootcamp,
-      category_badge: this.getCategoryBadge(bootcamp.category),
-      status_badge: this.getStatusBadge(bootcamp.status),
-      duration_formatted: this.formatDuration(bootcamp.duration),
-      rating_display: this.formatRating(bootcamp.rating),
-      url: `/bootcamp/${bootcamp.path_slug}`,
+      ...academy,
+      category_badge: this.getCategoryBadge(academy.category),
+      status_badge: this.getStatusBadge(academy.status),
+      duration_formatted: this.formatDuration(academy.duration),
+      rating_display: this.formatRating(academy.rating),
+      url: `/academy/${academy.path_slug}`,
     };
   }
 
@@ -525,8 +525,8 @@ class InstructorService {
 
     const profileScore = instructorStats.profile_completion_rate;
     const activityScore =
-      assignmentStats.unique_instructors_with_bootcamps > 0
-        ? (assignmentStats.unique_instructors_with_bootcamps / instructorStats.total_instructors) * 100
+      assignmentStats.unique_instructors_with_academies > 0
+        ? (assignmentStats.unique_instructors_with_academies / instructorStats.total_instructors) * 100
         : 0;
 
     return Math.round((profileScore + activityScore) / 2);

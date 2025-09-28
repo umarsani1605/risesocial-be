@@ -1,5 +1,6 @@
-import { userUserController } from '../../controllers/user/userController.js';
+import { userController } from '../../controllers/user/userController.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { uploadMiddleware } from '../../middleware/fileUploadMiddleware.js';
 
 /**
  * User Self-Management routes plugin
@@ -17,152 +18,52 @@ export default async function userUserRoutes(fastify) {
   fastify.get(
     '/profile',
     {
-      schema: {
-        ...userTag,
-        description: 'Get current user profile',
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-          404: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
       preHandler: authMiddleware,
     },
-    userUserController.getCurrentUser
+    userController.getCurrentUser
   );
 
-  // GET /api/users/settings - Get user notification settings
+  // GET /api/users/settings - Get user settings
   fastify.get(
     '/settings',
     {
-      schema: {
-        ...userTag,
-        description: 'Get user notification settings',
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
       preHandler: authMiddleware,
     },
-    userUserController.getUserSettings
+    userController.getUserSettings
   );
 
-  // PUT /api/users/settings - Update user notification settings
+  // PUT /api/users/settings - Update user settings
   fastify.put(
     '/settings',
     {
-      schema: {
-        ...userTag,
-        description: 'Update user notification settings',
-        body: {
-          type: 'object',
-          properties: {
-            job_notification: { type: 'boolean' },
-            program_notification: { type: 'boolean' },
-            promo_notification: { type: 'boolean' },
-          },
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
       preHandler: authMiddleware,
     },
-    userUserController.updateUserSettings
+    userController.updateUserSettings
   );
 
-  // ================================
-  // UTILITY ROUTES (Public)
-  // ================================
-
-  // GET /api/users/check-username/:username - Check username availability
-  fastify.get(
-    '/check-username/:username',
+  // PUT /api/users/account - Update user account information
+  fastify.put(
+    '/account',
     {
-      schema: {
-        ...utilityTag,
-        description: 'Check username availability',
-        params: {
-          type: 'object',
-          properties: {
-            username: { type: 'string', minLength: 3, maxLength: 30 },
-          },
-          required: ['username'],
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
+      preHandler: authMiddleware,
     },
-    userUserController.checkUsernameAvailability
+    userController.updateUserAccount
   );
 
-  // GET /api/users/username-suggestions - Generate username suggestions
-  fastify.get(
-    '/username-suggestions',
+  // PUT /api/users/security - Update user password
+  fastify.put(
+    '/security',
     {
-      schema: {
-        ...utilityTag,
-        description: 'Generate username suggestions',
-        querystring: {
-          type: 'object',
-          properties: {
-            first_name: { type: 'string', minLength: 1 },
-            last_name: { type: 'string', minLength: 1 },
-          },
-          required: ['first_name', 'last_name'],
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'array' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
+      preHandler: authMiddleware,
     },
-    userUserController.generateUsernameSuggestions
+    userController.updateUserPassword
+  );
+
+  fastify.post(
+    '/avatar',
+    {
+      preHandler: [authMiddleware, uploadMiddleware],
+    },
+    userController.uploadUserAvatar
   );
 }

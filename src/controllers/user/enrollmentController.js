@@ -38,27 +38,27 @@ export class UserEnrollmentController {
   }
 
   /**
-   * Get enrollment by user and bootcamp
+   * Get enrollment by user and academy
    * @param {Object} request - Fastify request
    * @param {Object} reply - Fastify reply
    */
-  async getEnrollmentByUserAndBootcamp(request, reply) {
+  async getEnrollmentByUserAndAcademy(request, reply) {
     try {
-      request.log.info('[userEnrollmentController] getEnrollmentByUserAndBootcamp start');
+      request.log.info('[userEnrollmentController] getEnrollmentByUserAndAcademy start');
       request.log.debug({ params: request.params }, '[userEnrollmentController] rawParams');
 
-      const { userId, bootcampId } = request.params;
-      const enrollment = await this.enrollmentService.getEnrollmentByUserAndBootcamp(parseInt(userId), parseInt(bootcampId));
+      const { userId, academyId } = request.params;
+      const enrollment = await this.enrollmentService.getEnrollmentByUserAndAcademy(parseInt(userId), parseInt(academyId));
 
       if (!enrollment) {
-        request.log.info({ userId, bootcampId }, '[userEnrollmentController] getEnrollmentByUserAndBootcamp not_found');
+        request.log.info({ userId, academyId }, '[userEnrollmentController] getEnrollmentByUserAndAcademy not_found');
         return reply.status(404).send(errorResponse('Enrollment tidak ditemukan', 404));
       }
 
-      request.log.info('[userEnrollmentController] getEnrollmentByUserAndBootcamp success');
+      request.log.info('[userEnrollmentController] getEnrollmentByUserAndAcademy success');
       return reply.send(successResponse(enrollment, 'Enrollment berhasil ditemukan'));
     } catch (error) {
-      request.log.error({ err: error }, '[userEnrollmentController] getEnrollmentByUserAndBootcamp error');
+      request.log.error({ err: error }, '[userEnrollmentController] getEnrollmentByUserAndAcademy error');
       return reply.status(500).send(errorResponse('Gagal mendapatkan enrollment', 500, error.message));
     }
   }
