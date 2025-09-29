@@ -69,7 +69,6 @@ export class RylsPaymentService {
               email: registrationData.email,
               phone: registrationData.whatsapp || '',
               address: registrationData.residence,
-              country_code: 'IDN',
             },
           },
           item_details: [
