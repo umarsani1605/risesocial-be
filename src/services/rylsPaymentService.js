@@ -322,4 +322,4 @@ export class RylsPaymentService {
   }
 }
 
-export default RylsPaymentService;
+export const rylsPaymentService = new RylsPaymentService();

@@ -10,7 +10,7 @@ datasource db {
 /// User management domain - handles authentication, profiles, and settings
 model User {
   id                Int                 @id @default(autoincrement())
-  username          String              @unique @db.VarChar(50)
+  username          String              @db.VarChar(50)
   first_name        String              @db.VarChar(100)
   last_name         String              @db.VarChar(100)
   avatar            String?             @db.VarChar(500)

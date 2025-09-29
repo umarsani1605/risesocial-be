@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { userRepository } from '../repositories/userRepository.js';
 import { userSettingsRepository } from '../repositories/userSettingsRepository.js';
+import { fileUploadService } from './fileUploadService.js';
 import { generateToken } from '../lib/jwt.js';
 import { getLogger } from '../lib/loggerContext.js';
 
@@ -8,6 +9,12 @@ import { getLogger } from '../lib/loggerContext.js';
  * User business logic service
  */
 export class UserService {
+  constructor() {
+    this.userRepository = userRepository;
+    this.userSettingsRepository = userSettingsRepository;
+    this.fileUploadService = fileUploadService;
+  }
+
   get logger() {
     return getLogger();
   }
@@ -73,7 +80,7 @@ export class UserService {
 
       // Generate username if not provided
       if (!userData.username) {
-        userData.username = await this.generateUniqueUsername(userData.first_name, userData.last_name);
+        userData.username = this.generateUsername(userData.first_name, userData.last_name);
       }
 
       // Ensure role uppercase as DB enum
@@ -209,7 +216,7 @@ export class UserService {
       await this.validateUserRegistration(userData);
 
       this.logger.info('[userService] generating username');
-      const username = await this.generateUniqueUsername(userData.first_name, userData.last_name);
+      const username = this.generateUsername(userData.first_name, userData.last_name);
 
       this.logger.info('[userService] hashing password');
       const hashedPassword = await bcrypt.hash(userData.password, 12);
@@ -292,6 +299,70 @@ export class UserService {
   }
 
   /**
+   * Update notification preferences (JSON format)
+   * @param {number} userId - User ID
+   * @param {Object} preferences - Notification preferences object
+   * @returns {Promise<Object>} Updated notification preferences
+   */
+  async updateNotificationPreferences(userId, preferences) {
+    this.logger.info('[userService] updateNotificationPreferences start');
+    this.logger.debug({ userId, preferences }, '[userService] raw');
+
+    try {
+      // Validate preferences structure
+      const validKeys = ['promo_notification', 'job_notification', 'program_notification'];
+      const validatedPreferences = {};
+
+      for (const key of validKeys) {
+        if (preferences.hasOwnProperty(key)) {
+          validatedPreferences[key] = Boolean(preferences[key]);
+        } else {
+          // Default to false if not provided
+          validatedPreferences[key] = false;
+        }
+      }
+
+      const result = await userSettingsRepository.upsertUserSetting(userId, 'notification_preferences', validatedPreferences);
+
+      this.logger.info('[userService] updateNotificationPreferences success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] updateNotificationPreferences error');
+      throw error;
+    }
+  }
+
+  /**
+   * Get notification preferences (JSON format)
+   * @param {number} userId - User ID
+   * @returns {Promise<Object>} Notification preferences
+   */
+  async getNotificationPreferences(userId) {
+    this.logger.info('[userService] getNotificationPreferences start');
+    this.logger.debug({ userId }, '[userService] raw');
+
+    try {
+      const setting = await userSettingsRepository.getUserSettingByKey(userId, 'notification_preferences');
+
+      if (!setting || !setting.value) {
+        const defaultPreferences = {
+          promo_notification: true,
+          job_notification: true,
+          program_notification: true,
+        };
+        this.logger.info('[userService] getNotificationPreferences - returning defaults');
+        return defaultPreferences;
+      }
+
+      this.logger.info('[userService] getNotificationPreferences success');
+      return setting.value;
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] getNotificationPreferences error');
+      throw error;
+    }
+  }
+
+  /**
    * Update user account information
    */
   async updateUserAccount(userId, accountData) {
@@ -299,6 +370,23 @@ export class UserService {
     this.logger.debug({ userId, accountData }, '[userService] raw');
 
     try {
+      // Handle avatar file upload
+      if (accountData.avatarFile) {
+        try {
+          const publicUrl = this.fileUploadService.generatePublicFileUrl(accountData.avatarFile);
+          accountData.avatar = publicUrl;
+          this.logger.info({ avatarUrl: publicUrl }, '[userService] user avatar uploaded');
+        } catch (uploadError) {
+          this.logger.error({ err: uploadError }, '[userService] user avatar upload failed');
+          throw new Error('Failed to upload user avatar');
+        }
+        delete accountData.avatarFile; // Remove file from data
+      } else if (accountData.avatar === '') {
+        // Remove avatar (empty string means remove)
+        accountData.avatar = null;
+        this.logger.info('[userService] avatar removed');
+      }
+
       // Check email uniqueness if email is being updated
       if (accountData.email) {
         const existingUser = await userRepository.findByEmail(accountData.email);
@@ -309,7 +397,7 @@ export class UserService {
         }
       }
 
-      const updatedUser = await userRepository.updateUser(userId, accountData);
+      const updatedUser = await userRepository.update(userId, accountData);
       this.logger.info('[userService] updateUserAccount success');
       return this.excludePassword(updatedUser);
     } catch (error) {
@@ -327,7 +415,7 @@ export class UserService {
 
     try {
       const hashedPassword = await bcrypt.hash(password, 12);
-      const updatedUser = await userRepository.updateUser(userId, { password: hashedPassword });
+      const updatedUser = await userRepository.update(userId, { password: hashedPassword });
       this.logger.info('[userService] updateUserPassword success');
       return this.excludePassword(updatedUser);
     } catch (error) {
@@ -380,6 +468,21 @@ export class UserService {
         throw error;
       }
     }
+  }
+
+  /**
+   * Generate username from first and last name
+   * @param {string} firstName - User's first name
+   * @param {string} lastName - User's last name
+   * @returns {string} Username
+   */
+  generateUsername(firstName, lastName) {
+    this.logger.info('[userService] generateUsername start');
+
+    const username = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
+
+    this.logger.info('[userService] generateUsername - generated username');
+    return username;
   }
 
   /**

@@ -52,21 +52,24 @@ export class UserRepository extends BaseRepository {
     this.logger.info('[userRepository] createWithSettings start');
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({ data: userData, include: { user_setting: true } });
+        const user = await tx.user.create({ data: userData, include: { user_settings: true } });
 
-        if (!user.user_setting) {
-          await tx.userSetting.create({
-            data: {
-              user_id: user.id,
-              job_notification: user.role === 'USER',
-              program_notification: true,
-              promo_notification: user.role === 'USER',
-            },
-          });
+        // Create default notification preferences in JSON format
+        const defaultNotificationPreferences = {
+          promo_notification: true,
+          job_notification: true,
+          program_notification: true,
+        };
 
-          return await tx.user.findUnique({ where: { id: user.id }, include: { user_setting: true } });
-        }
+        await tx.userSetting.create({
+          data: {
+            user_id: user.id,
+            key: 'notification_preferences',
+            value: defaultNotificationPreferences,
+          },
+        });
 
+        this.logger.info({ id: user.id }, '[userRepository] default notification preferences created');
         return user;
       });
 

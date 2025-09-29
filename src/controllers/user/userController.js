@@ -1,5 +1,4 @@
 import { userService } from '../../services/userService.js';
-import { fileUploadService } from '../../services/fileUploadService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 /**
@@ -75,6 +74,50 @@ export class UserController {
   };
 
   /**
+   * Get notification preferences (JSON format)
+   * @param {Object} request - Fastify request
+   * @param {Object} reply - Fastify reply
+   */
+  getNotificationPreferences = async (request, reply) => {
+    try {
+      request.log.info('[userUserController] getNotificationPreferences start');
+      const { userId } = request.user;
+
+      const preferences = await userService.getNotificationPreferences(userId);
+      request.log.info('[userUserController] getNotificationPreferences success');
+      return reply.send(successResponse(preferences, 'Notification preferences retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[userUserController] getNotificationPreferences error');
+      return reply.status(500).send(errorResponse('Failed to get notification preferences', 500, error.message));
+    }
+  };
+
+  /**
+   * Update notification preferences (JSON format)
+   * @param {Object} request - Fastify request
+   * @param {Object} reply - Fastify reply
+   */
+  updateNotificationPreferences = async (request, reply) => {
+    try {
+      request.log.info('[userUserController] updateNotificationPreferences start');
+      request.log.debug({ body: request.body }, '[userUserController] rawBody');
+      const { userId } = request.user;
+      const { preferences } = request.body;
+
+      if (!preferences || typeof preferences !== 'object') {
+        return reply.status(400).send(errorResponse('Preferences object is required', 400));
+      }
+
+      const updatedPreferences = await userService.updateNotificationPreferences(userId, preferences);
+      request.log.info('[userUserController] updateNotificationPreferences success');
+      return reply.send(successResponse(updatedPreferences, 'Notification preferences updated successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[userUserController] updateNotificationPreferences error');
+      return reply.status(500).send(errorResponse('Failed to update notification preferences', 500, error.message));
+    }
+  };
+
+  /**
    * Update user account information
    * @param {Object} request - Fastify request
    * @param {Object} reply - Fastify reply
@@ -84,7 +127,15 @@ export class UserController {
       request.log.info('[userUserController] updateUserAccount start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');
       const { userId } = request.user;
-      const accountData = request.body;
+      const accountData = request.body || {};
+
+      // Handle avatar file upload
+      if (request.uploadedFile) {
+        accountData.avatarFile = request.uploadedFile;
+        request.log.info({ uploadedFile: request.uploadedFile }, '[userUserController] user avatar file received from middleware');
+      } else {
+        request.log.info('[userUserController] no uploaded file found');
+      }
 
       const updatedUser = await userService.updateUserAccount(userId, accountData);
       request.log.info('[userUserController] updateUserAccount success');
@@ -126,42 +177,6 @@ export class UserController {
     } catch (error) {
       request.log.error({ err: error }, '[userUserController] updateUserPassword error');
       return reply.status(500).send(errorResponse('Failed to update password', 500, error.message));
-    }
-  };
-
-  /**
-   * Upload user avatar
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  uploadUserAvatar = async (request, reply) => {
-    try {
-      request.log.info('[userUserController] uploadUserAvatar start');
-
-      const { userId } = request.user;
-      const { file } = request;
-
-      if (!file) {
-        return reply.status(400).send(errorResponse('No file uploaded', 400));
-      }
-
-      // Upload file using service
-      const uploadResult = await fileUploadService.uploadFile(file, {
-        uploadType: 'USER_AVATAR',
-        maxSize: 2 * 1024 * 1024, // 2MB for user avatar
-        allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
-      });
-
-      // Update user with new avatar URL
-      const user = await userService.updateUser(userId, {
-        avatar_url: uploadResult.fileUrl,
-      });
-
-      request.log.info('[userUserController] uploadUserAvatar success');
-      return reply.status(200).send(successResponse(user, 'User avatar uploaded successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[userUserController] uploadUserAvatar error');
-      return reply.status(500).send(errorResponse('Failed to upload user avatar', 500, error.message));
     }
   };
 }

@@ -1,6 +1,6 @@
 import { userController } from '../../controllers/user/userController.js';
 import { authMiddleware } from '../../middleware/auth.js';
-import { uploadMiddleware } from '../../middleware/fileUploadMiddleware.js';
+import { uploadUserAvatar } from '../../middleware/fileUploadMiddleware.js';
 
 /**
  * User Self-Management routes plugin
@@ -41,11 +41,29 @@ export default async function userUserRoutes(fastify) {
     userController.updateUserSettings
   );
 
+  // GET /api/users/notification-preferences - Get notification preferences
+  fastify.get(
+    '/notification-preferences',
+    {
+      preHandler: authMiddleware,
+    },
+    userController.getNotificationPreferences
+  );
+
+  // PUT /api/users/notification-preferences - Update notification preferences
+  fastify.put(
+    '/notification-preferences',
+    {
+      preHandler: authMiddleware,
+    },
+    userController.updateNotificationPreferences
+  );
+
   // PUT /api/users/account - Update user account information
   fastify.put(
     '/account',
     {
-      preHandler: authMiddleware,
+      preHandler: [authMiddleware, uploadUserAvatar],
     },
     userController.updateUserAccount
   );
@@ -57,13 +75,5 @@ export default async function userUserRoutes(fastify) {
       preHandler: authMiddleware,
     },
     userController.updateUserPassword
-  );
-
-  fastify.post(
-    '/avatar',
-    {
-      preHandler: [authMiddleware, uploadMiddleware],
-    },
-    userController.uploadUserAvatar
   );
 }

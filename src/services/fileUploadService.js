@@ -24,7 +24,7 @@ export class FileUploadService {
     this.logger.info('[fileUploadService] processFileUpload start');
     this.logger.debug({ fileName: fileData?.originalname, uploadType }, '[fileUploadService] rawInput');
     try {
-      const validTypes = ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR'];
+      const validTypes = ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR', 'USER_AVATAR'];
       if (!validTypes.includes(uploadType)) {
         throw new Error(`Invalid upload type: ${uploadType}`);
       }
@@ -178,12 +178,81 @@ export class FileUploadService {
 
   /**
    * Generate public URL for file without saving to database
-   * Used for academy images, instructor avatars, testimonial avatars
+   * Used for academy images, instructor avatars, testimonial avatars, user avatars
    */
   generatePublicFileUrl(fileData) {
     const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
     const relativePath = fileData.relativePath || fileData.path;
     return `${baseUrl}/${relativePath}`;
+  }
+
+  /**
+   * Upload image and return public URL
+   * Used for academy images, instructor avatars, testimonial avatars, user avatars
+   * @param {Object} file - Multer file object
+   * @param {string} type - Upload type (ACADEMY_IMAGE, INSTRUCTOR_AVATAR, TESTIMONIAL_AVATAR, USER_AVATAR)
+   * @returns {Promise<Object>} Upload result with public URL
+   */
+  async uploadImage(file, type) {
+    this.logger.info('[fileUploadService] uploadImage start');
+    this.logger.debug({ fileName: file?.originalname, type }, '[fileUploadService] params');
+
+    try {
+      const allowedTypes = ['ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR', 'USER_AVATAR'];
+
+      if (!allowedTypes.includes(type)) {
+        throw new Error('Invalid upload type');
+      }
+
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      const extension = path.extname(file.originalname);
+      const filename = `${timestamp}_${randomString}${extension}`;
+
+      let uploadPath = '';
+      let publicUrl = '';
+
+      switch (type) {
+        case 'ACADEMY_IMAGE':
+          uploadPath = path.join(process.cwd(), 'uploads', 'images', 'academies');
+          publicUrl = `/images/academies/${filename}`;
+          break;
+        case 'INSTRUCTOR_AVATAR':
+          uploadPath = path.join(process.cwd(), 'uploads', 'images', 'instructors');
+          publicUrl = `/images/instructors/${filename}`;
+          break;
+        case 'TESTIMONIAL_AVATAR':
+          uploadPath = path.join(process.cwd(), 'uploads', 'images', 'testimonials');
+          publicUrl = `/images/testimonials/${filename}`;
+          break;
+        case 'USER_AVATAR':
+          uploadPath = path.join(process.cwd(), 'uploads', 'images', 'users');
+          publicUrl = `/images/users/${filename}`;
+          break;
+      }
+
+      // Ensure directory exists
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+
+      const filePath = path.join(uploadPath, filename);
+      await fs.writeFile(filePath, file.buffer);
+
+      const result = {
+        filename,
+        path: filePath,
+        url: publicUrl,
+        size: file.size,
+        mimetype: file.mimetype,
+      };
+
+      this.logger.info({ avatarUrl: publicUrl }, '[fileUploadService] uploadImage success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[fileUploadService] uploadImage error');
+      throw error;
+    }
   }
 
   enhanceFileObject(file) {

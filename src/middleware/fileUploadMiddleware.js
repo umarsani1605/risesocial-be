@@ -233,6 +233,67 @@ export const deleteFile = async (filePath) => {
 };
 
 /**
+ * User avatar upload handler (Images only)
+ * @param {Object} request - Fastify request
+ * @param {Object} reply - Fastify reply
+ */
+export const uploadUserAvatar = async (request, reply) => {
+  try {
+    request.log.info('[fileUploadMiddleware] uploadUserAvatar start');
+
+    // Parse FormData fields
+    const formData = {};
+    const parts = request.parts();
+
+    for await (const part of parts) {
+      if (part.type === 'file') {
+        // Handle file upload
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        const processedFile = await processUploadedFile(part, allowedTypes, maxSize, 'USER_AVATAR');
+        request.uploadedFile = processedFile;
+        request.log.info('[fileUploadMiddleware] user avatar file processed');
+      } else {
+        // Handle form fields
+        let value = part.value;
+
+        // Convert boolean fields to booleans
+        if (part.fieldname === 'email_verified' || part.fieldname === 'phone_verified') {
+          value = value === 'true';
+        }
+
+        formData[part.fieldname] = value;
+      }
+    }
+
+    // Set parsed form data to request body
+    request.body = formData;
+    request.log.info('[fileUploadMiddleware] uploadUserAvatar success');
+  } catch (error) {
+    request.log.error({ err: error }, '[fileUploadMiddleware] uploadUserAvatar error');
+
+    let errorMessage = 'File upload failed';
+    let statusCode = 400;
+
+    if (error.code === 'FST_REQ_FILE_TOO_LARGE') {
+      errorMessage = 'File size exceeds the maximum limit of 5MB.';
+      statusCode = 413;
+    } else if (error.message?.includes('Invalid file type')) {
+      errorMessage = 'Invalid file type. Please select a valid image file (JPEG, PNG, or WebP).';
+      statusCode = 400;
+    } else if (error.message?.includes('File too large')) {
+      errorMessage = 'File size exceeds the maximum limit of 5MB.';
+      statusCode = 413;
+    }
+
+    reply.status(statusCode).send({
+      success: false,
+      message: errorMessage,
+    });
+  }
+};
+
+/**
  * Simple upload middleware for Fastify
  * @param {Object} request - Fastify request
  * @param {Object} reply - Fastify reply

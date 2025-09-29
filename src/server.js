@@ -34,6 +34,7 @@ import adminJobsRoutes from './routes/admin/jobsRoutes.js';
 import userTestimonialsRoutes from './routes/user/testimonialsRoutes.js';
 import adminTestimonialsRoutes from './routes/admin/testimonialsRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import userFileUploadRoutes from './routes/user/fileUploadRoutes.js';
 import { runWithLogger } from './lib/loggerContext.js';
 
 dotenv.config();
@@ -199,6 +200,7 @@ await fastify.register(swagger, {
       { name: 'Academy Topics', description: 'Academy topics and curriculum' },
       { name: 'Academy FAQs', description: 'Academy FAQ management' },
       { name: 'System', description: 'System health and debugging endpoints' },
+      { name: 'File Upload', description: 'File upload functionality' },
       { name: 'RYLS Payments', description: 'RYLS payment processing and management' },
     ],
   },
@@ -295,6 +297,7 @@ fastify.register(adminRylsRegistrationRoutes, { prefix: '/admin/ryls/registratio
 fastify.register(adminSystemSettingsRoutes, { prefix: '/admin/system/settings' });
 fastify.register(adminRoutes, { prefix: '/admin' });
 fastify.register(rylsPaymentRoutes, { prefix: '/payments' });
+fastify.register(userFileUploadRoutes, { prefix: '/uploads' });
 
 const gracefulShutdown = async (signal) => {
   fastify.log.info(`\nReceived ${signal}. Starting graceful shutdown...`);
