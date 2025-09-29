@@ -53,9 +53,9 @@ ADD COLUMN     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 ADD COLUMN     "description" TEXT,
 ADD COLUMN     "id" SERIAL NOT NULL,
 ADD COLUMN     "job_title" VARCHAR(255),
-ADD COLUMN     "name" VARCHAR(255) NOT NULL,
+ADD COLUMN     "name" VARCHAR(255) NULL,
 ADD COLUMN     "order" INTEGER NOT NULL DEFAULT 1,
-ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL,
+ADD COLUMN     "updated_at" TIMESTAMP(3) NULL,
 ADD CONSTRAINT "bootcamp_instructors_pkey" PRIMARY KEY ("id");
 
 -- AlterTable

@@ -52,7 +52,7 @@ export class UserRepository extends BaseRepository {
     this.logger.info('[userRepository] createWithSettings start');
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({ data: userData, include: { user_settings: true } });
+        const user = await tx.user.create({ data: userData, include: { user_settingss: true } });
 
         // Create default notification preferences in JSON format
         const defaultNotificationPreferences = {
@@ -102,7 +102,7 @@ export class UserRepository extends BaseRepository {
       }
 
       const [data, total] = await Promise.all([
-        this.model.findMany({ where, skip, take: Number(limit), orderBy: { created_at: 'desc' }, include: { user_setting: true } }),
+        this.model.findMany({ where, skip, take: Number(limit), orderBy: { created_at: 'desc' }, include: { user_settings: true } }),
         this.model.count({ where }),
       ]);
 
