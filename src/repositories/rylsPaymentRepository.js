@@ -1,21 +1,12 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { ORDER_ID_CONFIG } from '../constants/payments.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-const prisma = new PrismaClient();
-
-/**
- * RYLS Payment Repository
- * Handles database operations for payment transactions with support for multiple payments per registration
- */
 export class RylsPaymentRepository {
   get logger() {
     return getLogger();
   }
 
-  /**
-   * Create a new Midtrans payment record
-   */
   async createMidtransPayment(paymentData) {
     this.logger.info('[rylsPaymentRepository] createMidtransPayment called');
 
@@ -46,9 +37,6 @@ export class RylsPaymentRepository {
     }
   }
 
-  /**
-   * Create a new Ryls payment record
-   */
   async createRylsPayment(paymentData) {
     this.logger.info('[rylsPaymentRepository] createRylsPayment called');
 
@@ -71,36 +59,6 @@ export class RylsPaymentRepository {
       throw error;
     }
   }
-
-  /**
-   * Find Midtrans payment by order ID
-   */
-  async findMidtransPaymentByOrderId(orderId) {
-    this.logger.info({ orderId }, '[rylsPaymentRepository] findMidtransPaymentByOrderId called');
-
-    try {
-      const payment = await prisma.midtransPayment.findUnique({
-        where: { order_id: orderId },
-        include: {
-          ryls_payment: {
-            include: {
-              registration: { select: { id: true, full_name: true, email: true, scholarship_type: true } },
-            },
-          },
-        },
-      });
-
-      this.logger.info({ found: !!payment }, '[rylsPaymentRepository] midtrans payment found');
-      return payment;
-    } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] findMidtransPaymentByOrderId error');
-      throw error;
-    }
-  }
-
-  /**
-   * Find Ryls payment by ID
-   */
   async findById(paymentId) {
     this.logger.info({ paymentId }, '[rylsPaymentRepository] findById called');
 
@@ -122,92 +80,7 @@ export class RylsPaymentRepository {
     }
   }
 
-  /**
-   * Find all payments for a registration
-   */
-  async findRegistrationPayments(registrationId, options = {}) {
-    this.logger.info({ registrationId, options }, '[rylsPaymentRepository] findRegistrationPayments called');
-
-    try {
-      const whereClause = {
-        registration_id: registrationId,
-        ...(options.status && { status: options.status }),
-        ...(options.type && { type: options.type }),
-      };
-
-      if (options.minAmount) {
-        whereClause.amount = { gte: options.minAmount };
-      }
-      if (options.maxAmount) {
-        whereClause.amount = { ...whereClause.amount, lte: options.maxAmount };
-      }
-
-      const payments = await prisma.rylsPayment.findMany({
-        where: whereClause,
-        orderBy: { created_at: 'desc' },
-        ...(options.limit && { take: options.limit }),
-        include: {
-          midtrans_payment: true,
-          payment_proof: true,
-          registration: { select: { id: true, full_name: true, email: true, scholarship_type: true } },
-        },
-      });
-
-      this.logger.info({ count: payments.length }, '[rylsPaymentRepository] payments found');
-      return payments;
-    } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] findRegistrationPayments error');
-      throw error;
-    }
-  }
-
-  /**
-   * Link a payment to a registration
-   */
-  async linkPaymentToRegistration(paymentId, registrationId) {
-    this.logger.info({ paymentId, registrationId }, '[rylsPaymentRepository] linkPaymentToRegistration called');
-
-    try {
-      const payment = await prisma.rylsPayment.update({
-        where: { id: paymentId },
-        data: { registration: { connect: { id: registrationId } } },
-        include: { midtrans_payment: true, payment_proof: true },
-      });
-
-      this.logger.info('[rylsPaymentRepository] payment linked to registration');
-      return payment;
-    } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] linkPaymentToRegistration error');
-      throw error;
-    }
-  }
-
-  /**
-   * Find active pending payment for a registration
-   */
-  async findActivePendingPayment(registrationId) {
-    this.logger.info({ registrationId }, '[rylsPaymentRepository] findActivePendingPayment called');
-
-    try {
-      const payment = await prisma.rylsPayment.findFirst({
-        where: { registration_id: registrationId, status: 'PENDING', expiry_time: { gt: new Date() } },
-        orderBy: { created_at: 'desc' },
-        include: { registration: { select: { id: true, full_name: true, email: true, scholarship_type: true, payment_status: true } } },
-      });
-
-      this.logger.info({ found: !!payment, order_id: payment?.order_id }, '[rylsPaymentRepository] active payment check');
-      return payment;
-    } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] findActivePendingPayment error');
-      throw error;
-    }
-  }
-
-  /**
-   * Update payment by order ID
-   */
   async updateByOrderId(orderId, updateData) {
-    this.logger.info({ orderId }, '[rylsPaymentRepository] updateByOrderId called');
     this.logger.debug({ updateData }, '[rylsPaymentRepository] update payload');
 
     try {
@@ -227,9 +100,6 @@ export class RylsPaymentRepository {
     }
   }
 
-  /**
-   * Get payment statistics
-   */
   async getStatistics(filters = {}) {
     this.logger.info({ filters }, '[rylsPaymentRepository] getStatistics called');
 
@@ -268,9 +138,6 @@ export class RylsPaymentRepository {
     }
   }
 
-  /**
-   * Get next sequence number for order ID generation
-   */
   async getNextSequenceNumber() {
     this.logger.info('[rylsPaymentRepository] getNextSequenceNumber called');
 
@@ -287,9 +154,6 @@ export class RylsPaymentRepository {
     }
   }
 
-  /**
-   * Delete payment by ID (for cleanup/testing)
-   */
   async delete(paymentId) {
     this.logger.info({ paymentId }, '[rylsPaymentRepository] delete called');
 
@@ -303,4 +167,4 @@ export class RylsPaymentRepository {
   }
 }
 
-export default RylsPaymentRepository;
+export const rylsPaymentRepository = new RylsPaymentRepository();

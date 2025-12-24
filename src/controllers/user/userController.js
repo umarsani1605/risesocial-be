@@ -1,17 +1,8 @@
 import { userService } from '../../services/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * User Self-Management HTTP controllers
- * Handles user settings, profile, and self-management requests
- */
 export class UserController {
-  /**
-   * Get current user profile
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  getCurrentUser = async (request, reply) => {
+    getCurrentUser = async (request, reply) => {
     try {
       request.log.info('[userUserController] getCurrentUser start');
       const { userId } = request.user;
@@ -30,12 +21,7 @@ export class UserController {
     }
   };
 
-  /**
-   * Get user settings
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  getUserSettings = async (request, reply) => {
+    getUserSettings = async (request, reply) => {
     try {
       request.log.info('[userUserController] getUserSettings start');
       const { userId } = request.user;
@@ -48,12 +34,7 @@ export class UserController {
     }
   };
 
-  /**
-   * Update user settings (key-value structure)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  updateUserSettings = async (request, reply) => {
+    updateUserSettings = async (request, reply) => {
     try {
       request.log.info('[userUserController] updateUserSettings start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');
@@ -73,12 +54,7 @@ export class UserController {
     }
   };
 
-  /**
-   * Get notification preferences (JSON format)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  getNotificationPreferences = async (request, reply) => {
+    getNotificationPreferences = async (request, reply) => {
     try {
       request.log.info('[userUserController] getNotificationPreferences start');
       const { userId } = request.user;
@@ -92,12 +68,7 @@ export class UserController {
     }
   };
 
-  /**
-   * Update notification preferences (JSON format)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  updateNotificationPreferences = async (request, reply) => {
+    updateNotificationPreferences = async (request, reply) => {
     try {
       request.log.info('[userUserController] updateNotificationPreferences start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');
@@ -117,12 +88,7 @@ export class UserController {
     }
   };
 
-  /**
-   * Update user account information
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  updateUserAccount = async (request, reply) => {
+    updateUserAccount = async (request, reply) => {
     try {
       request.log.info('[userUserController] updateUserAccount start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');
@@ -151,12 +117,7 @@ export class UserController {
     }
   };
 
-  /**
-   * Update user password
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  updateUserPassword = async (request, reply) => {
+    updateUserPassword = async (request, reply) => {
     try {
       request.log.info('[userUserController] updateUserPassword start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');

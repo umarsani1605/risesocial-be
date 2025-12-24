@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { snap, getServerKey } from '../integrations/midtransClient.js';
-import { RylsPaymentRepository } from '../repositories/rylsPaymentRepository.js';
-import { RylsRegistrationRepository } from '../repositories/rylsRegistrationRepository.js';
+import { rylsPaymentRepository } from '../repositories/rylsPaymentRepository.js';
+import { rylsRegistrationRepository } from '../repositories/rylsRegistrationRepository.js';
 import {
   generateOrderId,
   getPaymentAmountIdr,
@@ -12,26 +12,16 @@ import {
 } from '../constants/payments.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * RYLS Payment Service
- * Handles business logic for payment transactions and Midtrans integration
- * Follows the same pattern as rylsRegistrationService.js
- */
 export class RylsPaymentService {
   constructor() {
-    this.paymentRepository = new RylsPaymentRepository();
-    this.registrationRepository = new RylsRegistrationRepository();
+    this.paymentRepository = rylsPaymentRepository;
+    this.registrationRepository = rylsRegistrationRepository;
   }
 
   get logger() {
     return getLogger();
   }
 
-  /**
-   * Create payment transaction for registration
-   * @param {Object} registrationData - Basic registration data needed for payment
-   * @returns {Promise<Object>} Payment transaction data
-   */
   async createTransaction(data) {
     this.logger.info('[rylsPaymentService] createTransaction start');
 
@@ -141,9 +131,6 @@ export class RylsPaymentService {
     }
   }
 
-  /**
-   * Handle Midtrans webhook notification
-   */
   async handleWebhookNotification(notificationData) {
     this.logger.info('[rylsPaymentService] handleWebhookNotification start');
     this.logger.debug({ notificationData }, '[rylsPaymentService] webhook payload');
@@ -210,9 +197,6 @@ export class RylsPaymentService {
     }
   }
 
-  /**
-   * Verify Midtrans notification signature
-   */
   verifyNotificationSignature(notificationData) {
     this.logger.info('[rylsPaymentService] verifyNotificationSignature start');
 
@@ -237,9 +221,6 @@ export class RylsPaymentService {
     }
   }
 
-  /**
-   * Get payment status for registration
-   */
   async getPaymentStatus(registrationId) {
     this.logger.info({ registrationId }, '[rylsPaymentService] getPaymentStatus start');
 
@@ -271,9 +252,6 @@ export class RylsPaymentService {
     }
   }
 
-  /**
-   * Get payment statistics
-   */
   async getPaymentStatistics(filters = {}) {
     this.logger.info('[rylsPaymentService] getPaymentStatistics start');
     this.logger.debug({ filters }, '[rylsPaymentService] rawFilters');
@@ -288,9 +266,6 @@ export class RylsPaymentService {
     }
   }
 
-  /**
-   * Cancel pending payment (if allowed)
-   */
   async cancelPayment(orderId) {
     this.logger.info({ orderId }, '[rylsPaymentService] cancelPayment start');
 

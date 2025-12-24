@@ -2,10 +2,6 @@ import prisma from '../lib/prisma.js';
 import { BaseRepository } from './base/BaseRepository.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * Testimonials Repository
- * Handles all database operations for testimonials
- */
 class TestimonialsRepository extends BaseRepository {
   constructor() {
     super(prisma.testimonial);
@@ -16,9 +12,6 @@ class TestimonialsRepository extends BaseRepository {
     return getLogger();
   }
 
-  /**
-   * Get all testimonials with pagination, search, and filtering
-   */
   async findMany(filters = {}, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc') {
     this.logger.info('[testimonialsRepository] findMany start');
     this.logger.debug({ filters, page, limit, sortBy, sortOrder }, '[testimonialsRepository] rawOptions');
@@ -63,9 +56,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get featured testimonials
-   */
   async getFeatured(limit = 6) {
     this.logger.info({ limit }, '[testimonialsRepository] getFeatured start');
     try {
@@ -82,9 +72,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get testimonials by country
-   */
   async getByCountry(country, limit = 10) {
     this.logger.info({ country, limit }, '[testimonialsRepository] getByCountry start');
     try {
@@ -101,9 +88,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get testimonials by rating
-   */
   async getByRating(minRating, limit = 10) {
     this.logger.info({ minRating, limit }, '[testimonialsRepository] getByRating start');
     try {
@@ -120,9 +104,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get testimonials statistics
-   */
   async getStatistics() {
     this.logger.info('[testimonialsRepository] getStatistics start');
     try {
@@ -181,9 +162,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Create a new testimonial
-   */
   async create(data) {
     this.logger.info('[testimonialsRepository] create start');
     try {
@@ -196,9 +174,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Update a testimonial
-   */
   async update(id, data) {
     this.logger.info({ id }, '[testimonialsRepository] update start');
     try {
@@ -214,9 +189,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Delete a testimonial
-   */
   async delete(id) {
     this.logger.info({ id }, '[testimonialsRepository] delete start');
     try {
@@ -232,9 +204,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get testimonial by ID
-   */
   async findById(id) {
     this.logger.info({ id }, '[testimonialsRepository] findById start');
     try {
@@ -247,9 +216,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get all testimonials for admin (including inactive/pending)
-   */
   async findManyForAdmin(filters = {}, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc') {
     this.logger.info('[testimonialsRepository] findManyForAdmin start');
     this.logger.debug({ filters, page, limit, sortBy, sortOrder }, '[testimonialsRepository] rawOptions');
@@ -294,9 +260,6 @@ class TestimonialsRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get countries with testimonial counts
-   */
   async getCountriesWithCounts() {
     this.logger.info('[testimonialsRepository] getCountriesWithCounts start');
     try {
@@ -316,4 +279,4 @@ class TestimonialsRepository extends BaseRepository {
   }
 }
 
-export { TestimonialsRepository };
+export const testimonialsRepository = new TestimonialsRepository();

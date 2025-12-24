@@ -3,16 +3,8 @@ import { successResponse, errorResponse } from '../../utils/response.js';
 import fs from 'fs-extra';
 import path from 'path';
 
-/**
- * FileUpload Controller
- * Handles file upload HTTP requests
- */
 export class FileUploadController {
-  /**
-   * Upload essay file (PDF only)
-   * POST /api/uploads/essay
-   */
-  async uploadEssay(request, reply) {
+    async uploadEssay(request, reply) {
     try {
       if (!request.uploadedFile) {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
@@ -27,11 +19,7 @@ export class FileUploadController {
     }
   }
 
-  /**
-   * Upload headshot file (Images only)
-   * POST /api/uploads/headshot
-   */
-  async uploadHeadshot(request, reply) {
+    async uploadHeadshot(request, reply) {
     try {
       if (!request.uploadedFile) {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
@@ -45,11 +33,7 @@ export class FileUploadController {
     }
   }
 
-  /**
-   * Upload payment proof file (Images only)
-   * POST /api/uploads/payment-proof
-   */
-  async uploadPaymentProof(request, reply) {
+    async uploadPaymentProof(request, reply) {
     try {
       if (!request.uploadedFile) {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
@@ -66,21 +50,13 @@ export class FileUploadController {
     }
   }
 
-  /**
-   * Download/view file by ID
-   * GET /api/uploads/:id
-   */
-  async downloadFile(request, reply) {
+    async downloadFile(request, reply) {
     try {
       const { id } = request.params;
 
       request.log.info({ id }, 'Downloading file');
 
-      if (!id || isNaN(parseInt(id))) {
-        return reply.status(400).send(errorResponse('Invalid file ID provided', 400));
-      }
-
-      const fileInfo = await fileUploadService.getFileDownloadInfo(parseInt(id));
+      const fileInfo = await fileUploadService.getFileDownloadInfo(Number(id));
       const fileExists = await fs.pathExists(fileInfo.filePath);
       if (!fileExists) {
         return reply.status(404).send(errorResponse('File not found on disk', 404));
@@ -103,19 +79,11 @@ export class FileUploadController {
     }
   }
 
-  /**
-   * Get file information by ID
-   * GET /api/uploads/:id/info
-   */
-  async getFileInfo(request, reply) {
+    async getFileInfo(request, reply) {
     try {
       const { id } = request.params;
 
-      if (!id || isNaN(parseInt(id))) {
-        return reply.status(400).send(errorResponse('Invalid file ID provided', 400));
-      }
-
-      const fileInfo = await fileUploadService.getFileById(parseInt(id));
+      const fileInfo = await fileUploadService.getFileById(Number(id));
 
       if (!fileInfo) {
         return reply.status(404).send(errorResponse('File not found', 404));
@@ -128,23 +96,15 @@ export class FileUploadController {
     }
   }
 
-  /**
-   * Delete file by ID
-   * DELETE /api/uploads/:id
-   */
-  async deleteFile(request, reply) {
+    async deleteFile(request, reply) {
     try {
       const { id } = request.params;
 
-      if (!id || isNaN(parseInt(id))) {
-        return reply.status(400).send(errorResponse('Invalid file ID provided', 400));
-      }
-
-      const deleteResult = await fileUploadService.deleteFile(parseInt(id));
+      const deleteResult = await fileUploadService.deleteFile(Number(id));
 
       return reply.status(200).send(
         successResponse(deleteResult, 'File deleted successfully', {
-          fileId: parseInt(id),
+          fileId: Number(id),
         })
       );
     } catch (error) {
@@ -158,11 +118,7 @@ export class FileUploadController {
     }
   }
 
-  /**
-   * Get files by upload type
-   * GET /api/uploads/type/:uploadType
-   */
-  async getFilesByType(request, reply) {
+    async getFilesByType(request, reply) {
     try {
       const { uploadType } = request.params;
       const { page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc' } = request.query;
@@ -172,8 +128,8 @@ export class FileUploadController {
       }
 
       const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: Number(page),
+        limit: Number(limit),
         sortBy,
         sortOrder,
       };
@@ -192,11 +148,7 @@ export class FileUploadController {
     }
   }
 
-  /**
-   * Get upload statistics
-   * GET /api/uploads/stats
-   */
-  async getUploadStats(request, reply) {
+    async getUploadStats(request, reply) {
     try {
       const stats = await fileUploadService.getUploadStatistics();
 
@@ -211,11 +163,7 @@ export class FileUploadController {
     }
   }
 
-  /**
-   * Health check for upload service
-   * GET /api/uploads/health
-   */
-  async healthCheck(request, reply) {
+    async healthCheck(request, reply) {
     try {
       const uploadDir = path.join(process.cwd(), 'uploads');
       const dirExists = await fs.pathExists(uploadDir);
@@ -244,12 +192,7 @@ export class FileUploadController {
     }
   }
 
-  /**
-   * Cleanup orphaned files
-   * POST /api/uploads/cleanup
-   * Note: This should be protected with admin authentication
-   */
-  async cleanupOrphanedFiles(request, reply) {
+    async cleanupOrphanedFiles(request, reply) {
     try {
       const cleanupResult = await fileUploadService.cleanupOrphanedFiles();
 

@@ -1,17 +1,8 @@
 import { userService } from '../../services/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * Admin User Management HTTP controllers
- * Handles admin-only user CRUD and management requests
- */
 export class AdminUserController {
-  /**
-   * Get all users with pagination (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  getAllUsers = async (request, reply) => {
+    getAllUsers = async (request, reply) => {
     try {
       request.log.info('[adminUserController] getAllUsers start');
       request.log.debug({ query: request.query }, '[adminUserController] rawQuery');
@@ -24,12 +15,7 @@ export class AdminUserController {
     }
   };
 
-  /**
-   * Get user by ID (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  getUserById = async (request, reply) => {
+    getUserById = async (request, reply) => {
     try {
       request.log.info('[adminUserController] getUserById start');
       request.log.debug({ params: request.params }, '[adminUserController] rawParams');
@@ -48,12 +34,7 @@ export class AdminUserController {
     }
   };
 
-  /**
-   * Create new user (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  createUser = async (request, reply) => {
+    createUser = async (request, reply) => {
     try {
       request.log.info('[adminUserController] createUser start');
       request.log.debug({ body: request.body }, '[adminUserController] rawBody');
@@ -71,12 +52,7 @@ export class AdminUserController {
     }
   };
 
-  /**
-   * Update user by ID (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  updateUser = async (request, reply) => {
+    updateUser = async (request, reply) => {
     try {
       request.log.info('[adminUserController] updateUser start');
       request.log.debug({ params: request.params, body: request.body }, '[adminUserController] rawParams');
@@ -99,12 +75,7 @@ export class AdminUserController {
     }
   };
 
-  /**
-   * Delete user by ID (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  deleteUser = async (request, reply) => {
+    deleteUser = async (request, reply) => {
     try {
       request.log.info('[adminUserController] deleteUser start');
       request.log.debug({ params: request.params }, '[adminUserController] rawParams');

@@ -1,20 +1,12 @@
-import { RylsRegistrationService } from '../../services/rylsRegistrationService.js';
+import { rylsRegistrationService } from '../../services/rylsRegistrationService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * User RYLS Registration Controller
- * Handles user registration submissions and queries
- */
 export class UserRylsRegistrationController {
   constructor() {
-    this.registrationService = new RylsRegistrationService();
+    this.registrationService = rylsRegistrationService;
   }
 
-  /**
-   * Create registration
-   * POST /api/ryls/registrations
-   */
-  createRegistration = async (request, reply) => {
+    createRegistration = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] createRegistration start');
       request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
@@ -39,11 +31,7 @@ export class UserRylsRegistrationController {
     }
   };
 
-  /**
-   * Submit fully funded registration
-   * POST /api/ryls/registrations/fully-funded
-   */
-  submitFullyFundedRegistration = async (request, reply) => {
+    submitFullyFundedRegistration = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] submitFullyFundedRegistration start');
       request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
@@ -69,11 +57,7 @@ export class UserRylsRegistrationController {
     }
   };
 
-  /**
-   * Submit self funded registration
-   * POST /api/ryls/registrations/self-funded
-   */
-  submitSelfFundedRegistration = async (request, reply) => {
+    submitSelfFundedRegistration = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] submitSelfFundedRegistration start');
       request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
@@ -99,11 +83,7 @@ export class UserRylsRegistrationController {
     }
   };
 
-  /**
-   * Get registration by submission ID
-   * GET /api/ryls/registrations/submission/:submissionId
-   */
-  getRegistrationBySubmissionId = async (request, reply) => {
+    getRegistrationBySubmissionId = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] getRegistrationBySubmissionId start');
       request.log.debug({ params: request.params }, '[userRylsRegistrationController] rawParams');
@@ -127,11 +107,7 @@ export class UserRylsRegistrationController {
     }
   };
 
-  /**
-   * Check if email exists in registrations
-   * GET /api/ryls/registrations/check-email/:email
-   */
-  checkEmailExists = async (request, reply) => {
+    checkEmailExists = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] checkEmailExists start');
       request.log.debug({ params: request.params }, '[userRylsRegistrationController] rawParams');
@@ -151,11 +127,7 @@ export class UserRylsRegistrationController {
     }
   };
 
-  /**
-   * Health check for registration service
-   * GET /api/ryls/registrations/health
-   */
-  healthCheck = async (request, reply) => {
+    healthCheck = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] healthCheck start');
       const result = await this.registrationService.healthCheck();

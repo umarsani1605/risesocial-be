@@ -1,95 +1,71 @@
-import { TestimonialsService } from '../../services/testimonialsService.js';
+import { testimonialsService } from '../../services/testimonialsService.js';
 import { fileUploadService } from '../../services/fileUploadService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * Admin Testimonials HTTP controllers
- * Handles admin-only testimonials management requests
- */
 export class AdminTestimonialsController {
   constructor() {
-    this.testimonialsService = new TestimonialsService();
+    this.testimonialsService = testimonialsService;
   }
 
-  /**
-   * Create new testimonial (Admin only)
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  async createTestimonial(req, reply) {
+    async createTestimonial(request, reply) {
     try {
-      req.log.info('[adminTestimonialsController] createTestimonial start');
-      req.log.debug({ body: req.body }, '[adminTestimonialsController] rawBody');
+      request.log.info('[adminTestimonialsController] createTestimonial start');
+      request.log.debug({ body: request.body }, '[adminTestimonialsController] rawBody');
 
-      const testimonial = await this.testimonialsService.createTestimonial(req.body);
-      req.log.info('[adminTestimonialsController] createTestimonial success');
-      return reply.send(successResponse(testimonial, 'Testimonial created successfully', 201));
+      const testimonial = await this.testimonialsService.createTestimonial(request.body);
+      request.log.info('[adminTestimonialsController] createTestimonial success');
+      return reply.status(201).send(successResponse(testimonial, 'Testimonial created successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[adminTestimonialsController] createTestimonial error');
+      request.log.error({ err: error }, '[adminTestimonialsController] createTestimonial error');
       return reply.send(errorResponse(error.message, 500));
     }
   }
 
-  /**
-   * Update testimonial (Admin only)
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  async updateTestimonial(req, reply) {
+    async updateTestimonial(request, reply) {
     try {
-      req.log.info('[adminTestimonialsController] updateTestimonial start');
-      req.log.debug({ params: req.params, body: req.body }, '[adminTestimonialsController] rawParams');
+      request.log.info('[adminTestimonialsController] updateTestimonial start');
+      request.log.debug({ params: request.params, body: request.body }, '[adminTestimonialsController] rawParams');
 
-      const { id } = req.params;
-      const testimonial = await this.testimonialsService.updateTestimonial(id, req.body);
+      const { id } = request.params;
+      const testimonial = await this.testimonialsService.updateTestimonial(id, request.body);
 
       if (!testimonial) {
-        req.log.info({ id }, '[adminTestimonialsController] updateTestimonial not_found');
+        request.log.info({ id }, '[adminTestimonialsController] updateTestimonial not_found');
         return reply.send(errorResponse('Testimonial not found', 404));
       }
 
-      req.log.info('[adminTestimonialsController] updateTestimonial success');
+      request.log.info('[adminTestimonialsController] updateTestimonial success');
       return reply.send(successResponse(testimonial, 'Testimonial updated successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[adminTestimonialsController] updateTestimonial error');
+      request.log.error({ err: error }, '[adminTestimonialsController] updateTestimonial error');
       return reply.send(errorResponse(error.message, 500));
     }
   }
 
-  /**
-   * Delete testimonial (Admin only)
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  async deleteTestimonial(req, reply) {
+    async deleteTestimonial(request, reply) {
     try {
-      req.log.info('[adminTestimonialsController] deleteTestimonial start');
-      req.log.debug({ params: req.params }, '[adminTestimonialsController] rawParams');
-      const { id } = req.params;
+      request.log.info('[adminTestimonialsController] deleteTestimonial start');
+      request.log.debug({ params: request.params }, '[adminTestimonialsController] rawParams');
+      const { id } = request.params;
       const success = await this.testimonialsService.deleteTestimonial(id);
 
       if (!success) {
-        req.log.info({ id }, '[adminTestimonialsController] deleteTestimonial not_found');
+        request.log.info({ id }, '[adminTestimonialsController] deleteTestimonial not_found');
         return reply.send(errorResponse('Testimonial not found', 404));
       }
 
-      req.log.info('[adminTestimonialsController] deleteTestimonial success');
+      request.log.info('[adminTestimonialsController] deleteTestimonial success');
       return reply.send(successResponse(null, 'Testimonial deleted successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[adminTestimonialsController] deleteTestimonial error');
+      request.log.error({ err: error }, '[adminTestimonialsController] deleteTestimonial error');
       return reply.send(errorResponse(error.message, 500));
     }
   }
 
-  /**
-   * Get testimonials for admin with all statuses (Admin only)
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  async getTestimonialsForAdmin(req, reply) {
+    async getTestimonialsForAdmin(request, reply) {
     try {
-      req.log.info('[adminTestimonialsController] getTestimonialsForAdmin start');
-      req.log.debug({ query: req.query }, '[adminTestimonialsController] rawQuery');
+      request.log.info('[adminTestimonialsController] getTestimonialsForAdmin start');
+      request.log.debug({ query: request.query }, '[adminTestimonialsController] rawQuery');
       const {
         page = 1,
         limit = 10,
@@ -100,7 +76,7 @@ export class AdminTestimonialsController {
         featured = '',
         sortBy = 'createdAt',
         sortOrder = 'desc',
-      } = req.query;
+      } = request.query;
 
       const filters = {
         search,
@@ -110,139 +86,109 @@ export class AdminTestimonialsController {
         featured: featured || undefined,
       };
 
-      const result = await this.testimonialsService.getTestimonials(filters, parseInt(page), parseInt(limit), sortBy, sortOrder);
+      const result = await this.testimonialsService.getTestimonials(filters, Number(page), Number(limit), sortBy, sortOrder);
 
-      req.log.info('[adminTestimonialsController] getTestimonialsForAdmin success');
+      request.log.info('[adminTestimonialsController] getTestimonialsForAdmin success');
       return reply.send(successResponse(result, 'Admin testimonials retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[adminTestimonialsController] getTestimonialsForAdmin error');
+      request.log.error({ err: error }, '[adminTestimonialsController] getTestimonialsForAdmin error');
       return reply.send(errorResponse(error.message, 500));
     }
   }
 
-  /**
-   * Get testimonial statistics (Admin only)
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  async getTestimonialStatistics(req, reply) {
+    async getTestimonialStatistics(request, reply) {
     try {
-      req.log.info('[adminTestimonialsController] getTestimonialStatistics start');
-      const { id } = req.params;
+      request.log.info('[adminTestimonialsController] getTestimonialStatistics start');
+      const { id } = request.params;
       const statistics = await this.testimonialsService.getTestimonialStatistics(id);
 
       if (!statistics) {
-        req.log.info({ id }, '[adminTestimonialsController] getTestimonialStatistics not_found');
+        request.log.info({ id }, '[adminTestimonialsController] getTestimonialStatistics not_found');
         return reply.send(errorResponse('Testimonial not found', 404));
       }
 
-      req.log.info('[adminTestimonialsController] getTestimonialStatistics success');
+      request.log.info('[adminTestimonialsController] getTestimonialStatistics success');
       return reply.send(successResponse(statistics, 'Testimonial statistics retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[adminTestimonialsController] getTestimonialStatistics error');
+      request.log.error({ err: error }, '[adminTestimonialsController] getTestimonialStatistics error');
       return reply.send(errorResponse(error.message, 500));
     }
   }
 
-  /**
-   * Get all testimonials statistics (Admin only)
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  async getAllTestimonialsStatistics(req, reply) {
+    async getAllTestimonialsStatistics(request, reply) {
     try {
-      req.log.info('[adminTestimonialsController] getAllTestimonialsStatistics start');
+      request.log.info('[adminTestimonialsController] getAllTestimonialsStatistics start');
       const statistics = await this.testimonialsService.getAllTestimonialsStatistics();
 
-      req.log.info('[adminTestimonialsController] getAllTestimonialsStatistics success');
+      request.log.info('[adminTestimonialsController] getAllTestimonialsStatistics success');
       return reply.send(successResponse(statistics, 'All testimonials statistics retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[adminTestimonialsController] getAllTestimonialsStatistics error');
+      request.log.error({ err: error }, '[adminTestimonialsController] getAllTestimonialsStatistics error');
       return reply.send(errorResponse(error.message, 500));
     }
   }
 
-  /**
-   * Toggle testimonial featured status (Admin only)
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  async toggleFeaturedTestimonial(req, reply) {
+    async toggleFeaturedTestimonial(request, reply) {
     try {
-      req.log.info('[adminTestimonialsController] toggleFeaturedTestimonial start');
-      req.log.debug({ params: req.params }, '[adminTestimonialsController] rawParams');
-      const { id } = req.params;
+      request.log.info('[adminTestimonialsController] toggleFeaturedTestimonial start');
+      request.log.debug({ params: request.params }, '[adminTestimonialsController] rawParams');
+      const { id } = request.params;
       const testimonial = await this.testimonialsService.toggleFeaturedTestimonial(id);
 
       if (!testimonial) {
-        req.log.info({ id }, '[adminTestimonialsController] toggleFeaturedTestimonial not_found');
+        request.log.info({ id }, '[adminTestimonialsController] toggleFeaturedTestimonial not_found');
         return reply.send(errorResponse('Testimonial not found', 404));
       }
 
-      req.log.info('[adminTestimonialsController] toggleFeaturedTestimonial success');
+      request.log.info('[adminTestimonialsController] toggleFeaturedTestimonial success');
       return reply.send(successResponse(testimonial, 'Testimonial featured status toggled successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[adminTestimonialsController] toggleFeaturedTestimonial error');
+      request.log.error({ err: error }, '[adminTestimonialsController] toggleFeaturedTestimonial error');
       return reply.send(errorResponse(error.message, 500));
     }
   }
 
-  /**
-   * Approve testimonial (Admin only)
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  async approveTestimonial(req, reply) {
+    async approveTestimonial(request, reply) {
     try {
-      req.log.info('[adminTestimonialsController] approveTestimonial start');
-      req.log.debug({ params: req.params }, '[adminTestimonialsController] rawParams');
-      const { id } = req.params;
+      request.log.info('[adminTestimonialsController] approveTestimonial start');
+      request.log.debug({ params: request.params }, '[adminTestimonialsController] rawParams');
+      const { id } = request.params;
       const testimonial = await this.testimonialsService.approveTestimonial(id);
 
       if (!testimonial) {
-        req.log.info({ id }, '[adminTestimonialsController] approveTestimonial not_found');
+        request.log.info({ id }, '[adminTestimonialsController] approveTestimonial not_found');
         return reply.send(errorResponse('Testimonial not found', 404));
       }
 
-      req.log.info('[adminTestimonialsController] approveTestimonial success');
+      request.log.info('[adminTestimonialsController] approveTestimonial success');
       return reply.send(successResponse(testimonial, 'Testimonial approved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[adminTestimonialsController] approveTestimonial error');
+      request.log.error({ err: error }, '[adminTestimonialsController] approveTestimonial error');
       return reply.send(errorResponse(error.message, 500));
     }
   }
 
-  /**
-   * Reject testimonial (Admin only)
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  async rejectTestimonial(req, reply) {
+    async rejectTestimonial(request, reply) {
     try {
-      req.log.info('[adminTestimonialsController] rejectTestimonial start');
-      req.log.debug({ params: req.params }, '[adminTestimonialsController] rawParams');
-      const { id } = req.params;
+      request.log.info('[adminTestimonialsController] rejectTestimonial start');
+      request.log.debug({ params: request.params }, '[adminTestimonialsController] rawParams');
+      const { id } = request.params;
       const testimonial = await this.testimonialsService.rejectTestimonial(id);
 
       if (!testimonial) {
-        req.log.info({ id }, '[adminTestimonialsController] rejectTestimonial not_found');
+        request.log.info({ id }, '[adminTestimonialsController] rejectTestimonial not_found');
         return reply.send(errorResponse('Testimonial not found', 404));
       }
 
-      req.log.info('[adminTestimonialsController] rejectTestimonial success');
+      request.log.info('[adminTestimonialsController] rejectTestimonial success');
       return reply.send(successResponse(testimonial, 'Testimonial rejected successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[adminTestimonialsController] rejectTestimonial error');
+      request.log.error({ err: error }, '[adminTestimonialsController] rejectTestimonial error');
       return reply.send(errorResponse(error.message, 500));
     }
   }
 
-  /**
-   * Upload testimonial avatar (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async uploadTestimonialAvatar(request, reply) {
+    async uploadTestimonialAvatar(request, reply) {
     try {
       request.log.info('[adminTestimonialsController] uploadTestimonialAvatar start');
 

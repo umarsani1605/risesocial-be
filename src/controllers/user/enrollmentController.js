@@ -1,28 +1,19 @@
 
-import { EnrollmentService } from '../../services/enrollmentService.js';
+import { enrollmentService } from '../../services/enrollmentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * User Enrollment HTTP controllers
- * Handles user-specific enrollment requests
- */
 export class UserEnrollmentController {
   constructor() {
-    this.enrollmentService = new EnrollmentService();
+    this.enrollmentService = enrollmentService;
   }
 
-  /**
-   * Get enrollment by ID (with user ownership check)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getEnrollmentById(request, reply) {
+    async getEnrollmentById(request, reply) {
     try {
       request.log.info('[userEnrollmentController] getEnrollmentById start');
       request.log.debug({ params: request.params }, '[userEnrollmentController] rawParams');
 
       const { id } = request.params;
-      const enrollment = await this.enrollmentService.getEnrollmentById(parseInt(id));
+      const enrollment = await this.enrollmentService.getEnrollmentById(Number(id));
 
       if (!enrollment) {
         request.log.info({ id }, '[userEnrollmentController] getEnrollmentById not_found');
@@ -37,18 +28,13 @@ export class UserEnrollmentController {
     }
   }
 
-  /**
-   * Get enrollment by user and academy
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getEnrollmentByUserAndAcademy(request, reply) {
+    async getEnrollmentByUserAndAcademy(request, reply) {
     try {
       request.log.info('[userEnrollmentController] getEnrollmentByUserAndAcademy start');
       request.log.debug({ params: request.params }, '[userEnrollmentController] rawParams');
 
       const { userId, academyId } = request.params;
-      const enrollment = await this.enrollmentService.getEnrollmentByUserAndAcademy(parseInt(userId), parseInt(academyId));
+      const enrollment = await this.enrollmentService.getEnrollmentByUserAndAcademy(Number(userId), Number(academyId));
 
       if (!enrollment) {
         request.log.info({ userId, academyId }, '[userEnrollmentController] getEnrollmentByUserAndAcademy not_found');
@@ -63,12 +49,7 @@ export class UserEnrollmentController {
     }
   }
 
-  /**
-   * Get user enrollments
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getUserEnrollments(request, reply) {
+    async getUserEnrollments(request, reply) {
     try {
       request.log.info('[userEnrollmentController] getUserEnrollments start');
       request.log.debug({ params: request.params, query: request.query }, '[userEnrollmentController] rawParams');
@@ -76,13 +57,13 @@ export class UserEnrollmentController {
       const { userId } = request.params;
       const options = {
         enrollment_status: request.query.enrollment_status,
-        progress_min: request.query.progress_min ? parseInt(request.query.progress_min) : undefined,
-        progress_max: request.query.progress_max ? parseInt(request.query.progress_max) : undefined,
-        page: request.query.page ? parseInt(request.query.page) : 1,
-        limit: request.query.limit ? parseInt(request.query.limit) : 10,
+        progress_min: request.query.progress_min ? Number(request.query.progress_min) : undefined,
+        progress_max: request.query.progress_max ? Number(request.query.progress_max) : undefined,
+        page: request.query.page ? Number(request.query.page) : 1,
+        limit: request.query.limit ? Number(request.query.limit) : 10,
       };
 
-      const enrollments = await this.enrollmentService.getUserEnrollments(parseInt(userId), options);
+      const enrollments = await this.enrollmentService.getUserEnrollments(Number(userId), options);
 
       request.log.info('[userEnrollmentController] getUserEnrollments success');
       return reply.send(successResponse(enrollments, 'Enrollment user berhasil ditemukan'));
@@ -92,12 +73,7 @@ export class UserEnrollmentController {
     }
   }
 
-  /**
-   * Update enrollment progress (user can update their own progress)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateProgress(request, reply) {
+    async updateProgress(request, reply) {
     try {
       request.log.info('[userEnrollmentController] updateProgress start');
       request.log.debug({ params: request.params, body: request.body }, '[userEnrollmentController] rawParams');
@@ -105,7 +81,7 @@ export class UserEnrollmentController {
       const { id } = request.params;
       const { progress_percentage } = request.body;
 
-      const enrollment = await this.enrollmentService.updateProgress(parseInt(id), progress_percentage);
+      const enrollment = await this.enrollmentService.updateProgress(Number(id), progress_percentage);
 
       request.log.info('[userEnrollmentController] updateProgress success');
       return reply.send(successResponse(enrollment, 'Progress enrollment berhasil diupdate'));

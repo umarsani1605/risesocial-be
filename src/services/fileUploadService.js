@@ -1,28 +1,20 @@
-import { FileUploadRepository } from '../repositories/fileUploadRepository.js';
+import { fileUploadRepository } from '../repositories/fileUploadRepository.js';
 import { deleteFile } from '../middleware/fileUploadMiddleware.js';
 import fs from 'fs-extra';
 import path from 'path';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * FileUpload Service
- * Business logic for file upload operations
- */
 export class FileUploadService {
   constructor() {
-    this.fileUploadRepository = new FileUploadRepository();
+    this.fileUploadRepository = fileUploadRepository;
   }
 
   get logger() {
     return getLogger();
   }
 
-  /**
-   * Process and save uploaded file
-   */
   async processFileUpload(fileData, uploadType) {
     this.logger.info('[fileUploadService] processFileUpload start');
-    this.logger.debug({ fileName: fileData?.originalname, uploadType }, '[fileUploadService] rawInput');
     try {
       const validTypes = ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR', 'USER_AVATAR'];
       if (!validTypes.includes(uploadType)) {
@@ -56,31 +48,23 @@ export class FileUploadService {
       if (fileData && fileData.path) {
         await deleteFile(fileData.path);
       }
-
       this.logger.error({ err: error }, '[fileUploadService] processFileUpload error');
       throw error;
     }
   }
 
-  /**
-   * Get file by ID
-   */
   async getFileById(fileId) {
     this.logger.info({ fileId }, '[fileUploadService] getFileById start');
     try {
       const file = await this.fileUploadRepository.findById(fileId);
-      const result = file ? this.enhanceFileObject(file) : null;
       this.logger.info('[fileUploadService] getFileById success');
-      return result;
+      return file;
     } catch (error) {
       this.logger.error({ err: error }, '[fileUploadService] getFileById error');
       throw new Error('Failed to retrieve file');
     }
   }
 
-  /**
-   * Get file download info
-   */
   async getFileDownloadInfo(fileId) {
     this.logger.info({ fileId }, '[fileUploadService] getFileDownloadInfo start');
     try {
@@ -110,9 +94,6 @@ export class FileUploadService {
     }
   }
 
-  /**
-   * Delete file and its record
-   */
   async deleteFile(fileId) {
     this.logger.info({ fileId }, '[fileUploadService] deleteFile start');
     try {
@@ -132,15 +113,12 @@ export class FileUploadService {
     }
   }
 
-  /**
-   * Get files by upload type
-   */
   async getFilesByType(uploadType, options = {}) {
     this.logger.info({ uploadType, options }, '[fileUploadService] getFilesByType start');
     try {
       const files = await this.fileUploadRepository.findByUploadType(uploadType, options);
       const result = {
-        files: files.map((file) => this.enhanceFileObject(file)),
+        files: files,
         pagination: { page: options.page || 1, limit: options.limit || 10, total: files.length },
       };
       this.logger.info('[fileUploadService] getFilesByType success');
@@ -151,20 +129,12 @@ export class FileUploadService {
     }
   }
 
-  /**
-   * Get file upload statistics
-   */
   async getUploadStatistics() {
     this.logger.info('[fileUploadService] getUploadStatistics start');
     try {
       const stats = await this.fileUploadRepository.getFileUploadStats();
-      const result = {
-        ...stats,
-        totalSizeFormatted: this.formatFileSize(stats.totalSize),
-        averageFileSizeFormatted: this.formatFileSize(stats.averageFileSize),
-      };
       this.logger.info('[fileUploadService] getUploadStatistics success');
-      return result;
+      return stats;
     } catch (error) {
       this.logger.error({ err: error }, '[fileUploadService] getUploadStatistics error');
       throw new Error('Failed to retrieve upload statistics');
@@ -176,30 +146,16 @@ export class FileUploadService {
     return `${baseUrl}/api/uploads/${fileId}`;
   }
 
-  /**
-   * Generate public URL for file without saving to database
-   * Used for academy images, instructor avatars, testimonial avatars, user avatars
-   */
   generatePublicFileUrl(fileData) {
     const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
     const relativePath = fileData.relativePath || fileData.path;
     return `${baseUrl}/${relativePath}`;
   }
 
-  /**
-   * Upload image and return public URL
-   * Used for academy images, instructor avatars, testimonial avatars, user avatars
-   * @param {Object} file - Multer file object
-   * @param {string} type - Upload type (ACADEMY_IMAGE, INSTRUCTOR_AVATAR, TESTIMONIAL_AVATAR, USER_AVATAR)
-   * @returns {Promise<Object>} Upload result with public URL
-   */
   async uploadImage(file, type) {
     this.logger.info('[fileUploadService] uploadImage start');
-    this.logger.debug({ fileName: file?.originalname, type }, '[fileUploadService] params');
-
     try {
       const allowedTypes = ['ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR', 'USER_AVATAR'];
-
       if (!allowedTypes.includes(type)) {
         throw new Error('Invalid upload type');
       }
@@ -231,7 +187,6 @@ export class FileUploadService {
           break;
       }
 
-      // Ensure directory exists
       if (!fs.existsSync(uploadPath)) {
         fs.mkdirSync(uploadPath, { recursive: true });
       }
@@ -253,38 +208,6 @@ export class FileUploadService {
       this.logger.error({ err: error }, '[fileUploadService] uploadImage error');
       throw error;
     }
-  }
-
-  enhanceFileObject(file) {
-    return {
-      id: file.id,
-      originalName: file.original_name,
-      fileName: path.basename(file.file_path),
-      fileSize: file.file_size,
-      fileSizeFormatted: this.formatFileSize(file.file_size),
-      mimeType: file.mime_type,
-      uploadType: file.upload_type,
-      uploadDate: file.created_at,
-      fileUrl: this.generateFileUrl(file.id),
-      fileExtension: path.extname(file.original_name),
-      isImage: file.mime_type.startsWith('image/'),
-      isPdf: file.mime_type === 'application/pdf',
-    };
-  }
-
-  formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
-  validateUploadRequest(req, expectedType) {
-    const errors = [];
-    if (!req.file) errors.push('No file uploaded');
-    if (!expectedType || !['ESSAY', 'HEADSHOT'].includes(expectedType)) errors.push('Invalid upload type specified');
-    return { isValid: errors.length === 0, errors };
   }
 
   async cleanupOrphanedFiles() {

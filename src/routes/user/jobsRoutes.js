@@ -1,94 +1,13 @@
-import UserJobsController from '../../controllers/user/jobsController.js';
+import { userJobsController } from '../../controllers/user/jobsController.js';
 import { optionalAuthMiddleware } from '../../middleware/auth.js';
+import { getAllJobsSchema, getJobByIdSchema, searchJobsSchema, getCompaniesSchema } from '../../schemas/jobsSchemas.js';
 
-const userJobsController = new UserJobsController();
-
-/**
- * User Jobs routes plugin
- * @param {Object} fastify - Fastify instance
- */
-export async function jobsRoutes(fastify) {
-  const jobsTag = { tags: ['User Jobs'] };
-
-  // GET /api/jobs - Get all jobs with search and filtering
-  fastify.get(
-    '/',
-    {
-      schema: {
-        ...jobsTag,
-      },
-      preHandler: optionalAuthMiddleware,
-    },
-    userJobsController.getJobs
-  );
-
-  // GET /api/jobs/featured - Get featured jobs
-  fastify.get(
-    '/featured',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    userJobsController.getFeaturedJobs
-  );
-
-  // GET /api/jobs/categories - Get job categories
-  fastify.get(
-    '/categories',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    userJobsController.getJobCategories
-  );
-
-  // GET /api/jobs/company - Get companies with filtering
-  fastify.get(
-    '/company',
-    {
-      schema: {
-        ...jobsTag,
-      },
-      preHandler: optionalAuthMiddleware,
-    },
-    userJobsController.getCompanies
-  );
-
-  // GET /api/jobs/search - Search jobs
-  fastify.get(
-    '/search',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    userJobsController.searchJobs
-  );
-
-  // GET /api/jobs/:id - Get job by ID
-  fastify.get(
-    '/:id',
-    {
-      schema: {
-        ...jobsTag,
-      },
-      preHandler: optionalAuthMiddleware,
-    },
-    userJobsController.getJobById
-  );
-
-  // GET /api/jobs/:id/recommendations - Get job recommendations
-  fastify.get(
-    '/:id/recommendations',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    userJobsController.getJobRecommendations
-  );
+export default async function userJobsRoutes(fastify) {
+  fastify.get('/', { schema: getAllJobsSchema, preHandler: optionalAuthMiddleware }, userJobsController.getJobs);
+  fastify.get('/featured', userJobsController.getFeaturedJobs);
+  fastify.get('/categories', userJobsController.getJobCategories);
+  fastify.get('/company', { schema: getCompaniesSchema, preHandler: optionalAuthMiddleware }, userJobsController.getCompanies);
+  fastify.get('/search', { schema: searchJobsSchema }, userJobsController.searchJobs);
+  fastify.get('/:id', { schema: getJobByIdSchema, preHandler: optionalAuthMiddleware }, userJobsController.getJobById);
+  fastify.get('/:id/recommendations', userJobsController.getJobRecommendations);
 }
-
-export default jobsRoutes;

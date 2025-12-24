@@ -1,22 +1,17 @@
 import { BaseRepository } from './base/BaseRepository.js';
+import prisma from '../lib/prisma.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * EnrollmentRepository - Repository untuk mengelola enrollment academy
- * Menggunakan BaseRepository pattern dengan tambahan method khusus enrollment
- */
 class EnrollmentRepository extends BaseRepository {
-  constructor(prisma) {
-    super(prisma, 'academyEnrollment');
+  constructor() {
+    super(prisma.academyEnrollment);
+    this.prisma = prisma;
   }
 
   get logger() {
     return getLogger();
   }
 
-  /**
-   * Mendapatkan semua enrollment dengan filter dan include
-   */
   async findAllWithDetails(options = {}) {
     this.logger.info({ options }, '[enrollmentRepository] findAllWithDetails called');
     const {
@@ -89,9 +84,6 @@ class EnrollmentRepository extends BaseRepository {
     return { data: enrollments, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  /**
-   * Mendapatkan enrollment berdasarkan user dan academy
-   */
   async findByUserAndAcademy(userId, academyId) {
     this.logger.info({ userId, academyId }, '[enrollmentRepository] findByUserAndAcademy called');
     return await this.model.findUnique({
@@ -103,9 +95,6 @@ class EnrollmentRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Mendapatkan enrollment berdasarkan user ID
-   */
   async findByUserId(userId, options = {}) {
     this.logger.info({ userId }, '[enrollmentRepository] findByUserId called');
     const { enrollment_status, progress_min, progress_max, page = 1, limit = 10 } = options;
@@ -149,9 +138,6 @@ class EnrollmentRepository extends BaseRepository {
     return { data: enrollments, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  /**
-   * Mendapatkan enrollment berdasarkan academy ID
-   */
   async findByAcademyId(academyId, options = {}) {
     this.logger.info({ academyId }, '[enrollmentRepository] findByAcademyId called');
     const { enrollment_status, progress_min, progress_max, page = 1, limit = 10 } = options;
@@ -182,9 +168,6 @@ class EnrollmentRepository extends BaseRepository {
     return { data: enrollments, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  /**
-   * Membuat enrollment baru
-   */
   async createEnrollment(data) {
     this.logger.info('[enrollmentRepository] createEnrollment called');
     const enrollmentData = {
@@ -205,9 +188,6 @@ class EnrollmentRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Update progress enrollment
-   */
   async updateProgress(enrollmentId, progressPercentage) {
     this.logger.info({ enrollmentId }, '[enrollmentRepository] updateProgress called');
     const updateData = { progress_percentage: progressPercentage };
@@ -226,9 +206,6 @@ class EnrollmentRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Update status enrollment
-   */
   async updateStatus(enrollmentId, status) {
     this.logger.info({ enrollmentId, status }, '[enrollmentRepository] updateStatus called');
     const updateData = { enrollment_status: status };
@@ -247,9 +224,6 @@ class EnrollmentRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Mendapatkan statistik enrollment
-   */
   async getEnrollmentStats(options = {}) {
     this.logger.info({ options }, '[enrollmentRepository] getEnrollmentStats called');
     const { academy_id, user_id, date_from, date_to } = options;
@@ -281,51 +255,6 @@ class EnrollmentRepository extends BaseRepository {
     };
   }
 
-  /**
-   * Mendapatkan enrollment yang akan berakhir dalam X hari
-   */
-  async getExpiringEnrollments(days = 7) {
-    this.logger.info({ days }, '[enrollmentRepository] getExpiringEnrollments called');
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + days);
-
-    return await this.model.findMany({
-      where: {
-        enrollment_status: 'ENROLLED',
-        enrolled_at: { lte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) },
-      },
-      include: {
-        user: { select: { id: true, first_name: true, last_name: true, email: true } },
-        academy: { select: { id: true, title: true, path_slug: true, duration: true } },
-      },
-      orderBy: { enrolled_at: 'asc' },
-    });
-  }
-
-  /**
-   * Mendapatkan top learners berdasarkan progress
-   */
-  async getTopLearners(options = {}) {
-    this.logger.info({ options }, '[enrollmentRepository] getTopLearners called');
-    const { limit = 10, academy_id } = options;
-
-    const where = { enrollment_status: 'ENROLLED' };
-    if (academy_id) where.academy_id = academy_id;
-
-    return await this.model.findMany({
-      where,
-      include: {
-        user: { select: { id: true, username: true, first_name: true, last_name: true, avatar: true } },
-        academy: { select: { id: true, title: true, path_slug: true, image_url: true } },
-      },
-      orderBy: [{ progress_percentage: 'desc' }, { enrolled_at: 'asc' }],
-      take: limit,
-    });
-  }
-
-  /**
-   * Validasi sebelum create enrollment
-   */
   async validateEnrollment(data) {
     this.logger.info('[enrollmentRepository] validateEnrollment called');
     const { user_id, academy_id, pricing_tier_id } = data;
@@ -352,22 +281,6 @@ class EnrollmentRepository extends BaseRepository {
 
     return { valid: true, message: 'Enrollment dapat dibuat' };
   }
-
-  /**
-   * Bulk update enrollment status
-   */
-  async bulkUpdateStatus(enrollmentIds, status) {
-    this.logger.info({ count: Array.isArray(enrollmentIds) ? enrollmentIds.length : 0, status }, '[enrollmentRepository] bulkUpdateStatus called');
-    const updateData = { enrollment_status: status };
-    if (status === 'COMPLETED') {
-      updateData.completed_at = new Date();
-      updateData.progress_percentage = 100;
-    }
-
-    const result = await this.model.updateMany({ where: { id: { in: enrollmentIds } }, data: updateData });
-
-    return { updated_count: result.count, message: `Berhasil mengupdate ${result.count} enrollment` };
-  }
 }
 
-export { EnrollmentRepository };
+export const enrollmentRepository = new EnrollmentRepository();

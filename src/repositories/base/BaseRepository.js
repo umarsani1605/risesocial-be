@@ -1,30 +1,18 @@
-/**
- * Base Repository Class
- * Provides common database operations following KISS principle
- */
+import { getLogger } from '../../lib/loggerContext.js';
+
 export class BaseRepository {
-  /**
-   * @param {Object} model - Prisma model instance
-   */
   constructor(model) {
     this.model = model;
   }
 
-  /**
-   * Find all records with optional filtering and pagination
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>} Array of records
-   */
+  get logger() {
+    return getLogger();
+  }
+
   async findMany(options = {}) {
     return await this.model.findMany(options);
   }
 
-  /**
-   * Find single record by ID
-   * @param {number|string} id - Record ID
-   * @param {Object} options - Query options
-   * @returns {Promise<Object|null>} Record or null
-   */
   async findById(id, options = {}) {
     return await this.model.findUnique({
       where: { id },
@@ -32,12 +20,6 @@ export class BaseRepository {
     });
   }
 
-  /**
-   * Find single record by condition
-   * @param {Object} where - Where condition
-   * @param {Object} options - Query options
-   * @returns {Promise<Object|null>} Record or null
-   */
   async findFirst(where, options = {}) {
     return await this.model.findFirst({
       where,
@@ -45,21 +27,10 @@ export class BaseRepository {
     });
   }
 
-  /**
-   * Create new record
-   * @param {Object} data - Record data
-   * @returns {Promise<Object>} Created record
-   */
   async create(data) {
     return await this.model.create({ data });
   }
 
-  /**
-   * Update record by ID
-   * @param {number|string} id - Record ID
-   * @param {Object} data - Update data
-   * @returns {Promise<Object>} Updated record
-   */
   async update(id, data) {
     return await this.model.update({
       where: { id },
@@ -67,42 +38,23 @@ export class BaseRepository {
     });
   }
 
-  /**
-   * Delete record by ID
-   * @param {number|string} id - Record ID
-   * @returns {Promise<Object>} Deleted record
-   */
   async delete(id) {
     return await this.model.delete({
       where: { id },
     });
   }
 
-  /**
-   * Count records with optional filtering
-   * @param {Object} where - Filter conditions
-   * @returns {Promise<number>} Record count
-   */
   async count(where = {}) {
-    console.log('[BaseRepository] count called with:', { where });
-    console.log('[BaseRepository] this.model:', typeof this.model, !!this.model);
-
+    this.logger.debug({ where }, '[BaseRepository] count called');
     try {
       const result = await this.model.count({ where });
-      console.log('[BaseRepository] count result:', result);
       return result;
     } catch (error) {
-      console.error('[BaseRepository] count error:', error.message);
-      console.error('[BaseRepository] count query attempted:', { where });
+      this.logger.error({ err: error, where }, '[BaseRepository] count error');
       throw error;
     }
   }
 
-  /**
-   * Check if record exists
-   * @param {Object} where - Filter conditions
-   * @returns {Promise<boolean>} True if exists
-   */
   async exists(where) {
     const count = await this.count(where);
     return count > 0;

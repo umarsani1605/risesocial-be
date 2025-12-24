@@ -1,25 +1,16 @@
-import { TestimonialsService } from '../../services/testimonialsService.js';
+import { testimonialsService } from '../../services/testimonialsService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * User Testimonials HTTP controllers
- * Handles public testimonials browsing requests
- */
 export class UserTestimonialsController {
   constructor() {
-    this.testimonialsService = new TestimonialsService();
+    this.testimonialsService = testimonialsService;
   }
 
-  /**
-   * Get all testimonials with search and filtering
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getTestimonials = async (req, reply) => {
+    getTestimonials = async (request, reply) => {
     try {
-      req.log.info('[userTestimonialsController] getTestimonials start');
-      req.log.debug({ query: req.query }, '[userTestimonialsController] rawQuery');
-      const { page = 1, limit = 10, search = '', country = '', minRating = '', featured = '', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+      request.log.info('[userTestimonialsController] getTestimonials start');
+      request.log.debug({ query: request.query }, '[userTestimonialsController] rawQuery');
+      const { page = 1, limit = 10, search = '', country = '', minRating = '', featured = '', sortBy = 'createdAt', sortOrder = 'desc' } = request.query;
 
       const filters = {
         search,
@@ -29,125 +20,100 @@ export class UserTestimonialsController {
         featured: featured || undefined,
       };
 
-      const result = await this.testimonialsService.getTestimonials(filters, parseInt(page), parseInt(limit), sortBy, sortOrder);
+      const result = await this.testimonialsService.getTestimonials(filters, Number(page), Number(limit), sortBy, sortOrder);
 
-      req.log.info('[userTestimonialsController] getTestimonials success');
+      request.log.info('[userTestimonialsController] getTestimonials success');
       return reply.send(successResponse(result, 'Testimonials retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userTestimonialsController] getTestimonials error');
+      request.log.error({ err: error }, '[userTestimonialsController] getTestimonials error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get testimonial by ID
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getTestimonialById = async (req, reply) => {
+    getTestimonialById = async (request, reply) => {
     try {
-      req.log.info('[userTestimonialsController] getTestimonialById start');
-      req.log.debug({ params: req.params }, '[userTestimonialsController] rawParams');
-      const { id } = req.params;
+      request.log.info('[userTestimonialsController] getTestimonialById start');
+      request.log.debug({ params: request.params }, '[userTestimonialsController] rawParams');
+      const { id } = request.params;
       const testimonial = await this.testimonialsService.getTestimonialById(id);
 
       if (!testimonial || testimonial.status !== 'ACTIVE') {
-        req.log.info({ id }, '[userTestimonialsController] getTestimonialById not_found');
+        request.log.info({ id }, '[userTestimonialsController] getTestimonialById not_found');
         return reply.send(errorResponse('Testimonial not found', 404));
       }
 
-      req.log.info('[userTestimonialsController] getTestimonialById success');
+      request.log.info('[userTestimonialsController] getTestimonialById success');
       return reply.send(successResponse(testimonial, 'Testimonial retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userTestimonialsController] getTestimonialById error');
+      request.log.error({ err: error }, '[userTestimonialsController] getTestimonialById error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get featured testimonials
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getFeaturedTestimonials = async (req, reply) => {
+    getFeaturedTestimonials = async (request, reply) => {
     try {
-      req.log.info('[userTestimonialsController] getFeaturedTestimonials start');
-      req.log.debug({ query: req.query }, '[userTestimonialsController] rawQuery');
-      const { limit = 6 } = req.query;
-      const testimonials = await this.testimonialsService.getFeaturedTestimonials(parseInt(limit));
+      request.log.info('[userTestimonialsController] getFeaturedTestimonials start');
+      request.log.debug({ query: request.query }, '[userTestimonialsController] rawQuery');
+      const { limit = 6 } = request.query;
+      const testimonials = await this.testimonialsService.getFeaturedTestimonials(Number(limit));
 
-      req.log.info('[userTestimonialsController] getFeaturedTestimonials success');
+      request.log.info('[userTestimonialsController] getFeaturedTestimonials success');
       return reply.send(successResponse(testimonials, 'Featured testimonials retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userTestimonialsController] getFeaturedTestimonials error');
+      request.log.error({ err: error }, '[userTestimonialsController] getFeaturedTestimonials error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get testimonials by country
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getTestimonialsByCountry = async (req, reply) => {
+    getTestimonialsByCountry = async (request, reply) => {
     try {
-      req.log.info('[userTestimonialsController] getTestimonialsByCountry start');
-      req.log.debug({ query: req.query }, '[userTestimonialsController] rawQuery');
-      const { country, limit = 10 } = req.query;
+      request.log.info('[userTestimonialsController] getTestimonialsByCountry start');
+      request.log.debug({ query: request.query }, '[userTestimonialsController] rawQuery');
+      const { country, limit = 10 } = request.query;
 
       if (!country) {
         return reply.send(errorResponse('Country parameter is required', 400));
       }
 
-      const testimonials = await this.testimonialsService.getTestimonialsByCountry(country, parseInt(limit));
+      const testimonials = await this.testimonialsService.getTestimonialsByCountry(country, Number(limit));
 
-      req.log.info('[userTestimonialsController] getTestimonialsByCountry success');
+      request.log.info('[userTestimonialsController] getTestimonialsByCountry success');
       return reply.send(successResponse(testimonials, `Testimonials from ${country} retrieved successfully`));
     } catch (error) {
-      req.log.error({ err: error }, '[userTestimonialsController] getTestimonialsByCountry error');
+      request.log.error({ err: error }, '[userTestimonialsController] getTestimonialsByCountry error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get testimonials by rating
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getTestimonialsByRating = async (req, reply) => {
+    getTestimonialsByRating = async (request, reply) => {
     try {
-      req.log.info('[userTestimonialsController] getTestimonialsByRating start');
-      req.log.debug({ query: req.query }, '[userTestimonialsController] rawQuery');
-      const { rating, limit = 10 } = req.query;
+      request.log.info('[userTestimonialsController] getTestimonialsByRating start');
+      request.log.debug({ query: request.query }, '[userTestimonialsController] rawQuery');
+      const { rating, limit = 10 } = request.query;
 
       if (!rating || rating < 1 || rating > 5) {
         return reply.send(errorResponse('Valid rating parameter (1-5) is required', 400));
       }
 
-      const testimonials = await this.testimonialsService.getTestimonialsByRating(parseInt(rating), parseInt(limit));
+      const testimonials = await this.testimonialsService.getTestimonialsByRating(Number(rating), Number(limit));
 
-      req.log.info('[userTestimonialsController] getTestimonialsByRating success');
+      request.log.info('[userTestimonialsController] getTestimonialsByRating success');
       return reply.send(successResponse(testimonials, `Testimonials with ${rating} stars retrieved successfully`));
     } catch (error) {
-      req.log.error({ err: error }, '[userTestimonialsController] getTestimonialsByRating error');
+      request.log.error({ err: error }, '[userTestimonialsController] getTestimonialsByRating error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get countries with testimonial counts
-   * @param {Object} req - Fastify request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getCountriesWithCounts = async (req, reply) => {
+    getCountriesWithCounts = async (request, reply) => {
     try {
-      req.log.info('[userTestimonialsController] getCountriesWithCounts start');
+      request.log.info('[userTestimonialsController] getCountriesWithCounts start');
       const countries = await this.testimonialsService.getCountriesWithCounts();
 
-      req.log.info('[userTestimonialsController] getCountriesWithCounts success');
+      request.log.info('[userTestimonialsController] getCountriesWithCounts success');
       return reply.send(successResponse(countries, 'Countries with testimonial counts retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userTestimonialsController] getCountriesWithCounts error');
+      request.log.error({ err: error }, '[userTestimonialsController] getCountriesWithCounts error');
       return reply.send(errorResponse(error.message, 500));
     }
   };

@@ -1,171 +1,34 @@
 import { userEnrollmentController } from '../../controllers/user/enrollmentController.js';
 import { optionalAuthMiddleware } from '../../middleware/auth.js';
+import {
+  getEnrollmentByIdSchema,
+  getUserEnrollmentsSchema,
+  getEnrollmentByUserAndAcademySchema,
+  updateProgressSchema,
+} from '../../schemas/enrollmentSchemas.js';
 
-/**
- * User Enrollment routes plugin
- * @param {Object} fastify - Fastify instance
- */
 export default async function userEnrollmentRoutes(fastify) {
-  const enrollmentTag = { tags: ['User Enrollments'] };
+  fastify.get('/:id', {
+    preHandler: optionalAuthMiddleware,
+    schema: getEnrollmentByIdSchema,
+    handler: userEnrollmentController.getEnrollmentById,
+  });
 
-  // GET /api/enrollments/:id - Get enrollment by ID (with user ownership check)
-  fastify.get(
-    '/:id',
-    {
-      schema: {
-        ...enrollmentTag,
-        description: 'Get enrollment by ID',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'integer', minimum: 1 },
-          },
-          required: ['id'],
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-          404: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
-      preHandler: optionalAuthMiddleware,
-    },
-    userEnrollmentController.getEnrollmentById
-  );
+  fastify.get('/user/:userId', {
+    preHandler: optionalAuthMiddleware,
+    schema: getUserEnrollmentsSchema,
+    handler: userEnrollmentController.getUserEnrollments,
+  });
 
-  // GET /api/enrollments/user/:userId/academy/:academyId - Get enrollment by user and academy
-  fastify.get(
-    '/user/:userId/academy/:academyId',
-    {
-      schema: {
-        ...enrollmentTag,
-        description: 'Get enrollment by user and academy',
-        params: {
-          type: 'object',
-          properties: {
-            userId: { type: 'integer', minimum: 1 },
-            academyId: { type: 'integer', minimum: 1 },
-          },
-          required: ['userId', 'academyId'],
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-          404: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
-      preHandler: optionalAuthMiddleware,
-    },
-    userEnrollmentController.getEnrollmentByUserAndAcademy
-  );
+  fastify.get('/user/:userId/academy/:academyId', {
+    preHandler: optionalAuthMiddleware,
+    schema: getEnrollmentByUserAndAcademySchema,
+    handler: userEnrollmentController.getEnrollmentByUserAndAcademy,
+  });
 
-  // GET /api/enrollments/user/:userId - Get user enrollments
-  fastify.get(
-    '/user/:userId',
-    {
-      schema: {
-        ...enrollmentTag,
-        description: 'Get user enrollments with pagination and filtering',
-        params: {
-          type: 'object',
-          properties: {
-            userId: { type: 'integer', minimum: 1 },
-          },
-          required: ['userId'],
-        },
-        querystring: {
-          type: 'object',
-          properties: {
-            enrollment_status: {
-              type: 'string',
-              enum: ['ENROLLED', 'COMPLETED', 'CANCELLED', 'SUSPENDED'],
-            },
-            progress_min: { type: 'integer', minimum: 0, maximum: 100 },
-            progress_max: { type: 'integer', minimum: 0, maximum: 100 },
-            page: { type: 'integer', minimum: 1, default: 1 },
-            limit: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
-          },
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
-      preHandler: optionalAuthMiddleware,
-    },
-    userEnrollmentController.getUserEnrollments
-  );
-
-  // PUT /api/enrollments/:id/progress - Update enrollment progress (user can update their own)
-  fastify.put(
-    '/:id/progress',
-    {
-      schema: {
-        ...enrollmentTag,
-        description: 'Update enrollment progress',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'integer', minimum: 1 },
-          },
-          required: ['id'],
-        },
-        body: {
-          type: 'object',
-          required: ['progress_percentage'],
-          properties: {
-            progress_percentage: { type: 'integer', minimum: 0, maximum: 100 },
-          },
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
-      preHandler: optionalAuthMiddleware,
-    },
-    userEnrollmentController.updateProgress
-  );
+  fastify.put('/:id/progress', {
+    preHandler: optionalAuthMiddleware,
+    schema: updateProgressSchema,
+    handler: userEnrollmentController.updateProgress,
+  });
 }

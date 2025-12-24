@@ -2,10 +2,6 @@ import prisma from '../lib/prisma.js';
 import { BaseRepository } from './base/BaseRepository.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * Consolidated Academy Repository
- * Handles all academy-related data access operations
- */
 export class AcademyRepository extends BaseRepository {
   constructor() {
     super(prisma.academy);
@@ -17,9 +13,6 @@ export class AcademyRepository extends BaseRepository {
 
   // MAIN ACADEMY METHODS
 
-  /**
-   * Find academy by slug
-   */
   async findBySlug(slug, options = {}) {
     this.logger.info({ slug }, '[academyRepository] findBySlug called');
     const academy = await this.model.findUnique({
@@ -39,9 +32,6 @@ export class AcademyRepository extends BaseRepository {
     return academy;
   }
 
-  /**
-   * Find academies with pagination and filtering
-   */
   async findWithPagination(options = {}) {
     this.logger.info({ options }, '[academyRepository] findWithPagination called');
     const { page = 1, limit = 10, category, search, minRating, includeRelations = false } = options;
@@ -95,9 +85,6 @@ export class AcademyRepository extends BaseRepository {
     };
   }
 
-  /**
-   * Get academy categories
-   */
   async getCategories() {
     this.logger.info('[academyRepository] getCategories called');
     const result = await this.model.findMany({
@@ -108,9 +95,6 @@ export class AcademyRepository extends BaseRepository {
     return result.map((item) => item.category).filter(Boolean);
   }
 
-  /**
-   * Check if slug exists
-   */
   async slugExists(slug, excludeId = null) {
     this.logger.info({ slug, excludeId }, '[academyRepository] slugExists called');
     const where = { path_slug: slug };
@@ -120,10 +104,6 @@ export class AcademyRepository extends BaseRepository {
     return await this.exists(where);
   }
 
-  /**
-   * Get academy statistics
-   * @returns {Promise<Object>} Academy statistics
-   */
   async getAcademyStatistics() {
     const [total, active, byCategory] = await Promise.all([
       this.model.count(),
@@ -147,11 +127,6 @@ export class AcademyRepository extends BaseRepository {
 
   // PRICING METHODS
 
-  /**
-   * Get all pricing tiers for academy
-   * @param {number} academyId - Academy ID
-   * @returns {Promise<Array>} Array pricing tiers
-   */
   async findPricingsByAcademyId(academyId) {
     return await prisma.academyPricing.findMany({
       where: { academy_id: academyId },
@@ -159,9 +134,6 @@ export class AcademyRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Create pricing for academy
-   */
   async createPricing(academyId, data) {
     this.logger.info({ academyId, data }, '[academyRepository] createPricing called');
 
@@ -195,9 +167,6 @@ export class AcademyRepository extends BaseRepository {
     return pricing;
   }
 
-  /**
-   * Update pricing for academy
-   */
   async updatePricing(academyId, pricingId, data) {
     this.logger.info({ academyId, pricingId, data }, '[academyRepository] updatePricing called');
     const { order, ...rest } = data || {};
@@ -234,9 +203,6 @@ export class AcademyRepository extends BaseRepository {
     return result;
   }
 
-  /**
-   * Delete pricing for academy
-   */
   async deletePricing(academyId, pricingId) {
     this.logger.info({ academyId, pricingId }, '[academyRepository] deletePricing called');
 
@@ -265,11 +231,6 @@ export class AcademyRepository extends BaseRepository {
 
   // FEATURE METHODS
 
-  /**
-   * Get all features for academy
-   * @param {number} academyId - Academy ID
-   * @returns {Promise<Array>} Array features
-   */
   async findFeaturesByAcademyId(academyId) {
     return await prisma.academyFeature.findMany({
       where: { academy_id: academyId },
@@ -277,9 +238,6 @@ export class AcademyRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Create feature for academy
-   */
   async createFeature(academyId, data) {
     this.logger.info({ academyId, data }, '[academyRepository] createFeature called');
 
@@ -313,9 +271,6 @@ export class AcademyRepository extends BaseRepository {
     return feature;
   }
 
-  /**
-   * Update feature for academy
-   */
   async updateFeature(academyId, featureId, data) {
     this.logger.info({ academyId, featureId, data }, '[academyRepository] updateFeature called');
     const { order, ...rest } = data || {};
@@ -352,9 +307,6 @@ export class AcademyRepository extends BaseRepository {
     return result;
   }
 
-  /**
-   * Delete feature for academy
-   */
   async deleteFeature(academyId, featureId) {
     this.logger.info({ academyId, featureId }, '[academyRepository] deleteFeature called');
 
@@ -380,23 +332,6 @@ export class AcademyRepository extends BaseRepository {
     return { message: 'Feature deleted successfully' };
   }
 
-  // INSTRUCTOR METHODS
-
-  /**
-   * Get all instructors for academy with details
-   * @param {number} academyId - Academy ID
-   * @returns {Promise<Array>} Array instructor with details
-   */
-  async findInstructorsByAcademyId(academyId) {
-    return await prisma.academyInstructor.findMany({
-      where: { academy_id: academyId },
-      orderBy: { order: 'asc' },
-    });
-  }
-
-  /**
-   * Create instructor for academy
-   */
   async createInstructor(academyId, data) {
     this.logger.info({ academyId, data }, '[academyRepository] createInstructor called');
 
@@ -430,9 +365,6 @@ export class AcademyRepository extends BaseRepository {
     return instructor;
   }
 
-  /**
-   * Update instructor for academy
-   */
   async updateInstructor(academyId, instructorId, data) {
     this.logger.info({ academyId, instructorId, data }, '[academyRepository] updateInstructor called');
     const { order, ...rest } = data || {};
@@ -469,9 +401,6 @@ export class AcademyRepository extends BaseRepository {
     return result;
   }
 
-  /**
-   * Delete instructor from academy
-   */
   async deleteInstructor(academyId, instructorId) {
     this.logger.info({ academyId, instructorId }, '[academyRepository] deleteInstructor called');
 
@@ -499,12 +428,6 @@ export class AcademyRepository extends BaseRepository {
 
   // TOPIC METHODS
 
-  /**
-   * Get all topics for academy
-   * @param {number} academyId - Academy ID
-   * @param {boolean} includeSessions - Include sessions in topic
-   * @returns {Promise<Array>} Array topics
-   */
   async findTopicsByAcademyId(academyId, includeSessions = false) {
     const includeOption = includeSessions
       ? {
@@ -523,9 +446,6 @@ export class AcademyRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Create topic for academy
-   */
   async createTopic(academyId, data) {
     this.logger.info({ academyId, data }, '[academyRepository] createTopic called');
 
@@ -560,9 +480,6 @@ export class AcademyRepository extends BaseRepository {
     return topic;
   }
 
-  /**
-   * Update topic for academy
-   */
   async updateTopic(academyId, topicId, data) {
     this.logger.info({ academyId, topicId, data }, '[academyRepository] updateTopic called');
     const { order, ...rest } = data || {};
@@ -600,9 +517,6 @@ export class AcademyRepository extends BaseRepository {
     return result;
   }
 
-  /**
-   * Delete topic from academy
-   */
   async deleteTopic(academyId, topicId) {
     this.logger.info({ academyId, topicId }, '[academyRepository] deleteTopic called');
 
@@ -628,23 +542,6 @@ export class AcademyRepository extends BaseRepository {
     return { message: 'Topic deleted successfully' };
   }
 
-  // TESTIMONIAL METHODS
-
-  /**
-   * Get all testimonials for academy
-   * @param {number} academyId - Academy ID
-   * @returns {Promise<Array>} Array testimonials
-   */
-  async findTestimonialsByAcademyId(academyId) {
-    return await prisma.academyTestimonial.findMany({
-      where: { academy_id: academyId },
-      orderBy: { order: 'asc' },
-    });
-  }
-
-  /**
-   * Create testimonial for academy
-   */
   async createTestimonial(academyId, data) {
     this.logger.info({ academyId, data }, '[academyRepository] createTestimonial called');
 
@@ -678,9 +575,6 @@ export class AcademyRepository extends BaseRepository {
     return testimonial;
   }
 
-  /**
-   * Update testimonial for academy
-   */
   async updateTestimonial(academyId, testimonialId, data) {
     this.logger.info({ academyId, testimonialId, data }, '[academyRepository] updateTestimonial called');
     const { order, ...rest } = data || {};
@@ -717,9 +611,6 @@ export class AcademyRepository extends BaseRepository {
     return result;
   }
 
-  /**
-   * Delete testimonial from academy
-   */
   async deleteTestimonial(academyId, testimonialId) {
     this.logger.info({ academyId, testimonialId }, '[academyRepository] deleteTestimonial called');
 
@@ -747,11 +638,6 @@ export class AcademyRepository extends BaseRepository {
 
   // FAQ METHODS
 
-  /**
-   * Get all FAQs for academy
-   * @param {number} academyId - Academy ID
-   * @returns {Promise<Array>} Array FAQ
-   */
   async findFaqsByAcademyId(academyId) {
     return await prisma.academyFaq.findMany({
       where: { academy_id: academyId },
@@ -759,9 +645,6 @@ export class AcademyRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Create FAQ for academy
-   */
   async createFaq(academyId, data) {
     this.logger.info({ academyId, data }, '[academyRepository] createFaq called');
 
@@ -795,9 +678,6 @@ export class AcademyRepository extends BaseRepository {
     return faq;
   }
 
-  /**
-   * Update FAQ for academy
-   */
   async updateFaq(academyId, faqId, data) {
     this.logger.info({ academyId, faqId, data }, '[academyRepository] updateFaq called');
     const { order, ...rest } = data || {};
@@ -834,9 +714,6 @@ export class AcademyRepository extends BaseRepository {
     return result;
   }
 
-  /**
-   * Delete FAQ from academy
-   */
   async deleteFaq(academyId, faqId) {
     this.logger.info({ academyId, faqId }, '[academyRepository] deleteFaq called');
 
@@ -862,49 +739,6 @@ export class AcademyRepository extends BaseRepository {
     return { message: 'FAQ deleted successfully' };
   }
 
-  // SESSION METHODS
-
-  /**
-   * Get all sessions for topic
-   * @param {number} topicId - Topic ID
-   * @returns {Promise<Array>} Array sessions
-   */
-  async findSessionsByTopicId(topicId) {
-    return await prisma.academySession.findMany({
-      where: { topic_id: topicId },
-      orderBy: { order: 'asc' },
-    });
-  }
-
-  /**
-   * Get all sessions for academy
-   * @param {number} academyId - Academy ID
-   * @returns {Promise<Array>} Array sessions with topic info
-   */
-  async findSessionsByAcademyId(academyId) {
-    return await prisma.academySession.findMany({
-      where: {
-        topic: {
-          academy_id: academyId,
-        },
-      },
-      include: {
-        topic: {
-          select: {
-            id: true,
-            title: true,
-            order: true,
-            academy_id: true,
-          },
-        },
-      },
-      orderBy: [{ topic: { order: 'asc' } }, { order: 'asc' }],
-    });
-  }
-
-  /**
-   * Create session for topic with re-ordering
-   */
   async createSession(academyId, topicId, data) {
     this.logger.info({ academyId, topicId, data }, '[academyRepository] createSession called');
 
@@ -943,9 +777,6 @@ export class AcademyRepository extends BaseRepository {
     return session;
   }
 
-  /**
-   * Update session with re-ordering
-   */
   async updateSession(academyId, topicId, sessionId, data) {
     this.logger.info({ academyId, topicId, sessionId, data }, '[academyRepository] updateSession called');
     const { order, ...rest } = data || {};
@@ -990,9 +821,6 @@ export class AcademyRepository extends BaseRepository {
     return result;
   }
 
-  /**
-   * Delete session with re-ordering
-   */
   async deleteSession(academyId, topicId, sessionId) {
     this.logger.info({ academyId, topicId, sessionId }, '[academyRepository] deleteSession called');
 

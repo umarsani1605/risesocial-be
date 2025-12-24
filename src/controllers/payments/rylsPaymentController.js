@@ -1,21 +1,12 @@
-import { RylsPaymentService } from '../../services/rylsPaymentService.js';
+import { rylsPaymentService } from '../../services/rylsPaymentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * RYLS Payment Controller
- * Handles HTTP requests for payment transactions
- * Follows the same pattern as rylsRegistrationController.js
- */
-export class RylsPaymentController {
+class RylsPaymentController {
   constructor() {
-    this.paymentService = new RylsPaymentService();
+    this.paymentService = rylsPaymentService;
   }
 
-  /**
-   * Create payment transaction
-   * POST /api/payments/ryls/transactions
-   */
-  async createTransaction(request, reply) {
+    async createTransaction(request, reply) {
     request.log.info('[rylsPaymentController] createTransaction start');
     request.log.debug({ body: request.body }, '[rylsPaymentController] rawBody');
 
@@ -41,11 +32,7 @@ export class RylsPaymentController {
     }
   }
 
-  /**
-   * Handle Midtrans webhook notification
-   * POST /api/payments/notifications (generic webhook endpoint)
-   */
-  async handleWebhookNotification(request, reply) {
+    async handleWebhookNotification(request, reply) {
     request.log.info('[rylsPaymentController] handleWebhookNotification start');
     request.log.debug({ body: request.body }, '[rylsPaymentController] webhookPayload');
 
@@ -79,21 +66,12 @@ export class RylsPaymentController {
     }
   }
 
-  /**
-   * Get payment status for registration
-   * GET /api/payments/ryls/:registrationId/status
-   */
-  async getPaymentStatus(request, reply) {
+    async getPaymentStatus(request, reply) {
     request.log.info('[rylsPaymentController] getPaymentStatus start');
     request.log.debug({ params: request.params }, '[rylsPaymentController] rawParams');
 
     try {
-      const registrationId = parseInt(request.params.registrationId);
-
-      if (isNaN(registrationId) || registrationId <= 0) {
-        return errorResponse(reply, 'Invalid registration ID', 400, 'Registration ID must be a positive number');
-      }
-
+      const registrationId = Number(request.params.registrationId);
       const paymentStatus = await this.paymentService.getPaymentStatus(registrationId);
 
       request.log.info('[rylsPaymentController] getPaymentStatus success');
@@ -104,11 +82,7 @@ export class RylsPaymentController {
     }
   }
 
-  /**
-   * Get payment statistics
-   * GET /api/payments/ryls/statistics
-   */
-  async getPaymentStatistics(request, reply) {
+    async getPaymentStatistics(request, reply) {
     request.log.info('[rylsPaymentController] getPaymentStatistics start');
     request.log.debug({ query: request.query }, '[rylsPaymentController] rawQuery');
 
@@ -124,21 +98,12 @@ export class RylsPaymentController {
     }
   }
 
-  /**
-   * Cancel payment transaction
-   * POST /api/payments/ryls/:orderId/cancel
-   */
-  async cancelPayment(request, reply) {
+    async cancelPayment(request, reply) {
     request.log.info('[rylsPaymentController] cancelPayment start');
     request.log.debug({ params: request.params }, '[rylsPaymentController] rawParams');
 
     try {
       const { orderId } = request.params;
-
-      if (!orderId || !orderId.startsWith('RYLS')) {
-        return errorResponse(reply, 'Invalid order ID', 400, 'Order ID must start with RYLS');
-      }
-
       const cancellationResult = await this.paymentService.cancelPayment(orderId);
 
       request.log.info('[rylsPaymentController] cancelPayment success');
@@ -158,11 +123,7 @@ export class RylsPaymentController {
     }
   }
 
-  /**
-   * Health check for payment system
-   * GET /api/payments/health
-   */
-  async healthCheck(request, reply) {
+    async healthCheck(request, reply) {
     request.log.info('[rylsPaymentController] healthCheck start');
 
     try {
@@ -183,4 +144,4 @@ export class RylsPaymentController {
   }
 }
 
-export default RylsPaymentController;
+export const rylsPaymentController = new RylsPaymentController();

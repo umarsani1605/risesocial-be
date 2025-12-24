@@ -1,20 +1,12 @@
-import { RylsRegistrationService } from '../../services/rylsRegistrationService.js';
+import { rylsRegistrationService } from '../../services/rylsRegistrationService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * Admin RYLS Registration Controller
- * Handles admin management and monitoring of registrations
- */
 export class AdminRylsRegistrationController {
   constructor() {
-    this.registrationService = new RylsRegistrationService();
+    this.registrationService = rylsRegistrationService;
   }
 
-  /**
-   * Get all registrations with pagination and filters (Admin only)
-   * GET /api/admin/ryls/registrations
-   */
-  getRegistrations = async (request, reply) => {
+    getRegistrations = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] getRegistrations start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
@@ -30,8 +22,8 @@ export class AdminRylsRegistrationController {
       };
 
       const result = await this.registrationService.getRegistrations({
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: Number(page),
+        limit: Number(limit),
         filters,
         sortBy,
         sortOrder,
@@ -45,21 +37,13 @@ export class AdminRylsRegistrationController {
     }
   };
 
-  /**
-   * Get registration by ID (Admin only)
-   * GET /api/admin/ryls/registrations/:id
-   */
-  getRegistrationById = async (request, reply) => {
+    getRegistrationById = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] getRegistrationById start');
       request.log.debug({ params: request.params }, '[adminRylsRegistrationController] rawParams');
       const { id } = request.params;
 
-      if (!id || isNaN(parseInt(id))) {
-        return reply.status(400).send(errorResponse('Invalid registration ID', 400, 'ID must be a valid number'));
-      }
-
-      const result = await this.registrationService.getRegistrationById(parseInt(id));
+      const result = await this.registrationService.getRegistrationById(Number(id));
 
       if (!result) {
         return reply.status(404).send(errorResponse('Registration not found', 404, 'No registration found with this ID'));
@@ -73,31 +57,14 @@ export class AdminRylsRegistrationController {
     }
   };
 
-  /**
-   * Update registration status (Admin only)
-   * PATCH /api/admin/ryls/registrations/:id/status
-   */
-  updateRegistrationStatus = async (request, reply) => {
+    updateRegistrationStatus = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] updateRegistrationStatus start');
       request.log.debug({ params: request.params, body: request.body }, '[adminRylsRegistrationController] raw');
       const { id } = request.params;
       const { status, notes } = request.body;
 
-      if (!id || isNaN(parseInt(id))) {
-        return reply.status(400).send(errorResponse('Invalid registration ID', 400, 'ID must be a valid number'));
-      }
-
-      if (!status) {
-        return reply.status(400).send(errorResponse('Status is required', 400, 'Missing status field'));
-      }
-
-      const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'WAITLISTED'];
-      if (!validStatuses.includes(status)) {
-        return reply.status(400).send(errorResponse('Invalid status', 400, `Status must be one of: ${validStatuses.join(', ')}`));
-      }
-
-      const result = await this.registrationService.updateRegistrationStatus(parseInt(id), status, notes);
+      const result = await this.registrationService.updateRegistrationStatus(Number(id), status, notes);
 
       request.log.info('[adminRylsRegistrationController] updateRegistrationStatus success');
       return reply.send(successResponse(result, 'Registration status updated successfully'));
@@ -112,21 +79,13 @@ export class AdminRylsRegistrationController {
     }
   };
 
-  /**
-   * Delete registration (Admin only)
-   * DELETE /api/admin/ryls/registrations/:id
-   */
-  deleteRegistration = async (request, reply) => {
+    deleteRegistration = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] deleteRegistration start');
       request.log.debug({ params: request.params }, '[adminRylsRegistrationController] rawParams');
       const { id } = request.params;
 
-      if (!id || isNaN(parseInt(id))) {
-        return reply.status(400).send(errorResponse('Invalid registration ID', 400, 'ID must be a valid number'));
-      }
-
-      await this.registrationService.deleteRegistration(parseInt(id));
+      await this.registrationService.deleteRegistration(Number(id));
 
       request.log.info('[adminRylsRegistrationController] deleteRegistration success');
       return reply.send(successResponse(null, 'Registration deleted successfully'));
@@ -141,11 +100,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-  /**
-   * Get registration statistics (Admin only)
-   * GET /api/admin/ryls/registrations/stats
-   */
-  getRegistrationStatistics = async (request, reply) => {
+    getRegistrationStatistics = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] getRegistrationStatistics start');
       const result = await this.registrationService.getRegistrationStatistics();
@@ -158,11 +113,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-  /**
-   * Get registrations by date range (Admin only)
-   * GET /api/admin/ryls/registrations/date-range
-   */
-  getRegistrationsByDateRange = async (request, reply) => {
+    getRegistrationsByDateRange = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] getRegistrationsByDateRange start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
@@ -175,8 +126,8 @@ export class AdminRylsRegistrationController {
       const result = await this.registrationService.getRegistrationsByDateRange({
         startDate,
         endDate,
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: Number(page),
+        limit: Number(limit),
       });
 
       request.log.info('[adminRylsRegistrationController] getRegistrationsByDateRange success');
@@ -187,11 +138,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-  /**
-   * Export registrations (Admin only)
-   * GET /api/admin/ryls/registrations/export
-   */
-  exportRegistrations = async (request, reply) => {
+    exportRegistrations = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] exportRegistrations start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
@@ -220,11 +167,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-  /**
-   * Export registrations to Excel (Admin only)
-   * GET /api/admin/ryls/registrations/export-excel
-   */
-  exportRegistrationsExcel = async (request, reply) => {
+    exportRegistrationsExcel = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] exportRegistrationsExcel start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');

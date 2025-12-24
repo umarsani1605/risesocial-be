@@ -2,10 +2,6 @@ import { BaseRepository } from './base/BaseRepository.js';
 import prisma from '../lib/prisma.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * RYLS Registration Repository
- * Handles database operations for RYLS registration system
- */
 export class RylsRegistrationRepository extends BaseRepository {
   constructor() {
     super(prisma.rylsRegistration);
@@ -15,9 +11,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     return getLogger();
   }
 
-  /**
-   * Create a new RYLS registration with optional payment linking
-   */
   async createRegistration(registrationData, paymentId = null) {
     this.logger.info('[rylsRegistrationRepository] createRegistration called');
     try {
@@ -59,9 +52,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Create fully funded submission
-   */
   async createFullyFundedSubmission(registrationId, submissionData) {
     this.logger.info({ registrationId }, '[rylsRegistrationRepository] createFullyFundedSubmission called');
     try {
@@ -80,9 +70,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Create self funded submission
-   */
   async createSelfFundedSubmission(registrationId, submissionData) {
     this.logger.info({ registrationId }, '[rylsRegistrationRepository] createSelfFundedSubmission called');
     try {
@@ -103,9 +90,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get registration by ID with related data
-   */
   async getRegistrationById(id) {
     this.logger.info({ id }, '[rylsRegistrationRepository] getRegistrationById called');
     try {
@@ -122,45 +106,6 @@ export class RylsRegistrationRepository extends BaseRepository {
       throw error;
     }
   }
-
-  /**
-   * Get registration with payments
-   */
-  async getRegistrationWithPayments(id) {
-    this.logger.info({ id }, '[rylsRegistrationRepository] getRegistrationWithPayments called');
-    try {
-      return await this.model.findUnique({
-        where: { id },
-        include: {
-          payments: { include: { midtrans: true, payment_proof: true }, orderBy: { created_at: 'desc' } },
-        },
-      });
-    } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationRepository] getRegistrationWithPayments error');
-      throw error;
-    }
-  }
-
-  /**
-   * Find registration by ID with payments and related data
-   */
-  async findByIdWithPayments(id, { includePayments = true } = {}) {
-    this.logger.info({ id, includePayments }, '[rylsRegistrationRepository] findByIdWithPayments called');
-    try {
-      const include = { fully_funded_submission: true, self_funded_submission: true };
-      if (includePayments) {
-        include.payments = { include: { midtrans: true, payment_proof: true }, orderBy: { created_at: 'desc' } };
-      }
-      return await this.model.findUnique({ where: { id: parseInt(id) }, include });
-    } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationRepository] findByIdWithPayments error');
-      throw new Error('Failed to find registration with payments');
-    }
-  }
-
-  /**
-   * Find registration by email
-   */
   async findByEmail(email) {
     this.logger.info({ email }, '[rylsRegistrationRepository] findByEmail called');
     try {
@@ -175,9 +120,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Find registration by ID
-   */
   async findById(id) {
     this.logger.info({ id }, '[rylsRegistrationRepository] findById called');
     try {
@@ -195,9 +137,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get registrations with pagination and filters
-   */
   async getRegistrations(options = {}) {
     this.logger.info({ options }, '[rylsRegistrationRepository] getRegistrations called');
     try {
@@ -245,9 +184,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Update registration status
-   */
   async updateStatus(id, status) {
     this.logger.info({ id, status }, '[rylsRegistrationRepository] updateStatus called');
     try {
@@ -259,9 +195,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get registration statistics
-   */
   async getRegistrationStats() {
     this.logger.info('[rylsRegistrationRepository] getRegistrationStats called');
     try {
@@ -297,9 +230,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get registrations by date range
-   */
   async getRegistrationsByDateRange(startDate, endDate, options = {}) {
     this.logger.info({ startDate, endDate }, '[rylsRegistrationRepository] getRegistrationsByDateRange called');
     try {
@@ -322,9 +252,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Check if email is already registered
-   */
   async emailExists(email) {
     this.logger.info({ email }, '[rylsRegistrationRepository] emailExists called');
     try {
@@ -336,9 +263,6 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Delete registration and related data
-   */
   async deleteRegistration(id) {
     this.logger.info({ id }, '[rylsRegistrationRepository] deleteRegistration called');
     try {
@@ -384,3 +308,5 @@ export class RylsRegistrationRepository extends BaseRepository {
     }
   }
 }
+
+export const rylsRegistrationRepository = new RylsRegistrationRepository();

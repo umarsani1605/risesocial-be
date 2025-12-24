@@ -1,272 +1,71 @@
 import { adminAcademyController } from '../../controllers/admin/academyController.js';
 import { authMiddleware } from '../../middleware/auth.js';
 import { uploadAcademyImage } from '../../middleware/fileUploadMiddleware.js';
+import {
+  getAdminAcademiesSchema,
+  getAdminAcademyBySlugSchema,
+  getAcademyStatisticsSchema,
+  createAcademySchema,
+  updateAcademySchema,
+  deleteAcademySchema,
+  createPricingSchema,
+  updatePricingSchema,
+  deletePricingSchema,
+  createFeatureSchema,
+  updateFeatureSchema,
+  deleteFeatureSchema,
+  createInstructorSchema,
+  updateInstructorSchema,
+  deleteInstructorSchema,
+  createTopicSchema,
+  updateTopicSchema,
+  deleteTopicSchema,
+  createTestimonialSchema,
+  updateTestimonialSchema,
+  deleteTestimonialSchema,
+  createFaqSchema,
+  updateFaqSchema,
+  deleteFaqSchema,
+  createSessionSchema,
+  updateSessionSchema,
+  deleteSessionSchema,
+} from '../../schemas/academySchemas.js';
 
-/**
- * Admin Academy routes plugin
- * @param {Object} fastify - Fastify instance
- */
 export default async function adminAcademyRoutes(fastify) {
-  // GET /admin/academies - Get all academies (Admin only)
-  fastify.get(
-    '/',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.getAllAcademies
-  );
+  fastify.addHook('preHandler', authMiddleware);
 
-  // GET /admin/academies/:slug - Get academy by slug (Admin only)
-  fastify.get(
-    '/:slug',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.getAcademyBySlug
-  );
+  fastify.get('/', { schema: getAdminAcademiesSchema }, adminAcademyController.getAllAcademies);
+  fastify.get('/statistics', { schema: getAcademyStatisticsSchema }, adminAcademyController.getStatistics);
+  fastify.get('/:slug', { schema: getAdminAcademyBySlugSchema }, adminAcademyController.getAcademyBySlug);
+  fastify.post('/', { schema: createAcademySchema, preHandler: [uploadAcademyImage] }, adminAcademyController.createAcademy);
+  fastify.put('/:id', { schema: updateAcademySchema, preHandler: [uploadAcademyImage] }, adminAcademyController.updateAcademy);
+  fastify.delete('/:id', { schema: deleteAcademySchema }, adminAcademyController.deleteAcademy);
 
-  // POST /admin/academies - Create new academy (Admin only)
-  fastify.post(
-    '/',
-    {
-      // preHandler: authMiddleware,
-      preHandler: [uploadAcademyImage],
-    },
-    adminAcademyController.createAcademy
-  );
+  fastify.post('/:id/pricing', { schema: createPricingSchema }, adminAcademyController.createPricing);
+  fastify.put('/:id/pricing/:pricingId', { schema: updatePricingSchema }, adminAcademyController.updatePricing);
+  fastify.delete('/:id/pricing/:pricingId', { schema: deletePricingSchema }, adminAcademyController.deletePricing);
 
-  // PUT /admin/academies/:id - Update academy (Admin only)
-  fastify.put(
-    '/:id',
-    {
-      // preHandler: authMiddleware,
-      preHandler: [uploadAcademyImage],
-    },
-    adminAcademyController.updateAcademy
-  );
+  fastify.post('/:id/features', { schema: createFeatureSchema }, adminAcademyController.createFeature);
+  fastify.put('/:id/features/:featureId', { schema: updateFeatureSchema }, adminAcademyController.updateFeature);
+  fastify.delete('/:id/features/:featureId', { schema: deleteFeatureSchema }, adminAcademyController.deleteFeature);
 
-  // DELETE /admin/academies/:id - Delete academy (Admin only)
-  fastify.delete(
-    '/:id',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.deleteAcademy
-  );
+  fastify.post('/:id/instructors', { schema: createInstructorSchema, preHandler: [uploadAcademyImage] }, adminAcademyController.createInstructor);
+  fastify.put('/:id/instructors/:instructorId', { schema: updateInstructorSchema, preHandler: [uploadAcademyImage] }, adminAcademyController.updateInstructor);
+  fastify.delete('/:id/instructors/:instructorId', { schema: deleteInstructorSchema }, adminAcademyController.deleteInstructor);
 
-  // GET /admin/academies/statistics - Get statistics (Admin only)
-  fastify.get(
-    '/statistics',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.getStatistics
-  );
+  fastify.post('/:id/topics', { schema: createTopicSchema }, adminAcademyController.createTopic);
+  fastify.put('/:id/topics/:topicId', { schema: updateTopicSchema }, adminAcademyController.updateTopic);
+  fastify.delete('/:id/topics/:topicId', { schema: deleteTopicSchema }, adminAcademyController.deleteTopic);
 
-  // PRICING ROUTES
+  fastify.post('/:id/testimonials', { schema: createTestimonialSchema, preHandler: [uploadAcademyImage] }, adminAcademyController.createTestimonial);
+  fastify.put('/:id/testimonials/:testimonialId', { schema: updateTestimonialSchema, preHandler: [uploadAcademyImage] }, adminAcademyController.updateTestimonial);
+  fastify.delete('/:id/testimonials/:testimonialId', { schema: deleteTestimonialSchema }, adminAcademyController.deleteTestimonial);
 
-  // POST /admin/academies/:id/pricing - Create pricing for academy
-  fastify.post(
-    '/:id/pricing',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.createPricing
-  );
+  fastify.post('/:id/faqs', { schema: createFaqSchema }, adminAcademyController.createFaq);
+  fastify.put('/:id/faqs/:faqId', { schema: updateFaqSchema }, adminAcademyController.updateFaq);
+  fastify.delete('/:id/faqs/:faqId', { schema: deleteFaqSchema }, adminAcademyController.deleteFaq);
 
-  // PUT /admin/academies/:id/pricing/:pricingId - Update pricing for academy
-  fastify.put(
-    '/:id/pricing/:pricingId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.updatePricing
-  );
-
-  // DELETE /admin/academies/:id/pricing/:pricingId - Delete pricing for academy
-  fastify.delete(
-    '/:id/pricing/:pricingId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.deletePricing
-  );
-
-  // FEATURES ROUTES
-
-  // POST /admin/academies/:id/features - Create feature for academy
-  fastify.post(
-    '/:id/features',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.createFeature
-  );
-
-  // PUT /admin/academies/:id/features/:featureId - Update feature for academy
-  fastify.put(
-    '/:id/features/:featureId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.updateFeature
-  );
-
-  // DELETE /admin/academies/:id/features/:featureId - Delete feature for academy
-  fastify.delete(
-    '/:id/features/:featureId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.deleteFeature
-  );
-
-  // INSTRUCTORS ROUTES
-
-  // POST /admin/academies/:id/instructors - Create instructor for academy
-  fastify.post(
-    '/:id/instructors',
-    {
-      // preHandler: authMiddleware,
-      preHandler: [uploadAcademyImage],
-    },
-    adminAcademyController.createInstructor
-  );
-
-  // PUT /admin/academies/:id/instructors/:instructorId - Update instructor for academy
-  fastify.put(
-    '/:id/instructors/:instructorId',
-    {
-      // preHandler: authMiddleware,
-      preHandler: [uploadAcademyImage],
-    },
-    adminAcademyController.updateInstructor
-  );
-
-  // DELETE /admin/academies/:id/instructors/:instructorId - Delete instructor for academy
-  fastify.delete(
-    '/:id/instructors/:instructorId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.deleteInstructor
-  );
-
-  // TOPICS ROUTES
-
-  // POST /admin/academies/:id/topics - Create topic for academy
-  fastify.post(
-    '/:id/topics',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.createTopic
-  );
-
-  // PUT /admin/academies/:id/topics/:topicId - Update topic for academy
-  fastify.put(
-    '/:id/topics/:topicId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.updateTopic
-  );
-
-  // DELETE /admin/academies/:id/topics/:topicId - Delete topic for academy
-  fastify.delete(
-    '/:id/topics/:topicId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.deleteTopic
-  );
-
-  // TESTIMONIALS ROUTES
-
-  // POST /admin/academies/:id/testimonials - Create testimonial for academy
-  fastify.post(
-    '/:id/testimonials',
-    {
-      // preHandler: authMiddleware,
-      preHandler: [uploadAcademyImage],
-    },
-    adminAcademyController.createTestimonial
-  );
-
-  // PUT /admin/academies/:id/testimonials/:testimonialId - Update testimonial for academy
-  fastify.put(
-    '/:id/testimonials/:testimonialId',
-    {
-      // preHandler: authMiddleware,
-      preHandler: [uploadAcademyImage],
-    },
-    adminAcademyController.updateTestimonial
-  );
-
-  // DELETE /admin/academies/:id/testimonials/:testimonialId - Delete testimonial for academy
-  fastify.delete(
-    '/:id/testimonials/:testimonialId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.deleteTestimonial
-  );
-
-  // FAQs ROUTES
-
-  // POST /admin/academies/:id/faqs - Create FAQ for academy
-  fastify.post(
-    '/:id/faqs',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.createFaq
-  );
-
-  // PUT /admin/academies/:id/faqs/:faqId - Update FAQ for academy
-  fastify.put(
-    '/:id/faqs/:faqId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.updateFaq
-  );
-
-  // DELETE /admin/academies/:id/faqs/:faqId - Delete FAQ for academy
-  fastify.delete(
-    '/:id/faqs/:faqId',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.deleteFaq
-  );
-
-  // SESSION ROUTES
-
-  // POST /admin/academies/:academy_id/topics/:topic_id/sessions - Create session for topic
-  fastify.post(
-    '/:academy_id/topics/:topic_id/sessions',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.createSession
-  );
-
-  // PUT /admin/academies/:academy_id/topics/:topic_id/sessions/:session_id - Update session
-  fastify.put(
-    '/:academy_id/topics/:topic_id/sessions/:session_id',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.updateSession
-  );
-
-  // DELETE /admin/academies/:academy_id/topics/:topic_id/sessions/:session_id - Delete session
-  fastify.delete(
-    '/:academy_id/topics/:topic_id/sessions/:session_id',
-    {
-      // preHandler: authMiddleware,
-    },
-    adminAcademyController.deleteSession
-  );
+  fastify.post('/:academyId/topics/:topicId/sessions', { schema: createSessionSchema }, adminAcademyController.createSession);
+  fastify.put('/:academyId/topics/:topicId/sessions/:sessionId', { schema: updateSessionSchema }, adminAcademyController.updateSession);
+  fastify.delete('/:academyId/topics/:topicId/sessions/:sessionId', { schema: deleteSessionSchema }, adminAcademyController.deleteSession);
 }

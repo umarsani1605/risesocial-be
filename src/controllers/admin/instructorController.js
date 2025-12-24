@@ -1,21 +1,12 @@
-import InstructorService from '../../services/instructorService.js';
+import { instructorService } from '../../services/instructorService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * Admin Instructor HTTP controllers
- * Handles admin-only instructor management requests
- */
 export class AdminInstructorController {
   constructor() {
-    this.instructorService = new InstructorService();
+    this.instructorService = instructorService;
   }
 
-  /**
-   * Create new instructor (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async createInstructor(request, reply) {
+    async createInstructor(request, reply) {
     try {
       request.log.info('[adminInstructorController] createInstructor start');
       request.log.debug({ body: request.body }, '[adminInstructorController] rawBody');
@@ -29,18 +20,13 @@ export class AdminInstructorController {
     }
   }
 
-  /**
-   * Update instructor (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateInstructor(request, reply) {
+    async updateInstructor(request, reply) {
     try {
       request.log.info('[adminInstructorController] updateInstructor start');
       request.log.debug({ params: request.params, body: request.body }, '[adminInstructorController] rawParams');
 
       const { id } = request.params;
-      const instructor = await this.instructorService.updateInstructor(parseInt(id), request.body);
+      const instructor = await this.instructorService.updateInstructor(Number(id), request.body);
 
       if (!instructor) {
         request.log.info({ id }, '[adminInstructorController] updateInstructor not_found');
@@ -55,18 +41,13 @@ export class AdminInstructorController {
     }
   }
 
-  /**
-   * Delete instructor (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async deleteInstructor(request, reply) {
+    async deleteInstructor(request, reply) {
     try {
       request.log.info('[adminInstructorController] deleteInstructor start');
       request.log.debug({ params: request.params }, '[adminInstructorController] rawParams');
 
       const { id } = request.params;
-      const result = await this.instructorService.deleteInstructor(parseInt(id));
+      const result = await this.instructorService.deleteInstructor(Number(id));
 
       if (!result) {
         request.log.info({ id }, '[adminInstructorController] deleteInstructor not_found');
@@ -81,18 +62,13 @@ export class AdminInstructorController {
     }
   }
 
-  /**
-   * Get available instructors for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getAvailableInstructorsForAcademy(request, reply) {
+    async getAvailableInstructorsForAcademy(request, reply) {
     try {
       request.log.info('[adminInstructorController] getAvailableInstructorsForAcademy start');
       request.log.debug({ params: request.params }, '[adminInstructorController] rawParams');
 
       const { academyId } = request.params;
-      const instructors = await this.instructorService.getAvailableInstructorsForAcademy(parseInt(academyId));
+      const instructors = await this.instructorService.getAvailableInstructorsForAcademy(Number(academyId));
 
       request.log.info('[adminInstructorController] getAvailableInstructorsForAcademy success');
       return reply.send(
@@ -100,7 +76,7 @@ export class AdminInstructorController {
           {
             instructors,
             total: instructors.length,
-            academy_id: parseInt(academyId),
+            academy_id: Number(academyId),
           },
           'Available instructors berhasil diambil'
         )
@@ -111,12 +87,7 @@ export class AdminInstructorController {
     }
   }
 
-  /**
-   * Assign instructor to academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async assignInstructorToAcademy(request, reply) {
+    async assignInstructorToAcademy(request, reply) {
     try {
       request.log.info('[adminInstructorController] assignInstructorToAcademy start');
       request.log.debug({ params: request.params, body: request.body }, '[adminInstructorController] rawParams');
@@ -124,7 +95,7 @@ export class AdminInstructorController {
       const { academyId } = request.params;
       const { instructor_id, instructor_order } = request.body;
 
-      const result = await this.instructorService.assignInstructorToAcademy(parseInt(academyId), parseInt(instructor_id), instructor_order);
+      const result = await this.instructorService.assignInstructorToAcademy(Number(academyId), Number(instructor_id), instructor_order);
 
       request.log.info('[adminInstructorController] assignInstructorToAcademy success');
       return reply.send(successResponse(result, 'Instructor berhasil diassign ke academy'));
@@ -134,18 +105,13 @@ export class AdminInstructorController {
     }
   }
 
-  /**
-   * Remove instructor from academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async removeInstructorFromAcademy(request, reply) {
+    async removeInstructorFromAcademy(request, reply) {
     try {
       request.log.info('[adminInstructorController] removeInstructorFromAcademy start');
       request.log.debug({ params: request.params }, '[adminInstructorController] rawParams');
 
       const { academyId, instructorId } = request.params;
-      const result = await this.instructorService.removeInstructorFromAcademy(parseInt(academyId), parseInt(instructorId));
+      const result = await this.instructorService.removeInstructorFromAcademy(Number(academyId), Number(instructorId));
 
       if (!result) {
         request.log.info({ academyId, instructorId }, '[adminInstructorController] removeInstructorFromAcademy not_found');
@@ -160,12 +126,7 @@ export class AdminInstructorController {
     }
   }
 
-  /**
-   * Get instructor statistics (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getInstructorStats(request, reply) {
+    async getInstructorStats(request, reply) {
     try {
       request.log.info('[adminInstructorController] getInstructorStats start');
       const stats = await this.instructorService.getInstructorStats();
@@ -177,12 +138,7 @@ export class AdminInstructorController {
     }
   }
 
-  /**
-   * Upload instructor avatar
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async uploadInstructorAvatar(request, reply) {
+    async uploadInstructorAvatar(request, reply) {
     try {
       request.log.info('[adminInstructorController] uploadInstructorAvatar start');
 

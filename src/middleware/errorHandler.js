@@ -24,7 +24,35 @@ export function errorHandler(error, request, reply) {
 
   // Handle Fastify validation errors
   if (error.validation) {
-    return reply.status(400).send(errorResponse('Validation Error ' + JSON.stringify(error.validation), 400, error.validation));
+    const messages = error.validation.map((err) => {
+      const field = err.instancePath?.replace('/', '') || err.params?.missingProperty || 'field';
+
+      switch (err.keyword) {
+        case 'required':
+          return `${err.params.missingProperty} is required`;
+        case 'minLength':
+          return `${field} must be at least ${err.params.limit} characters`;
+        case 'maxLength':
+          return `${field} must not exceed ${err.params.limit} characters`;
+        case 'format':
+          if (err.params.format === 'email') return `${field} must be a valid email`;
+          return `${field} has invalid format`;
+        case 'enum':
+          return `${field} must be one of: ${err.params.allowedValues.join(', ')}`;
+        case 'minimum':
+          return `${field} must be at least ${err.params.limit}`;
+        case 'maximum':
+          return `${field} must not exceed ${err.params.limit}`;
+        case 'type':
+          return `${field} must be a ${err.params.type}`;
+        case 'additionalProperties':
+          return `Unknown field: ${err.params.additionalProperty}`;
+        default:
+          return err.message || `Invalid value for ${field}`;
+      }
+    });
+
+    return reply.status(400).send(errorResponse(messages[0], 400, { errors: messages }));
   }
 
   // Handle Prisma errors

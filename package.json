@@ -15,7 +15,11 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "fastify",
@@ -44,9 +48,12 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "@vitest/coverage-v8": "^4.0.16",
+    "fast-check": "^4.5.1",
     "nodemon": "^3.1.10",
     "pino-pretty": "^13.1.1",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.16"
   },
   "prisma": {
     "seed": "node prisma/seeds/index.js"

@@ -2,22 +2,12 @@ import fs from 'fs-extra';
 import path from 'path';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * Admin Service
- * Handles admin-specific operations including file uploads
- */
 export class AdminService {
   constructor() {
     this.logger = getLogger();
   }
 
-  /**
-   * Upload image and return public URL
-   * @param {Object} file - Multer file object
-   * @param {string} type - Upload type (ACADEMY_IMAGE, INSTRUCTOR_AVATAR, TESTIMONIAL_AVATAR)
-   * @returns {Promise<Object>} Upload result with public URL
-   */
-  async uploadImage(file, type) {
+    async uploadImage(file, type) {
     try {
       const allowedTypes = ['ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR'];
 

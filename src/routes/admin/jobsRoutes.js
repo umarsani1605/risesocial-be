@@ -1,76 +1,14 @@
-import AdminJobsController from '../../controllers/admin/jobsController.js';
+import { adminJobsController } from '../../controllers/admin/jobsController.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { createJobSchema, updateJobSchema, deleteJobSchema } from '../../schemas/jobsSchemas.js';
 
-const adminJobsController = new AdminJobsController();
-
-/**
- * Admin Jobs routes plugin
- * @param {Object} fastify - Fastify instance
- */
-export async function jobsRoutes(fastify) {
-  const jobsTag = { tags: ['Admin Jobs'] };
-
+export default async function adminJobsRoutes(fastify) {
   fastify.addHook('preHandler', authMiddleware);
 
-  fastify.post(
-    '/sync-linkedin',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    adminJobsController.syncLinkedInJobs
-  );
-
-  fastify.post(
-    '/',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    adminJobsController.createJob
-  );
-
-  fastify.put(
-    '/:id',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    adminJobsController.updateJob
-  );
-
-  fastify.delete(
-    '/:id',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    adminJobsController.deleteJob
-  );
-
-  fastify.get(
-    '/statistics',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    adminJobsController.getAllJobsStatistics
-  );
-
-  fastify.get(
-    '/:id/statistics',
-    {
-      schema: {
-        ...jobsTag,
-      },
-    },
-    adminJobsController.getJobStatistics
-  );
+  fastify.get('/statistics', adminJobsController.getAllJobsStatistics);
+  fastify.get('/:id/statistics', adminJobsController.getJobStatistics);
+  fastify.post('/sync-linkedin', adminJobsController.syncLinkedInJobs);
+  fastify.post('/', { schema: createJobSchema }, adminJobsController.createJob);
+  fastify.put('/:id', { schema: updateJobSchema }, adminJobsController.updateJob);
+  fastify.delete('/:id', { schema: deleteJobSchema }, adminJobsController.deleteJob);
 }
-
-export default jobsRoutes;

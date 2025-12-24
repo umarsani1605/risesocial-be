@@ -1,17 +1,8 @@
 import { academyService } from '../../services/academyService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * Admin Academy HTTP controllers
- * Handles admin-only academy-related requests
- */
 export class AdminAcademyController {
-  /**
-   * Create new academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async createAcademy(request, reply) {
+    async createAcademy(request, reply) {
     try {
       request.log.info('[adminAcademyController] createAcademy start');
       request.log.debug({ body: request.body, user: request.user }, '[adminAcademyController] rawBody');
@@ -41,12 +32,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Update academy by ID (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateAcademy(request, reply) {
+    async updateAcademy(request, reply) {
     try {
       request.log.info('[adminAcademyController] updateAcademy start');
       request.log.debug({ params: request.params, body: request.body }, '[adminAcademyController] rawParams');
@@ -84,12 +70,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Delete academy by ID (Admin only) - Soft delete
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async deleteAcademy(request, reply) {
+    async deleteAcademy(request, reply) {
     try {
       request.log.info('[adminAcademyController] deleteAcademy start');
       request.log.debug({ params: request.params }, '[adminAcademyController] rawParams');
@@ -112,12 +93,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Get all academies for admin dashboard
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getAllAcademies(request, reply) {
+    async getAllAcademies(request, reply) {
     try {
       request.log.info('[adminAcademyController] getAllAcademies start');
 
@@ -132,12 +108,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Get academy by slug (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getAcademyBySlug(request, reply) {
+    async getAcademyBySlug(request, reply) {
     try {
       const { slug } = request.params;
       request.log.info({ slug }, '[adminAcademyController] getAcademyBySlug start');
@@ -159,12 +130,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Get academy statistics (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getStatistics(request, reply) {
+    async getStatistics(request, reply) {
     try {
       request.log.info('[adminAcademyController] getStatistics start');
 
@@ -181,12 +147,7 @@ export class AdminAcademyController {
 
   // PRICING METHODS
 
-  /**
-   * Create pricing for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async createPricing(request, reply) {
+    async createPricing(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createPricing start');
@@ -208,12 +169,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Update pricing for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updatePricing(request, reply) {
+    async updatePricing(request, reply) {
     try {
       const { id, pricingId } = request.params;
 
@@ -236,12 +192,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Delete pricing for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async deletePricing(request, reply) {
+    async deletePricing(request, reply) {
     try {
       const { id, pricingId } = request.params;
       request.log.info({ academyId: id, pricingId }, '[adminAcademyController] deletePricing start');
@@ -265,12 +216,7 @@ export class AdminAcademyController {
 
   // FEATURES METHODS
 
-  /**
-   * Create feature for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async createFeature(request, reply) {
+    async createFeature(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createFeature start');
@@ -291,12 +237,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Update feature for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateFeature(request, reply) {
+    async updateFeature(request, reply) {
     try {
       const { id, featureId } = request.params;
       request.log.info({ academyId: id, featureId }, '[adminAcademyController] updateFeature start');
@@ -317,12 +258,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Delete feature for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async deleteFeature(request, reply) {
+    async deleteFeature(request, reply) {
     try {
       const { id, featureId } = request.params;
       request.log.info({ academyId: id, featureId }, '[adminAcademyController] deleteFeature start');
@@ -345,12 +281,7 @@ export class AdminAcademyController {
 
   // INSTRUCTORS METHODS
 
-  /**
-   * Create instructor for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async createInstructor(request, reply) {
+    async createInstructor(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createInstructor start');
@@ -379,12 +310,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Update instructor for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateInstructor(request, reply) {
+    async updateInstructor(request, reply) {
     try {
       const { id, instructorId } = request.params;
       request.log.info({ academyId: id, instructorId }, '[adminAcademyController] updateInstructor start');
@@ -416,12 +342,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Delete instructor from academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async deleteInstructor(request, reply) {
+    async deleteInstructor(request, reply) {
     try {
       const { id, instructorId } = request.params;
       request.log.info({ academyId: id, instructorId }, '[adminAcademyController] deleteInstructor start');
@@ -447,12 +368,7 @@ export class AdminAcademyController {
 
   // TOPICS METHODS
 
-  /**
-   * Create topic for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async createTopic(request, reply) {
+    async createTopic(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createTopic start');
@@ -473,12 +389,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Update topic for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateTopic(request, reply) {
+    async updateTopic(request, reply) {
     try {
       const { id, topicId } = request.params;
       request.log.info({ academyId: id, topicId }, '[adminAcademyController] updateTopic start');
@@ -499,12 +410,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Delete topic from academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async deleteTopic(request, reply) {
+    async deleteTopic(request, reply) {
     try {
       const { id, topicId } = request.params;
       request.log.info({ academyId: id, topicId }, '[adminAcademyController] deleteTopic start');
@@ -527,12 +433,7 @@ export class AdminAcademyController {
 
   // TESTIMONIALS METHODS
 
-  /**
-   * Create testimonial for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async createTestimonial(request, reply) {
+    async createTestimonial(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createTestimonial start');
@@ -561,12 +462,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Update testimonial for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateTestimonial(request, reply) {
+    async updateTestimonial(request, reply) {
     try {
       const { id, testimonialId } = request.params;
       request.log.info({ academyId: id, testimonialId }, '[adminAcademyController] updateTestimonial start');
@@ -598,12 +494,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Delete testimonial from academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async deleteTestimonial(request, reply) {
+    async deleteTestimonial(request, reply) {
     try {
       const { id, testimonialId } = request.params;
       request.log.info({ academyId: id, testimonialId }, '[adminAcademyController] deleteTestimonial start');
@@ -629,12 +520,7 @@ export class AdminAcademyController {
 
   // FAQs METHODS
 
-  /**
-   * Create FAQ for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async createFaq(request, reply) {
+    async createFaq(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createFaq start');
@@ -655,12 +541,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Update FAQ for academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateFaq(request, reply) {
+    async updateFaq(request, reply) {
     try {
       const { id, faqId } = request.params;
       request.log.info({ academyId: id, faqId }, '[adminAcademyController] updateFaq start');
@@ -681,12 +562,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Delete FAQ from academy (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async deleteFaq(request, reply) {
+    async deleteFaq(request, reply) {
     try {
       const { id, faqId } = request.params;
       request.log.info({ academyId: id, faqId }, '[adminAcademyController] deleteFaq start');
@@ -709,10 +585,7 @@ export class AdminAcademyController {
 
   // SESSION METHODS
 
-  /**
-   * Create session for topic
-   */
-  async createSession(request, reply) {
+    async createSession(request, reply) {
     try {
       request.log.info('[adminAcademyController] createSession start');
       request.log.debug({ params: request.params, body: request.body }, '[adminAcademyController] createSession params');
@@ -733,10 +606,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Update session
-   */
-  async updateSession(request, reply) {
+    async updateSession(request, reply) {
     try {
       request.log.info('[adminAcademyController] updateSession start');
       request.log.debug({ params: request.params, body: request.body }, '[adminAcademyController] updateSession params');
@@ -761,10 +631,7 @@ export class AdminAcademyController {
     }
   }
 
-  /**
-   * Delete session
-   */
-  async deleteSession(request, reply) {
+    async deleteSession(request, reply) {
     try {
       request.log.info('[adminAcademyController] deleteSession start');
       request.log.debug({ params: request.params }, '[adminAcademyController] deleteSession params');

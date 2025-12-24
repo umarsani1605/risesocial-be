@@ -2,10 +2,6 @@ import prisma from '../lib/prisma.js';
 import { BaseRepository } from './base/BaseRepository.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * User repository for data access operations
- *
- */
 export class UserRepository extends BaseRepository {
   constructor() {
     super(prisma.user);
@@ -15,9 +11,6 @@ export class UserRepository extends BaseRepository {
     return getLogger();
   }
 
-  /**
-   * Find user by email
-   */
   async findByEmail(email, options = {}) {
     this.logger.info({ email }, '[userRepository] findByEmail start');
     try {
@@ -29,30 +22,11 @@ export class UserRepository extends BaseRepository {
       throw error;
     }
   }
-
-  /**
-   * Find user by username
-   */
-  async findByUsername(username, options = {}) {
-    this.logger.info({ username }, '[userRepository] findByUsername start');
-    try {
-      const user = await this.model.findUnique({ where: { username }, ...options });
-      this.logger.info({ found: !!user }, '[userRepository] findByUsername success');
-      return user;
-    } catch (error) {
-      this.logger.error({ err: error }, '[userRepository] findByUsername error');
-      throw error;
-    }
-  }
-
-  /**
-   * Create user with settings
-   */
   async createWithSettings(userData) {
     this.logger.info('[userRepository] createWithSettings start');
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({ data: userData, include: { user_settingss: true } });
+        const user = await tx.user.create({ data: userData, include: { user_settings: true } });
 
         // Create default notification preferences in JSON format
         const defaultNotificationPreferences = {
@@ -81,9 +55,6 @@ export class UserRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Get all users with pagination
-   */
   async findManyWithPagination(options = {}) {
     this.logger.info({ options }, '[userRepository] findManyWithPagination start');
     try {
@@ -115,17 +86,11 @@ export class UserRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Check username exists
-   */
   async usernameExists(username) {
     this.logger.debug({ username }, '[userRepository] usernameExists');
     return await this.exists({ username });
   }
 
-  /**
-   * Check email exists
-   */
   async emailExists(email) {
     this.logger.debug({ email }, '[userRepository] emailExists');
     return await this.exists({ email });

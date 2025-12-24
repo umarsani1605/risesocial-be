@@ -1,23 +1,14 @@
-import { JobsService } from '../../services/jobsService.js';
+import { jobsService } from '../../services/jobsService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * User Jobs Controller
- * Handles job browsing, search, and viewing for regular users
- */
 class JobsController {
   constructor() {
-    this.jobsService = new JobsService();
+    this.jobsService = jobsService;
   }
 
-  /**
-   * Get all jobs with search and filtering (User accessible)
-   * @param {Object} req - Express request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getJobs = async (req, reply) => {
-    req.log.info('[userJobsController] getJobs start');
-    req.log.debug({ query: req.query }, '[userJobsController] rawQuery');
+    getJobs = async (request, reply) => {
+    request.log.info('[userJobsController] getJobs start');
+    request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
     try {
       const {
         page = 1,
@@ -35,17 +26,17 @@ class JobsController {
         skills = '',
         sortBy = 'createdAt',
         sortOrder = 'desc',
-      } = req.query;
+      } = request.query;
 
       const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: Number(page),
+        limit: Number(limit),
         query: search,
         location,
         jobType,
         experienceLevel,
-        salaryMin: minSalary ? parseInt(minSalary) : undefined,
-        salaryMax: maxSalary ? parseInt(maxSalary) : undefined,
+        salaryMin: minSalary ? Number(minSalary) : undefined,
+        salaryMax: maxSalary ? Number(maxSalary) : undefined,
         isRemote: isRemote === 'true' ? true : isRemote === 'false' ? false : undefined,
         company: companyName,
         companySlug,
@@ -57,95 +48,71 @@ class JobsController {
 
       const result = await this.jobsService.searchJobs(options);
 
-      req.log.info('[userJobsController] getJobs success');
+      request.log.info('[userJobsController] getJobs success');
       return reply.send(successResponse(result.data, 'Jobs retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userJobsController] getJobs error');
+      request.log.error({ err: error }, '[userJobsController] getJobs error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get job by ID
-   * @param {Object} req - Express request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getJobById = async (req, reply) => {
-    req.log.info('[userJobsController] getJobById start');
-    req.log.debug({ params: req.params }, '[userJobsController] rawParams');
+    getJobById = async (request, reply) => {
+    request.log.info('[userJobsController] getJobById start');
+    request.log.debug({ params: request.params }, '[userJobsController] rawParams');
     try {
-      const { id } = req.params;
-      const jobId = parseInt(id);
-
-      if (isNaN(jobId)) {
-        return reply.send(errorResponse('Invalid job ID', 400));
-      }
+      const { id } = request.params;
+      const jobId = Number(id);
 
       const job = await this.jobsService.getJobById(jobId);
 
       if (!job) {
-        req.log.info({ id }, '[userJobsController] getJobById not_found');
+        request.log.info({ id }, '[userJobsController] getJobById not_found');
         return reply.send(errorResponse('Job not found', 404));
       }
 
-      req.log.info('[userJobsController] getJobById success');
+      request.log.info('[userJobsController] getJobById success');
       return reply.send(successResponse(job, 'Job retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userJobsController] getJobById error');
+      request.log.error({ err: error }, '[userJobsController] getJobById error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get featured jobs
-   * @param {Object} req - Express request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getFeaturedJobs = async (req, reply) => {
+    getFeaturedJobs = async (request, reply) => {
     try {
-      req.log.info('[userJobsController] getFeaturedJobs start');
-      req.log.debug({ query: req.query }, '[userJobsController] rawQuery');
-      const { limit = 6 } = req.query;
-      const jobs = await this.jobsService.getFeaturedJobs(parseInt(limit));
-      req.log.info('[userJobsController] getFeaturedJobs success');
+      request.log.info('[userJobsController] getFeaturedJobs start');
+      request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
+      const { limit = 6 } = request.query;
+      const jobs = await this.jobsService.getFeaturedJobs(Number(limit));
+      request.log.info('[userJobsController] getFeaturedJobs success');
       return reply.send(successResponse(jobs, 'Featured jobs retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userJobsController] getFeaturedJobs error');
+      request.log.error({ err: error }, '[userJobsController] getFeaturedJobs error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get job categories
-   * @param {Object} req - Express request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getJobCategories = async (req, reply) => {
+    getJobCategories = async (request, reply) => {
     try {
-      req.log.info('[userJobsController] getJobCategories start');
+      request.log.info('[userJobsController] getJobCategories start');
       const categories = await this.jobsService.getJobCategories();
-      req.log.info('[userJobsController] getJobCategories success');
+      request.log.info('[userJobsController] getJobCategories success');
       return reply.send(successResponse(categories, 'Job categories retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userJobsController] getJobCategories error');
+      request.log.error({ err: error }, '[userJobsController] getJobCategories error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Search jobs
-   * @param {Object} req - Express request object
-   * @param {Object} reply - Fastify reply object
-   */
-  searchJobs = async (req, reply) => {
+    searchJobs = async (request, reply) => {
     try {
-      req.log.info('[userJobsController] searchJobs start');
-      req.log.debug({ query: req.query }, '[userJobsController] rawQuery');
-      const { q, location, jobType, experienceLevel, skills, page = 1, limit = 10 } = req.query;
+      request.log.info('[userJobsController] searchJobs start');
+      request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
+      const { q, location, jobType, experienceLevel, skills, page = 1, limit = 10 } = request.query;
 
       const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: Number(page),
+        limit: Number(limit),
         query: q,
         location,
         jobType,
@@ -154,23 +121,18 @@ class JobsController {
       };
 
       const result = await this.jobsService.searchJobs(options);
-      req.log.info('[userJobsController] searchJobs success');
+      request.log.info('[userJobsController] searchJobs success');
       return reply.send(successResponse(result, 'Jobs search completed successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userJobsController] searchJobs error');
+      request.log.error({ err: error }, '[userJobsController] searchJobs error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get companies with filtering
-   * @param {Object} req - Express request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getCompanies = async (req, reply) => {
+    getCompanies = async (request, reply) => {
     try {
-      req.log.info('[userJobsController] getCompanies start');
-      req.log.debug({ query: req.query }, '[userJobsController] rawQuery');
+      request.log.info('[userJobsController] getCompanies start');
+      request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
 
       const {
         page = 1,
@@ -183,11 +145,11 @@ class JobsController {
         search = '',
         sortBy = 'name',
         sortOrder = 'asc',
-      } = req.query;
+      } = request.query;
 
       const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: Number(page),
+        limit: Number(limit),
         slug,
         name,
         headquarters,
@@ -199,35 +161,30 @@ class JobsController {
       };
 
       const result = await this.jobsService.getCompanies(options);
-      req.log.info('[userJobsController] getCompanies success');
+      request.log.info('[userJobsController] getCompanies success');
       return reply.send(successResponse(result.data, 'Companies retrieved successfully', result.meta));
     } catch (error) {
-      req.log.error({ err: error }, '[userJobsController] getCompanies error');
+      request.log.error({ err: error }, '[userJobsController] getCompanies error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  /**
-   * Get job recommendations for user
-   * @param {Object} req - Express request object
-   * @param {Object} reply - Fastify reply object
-   */
-  getJobRecommendations = async (req, reply) => {
+    getJobRecommendations = async (request, reply) => {
     try {
-      req.log.info('[userJobsController] getJobRecommendations start');
-      req.log.debug({ query: req.query }, '[userJobsController] rawQuery');
-      const userId = req.user?.id;
-      const { limit = 10 } = req.query;
+      request.log.info('[userJobsController] getJobRecommendations start');
+      request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
+      const userId = request.user?.id;
+      const { limit = 10 } = request.query;
 
-      const recommendations = await this.jobsService.getJobRecommendations(userId, parseInt(limit));
+      const recommendations = await this.jobsService.getJobRecommendations(userId, Number(limit));
 
-      req.log.info('[userJobsController] getJobRecommendations success');
+      request.log.info('[userJobsController] getJobRecommendations success');
       return reply.send(successResponse(recommendations, 'Job recommendations retrieved successfully'));
     } catch (error) {
-      req.log.error({ err: error }, '[userJobsController] getJobRecommendations error');
+      request.log.error({ err: error }, '[userJobsController] getJobRecommendations error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 }
 
-export default JobsController;
+export const userJobsController = new JobsController();

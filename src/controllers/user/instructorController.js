@@ -1,30 +1,19 @@
-import InstructorService from '../../services/instructorService.js';
+import { instructorService } from '../../services/instructorService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * User Instructor HTTP controllers
- * Handles public instructor browsing requests
- */
 export class UserInstructorController {
   constructor() {
-    this.instructorService = new InstructorService();
+    this.instructorService = instructorService;
   }
 
-  /**
-   * Get all instructors with pagination and filtering
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  getAllInstructors = async (request, reply) => {
+    getAllInstructors = async (request, reply) => {
     try {
       request.log.info('[userInstructorController] getAllInstructors start');
       request.log.debug({ query: request.query }, '[userInstructorController] rawQuery');
-      console.log('getAllInstructors - this:', this);
-      console.log('getAllInstructors - this.instructorService:', this.instructorService);
 
       const options = {
-        page: parseInt(request.query.page) || 1,
-        limit: parseInt(request.query.limit) || 10,
+        page: Number(request.query.page) || 1,
+        limit: Number(request.query.limit) || 10,
         search: request.query.search,
         includeAcademies: request.query.include_academies === 'true',
       };
@@ -39,12 +28,7 @@ export class UserInstructorController {
     }
   };
 
-  /**
-   * Get instructor by ID
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getInstructorById(request, reply) {
+    async getInstructorById(request, reply) {
     try {
       request.log.info('[userInstructorController] getInstructorById start');
       request.log.debug({ params: request.params, query: request.query }, '[userInstructorController] rawParams');
@@ -52,7 +36,7 @@ export class UserInstructorController {
       const { id } = request.params;
       const includeAcademies = request.query.include_academies === 'true';
 
-      const instructor = await this.instructorService.getInstructorById(parseInt(id), includeAcademies);
+      const instructor = await this.instructorService.getInstructorById(Number(id), includeAcademies);
 
       if (!instructor) {
         request.log.info({ id }, '[userInstructorController] getInstructorById not_found');
@@ -67,12 +51,7 @@ export class UserInstructorController {
     }
   }
 
-  /**
-   * Search instructor by name
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async searchInstructorByName(request, reply) {
+    async searchInstructorByName(request, reply) {
     try {
       request.log.info('[userInstructorController] searchInstructorByName start');
       request.log.debug({ query: request.query }, '[userInstructorController] rawQuery');
@@ -97,12 +76,7 @@ export class UserInstructorController {
     }
   }
 
-  /**
-   * Get instructors by job title
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getInstructorsByJobTitle(request, reply) {
+    async getInstructorsByJobTitle(request, reply) {
     try {
       request.log.info('[userInstructorController] getInstructorsByJobTitle start');
       request.log.debug({ query: request.query }, '[userInstructorController] rawQuery');
@@ -127,17 +101,12 @@ export class UserInstructorController {
     }
   }
 
-  /**
-   * Get popular instructors
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getPopularInstructors(request, reply) {
+    async getPopularInstructors(request, reply) {
     try {
       request.log.info('[userInstructorController] getPopularInstructors start');
       request.log.debug({ query: request.query }, '[userInstructorController] rawQuery');
 
-      const limit = parseInt(request.query.limit) || 10;
+      const limit = Number(request.query.limit) || 10;
       const instructors = await this.instructorService.getPopularInstructors(limit);
 
       request.log.info('[userInstructorController] getPopularInstructors success');
@@ -157,18 +126,13 @@ export class UserInstructorController {
     }
   }
 
-  /**
-   * Get instructors by academy ID
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getInstructorsByAcademyId(request, reply) {
+    async getInstructorsByAcademyId(request, reply) {
     try {
       request.log.info('[userInstructorController] getInstructorsByAcademyId start');
       request.log.debug({ params: request.params }, '[userInstructorController] rawParams');
 
       const { academyId } = request.params;
-      const instructors = await this.instructorService.getInstructorsByAcademyId(parseInt(academyId));
+      const instructors = await this.instructorService.getInstructorsByAcademyId(Number(academyId));
 
       request.log.info('[userInstructorController] getInstructorsByAcademyId success');
       return reply.send(
@@ -176,7 +140,7 @@ export class UserInstructorController {
           {
             instructors,
             total: instructors.length,
-            academy_id: parseInt(academyId),
+            academy_id: Number(academyId),
           },
           'Instructor academy berhasil diambil'
         )
@@ -187,18 +151,13 @@ export class UserInstructorController {
     }
   }
 
-  /**
-   * Get academies by instructor ID
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getAcademiesByInstructorId(request, reply) {
+    async getAcademiesByInstructorId(request, reply) {
     try {
       request.log.info('[userInstructorController] getAcademiesByInstructorId start');
       request.log.debug({ params: request.params }, '[userInstructorController] rawParams');
 
       const { instructorId } = request.params;
-      const academies = await this.instructorService.getAcademiesByInstructorId(parseInt(instructorId));
+      const academies = await this.instructorService.getAcademiesByInstructorId(Number(instructorId));
 
       request.log.info('[userInstructorController] getAcademiesByInstructorId success');
       return reply.send(
@@ -206,7 +165,7 @@ export class UserInstructorController {
           {
             academies,
             total: academies.length,
-            instructor_id: parseInt(instructorId),
+            instructor_id: Number(instructorId),
           },
           'Academy instructor berhasil diambil'
         )

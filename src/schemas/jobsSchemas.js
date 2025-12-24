@@ -11,9 +11,6 @@ import {
 const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'FREELANCE', 'REMOTE'];
 const EXPERIENCE_LEVELS = ['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR', 'LEAD', 'MANAGER', 'DIRECTOR'];
 
-/**
- * Job Entity Schema - Documentation Only (No Strict Validation)
- */
 const jobEntitySchema = {
   type: 'object',
   additionalProperties: true,
@@ -126,47 +123,54 @@ const jobEntitySchema = {
   },
 };
 
-/**
- * Job Creation Input Schema - Documentation Only
- */
 const jobCreateInputSchema = {
   type: 'object',
+  required: ['title', 'description', 'company', 'location'],
   properties: {
-    title: jobEntitySchema.properties.title,
-    description: jobEntitySchema.properties.description,
-    company: jobEntitySchema.properties.company,
-    location: jobEntitySchema.properties.location,
-    jobType: jobEntitySchema.properties.jobType,
-    experienceLevel: jobEntitySchema.properties.experienceLevel,
-    minSalary: jobEntitySchema.properties.minSalary,
-    maxSalary: jobEntitySchema.properties.maxSalary,
-    skills: jobEntitySchema.properties.skills,
-    requirements: jobEntitySchema.properties.requirements,
-    benefits: jobEntitySchema.properties.benefits,
-    isRemote: jobEntitySchema.properties.isRemote,
-    applicationDeadline: jobEntitySchema.properties.applicationDeadline,
-    applicationUrl: jobEntitySchema.properties.applicationUrl,
-    contactEmail: jobEntitySchema.properties.contactEmail,
-    companyDescription: jobEntitySchema.properties.companyDescription,
-    companyWebsite: jobEntitySchema.properties.companyWebsite,
-    companySize: jobEntitySchema.properties.companySize,
+    title: { type: 'string', minLength: 3, maxLength: 255, description: 'Job title' },
+    description: { type: 'string', minLength: 50, description: 'Detailed job description' },
+    company: { type: 'string', minLength: 1, description: 'Company name' },
+    location: { type: 'string', minLength: 1, description: 'Job location' },
+    slug: { type: 'string', minLength: 3, maxLength: 100, pattern: '^[a-z0-9-]+$', description: 'URL slug' },
+    jobType: { type: 'string', enum: JOB_TYPES, description: 'Type of employment' },
+    experienceLevel: { type: 'string', enum: EXPERIENCE_LEVELS, description: 'Required experience level' },
+    salary_min: { type: 'integer', minimum: 0, description: 'Minimum salary range' },
+    salary_max: { type: 'integer', minimum: 0, description: 'Maximum salary range' },
+    skills: { type: 'array', items: { type: 'string' }, description: 'Required skills' },
+    requirements: { type: 'array', items: { type: 'string' }, description: 'Job requirements' },
+    benefits: { type: 'array', items: { type: 'string' }, description: 'Job benefits' },
+    isRemote: { type: 'boolean', default: false, description: 'Whether the job is remote' },
+    application_deadline: { type: 'string', format: 'date-time', description: 'Application deadline' },
+    applicationUrl: { type: 'string', format: 'uri', description: 'External application URL' },
+    contactEmail: { type: 'string', format: 'email', description: 'Contact email for applications' },
   },
+  additionalProperties: false,
 };
 
-/**
- * Job Update Input Schema
- */
 const jobUpdateInputSchema = {
   type: 'object',
   properties: {
-    ...jobCreateInputSchema.properties,
-    isActive: jobEntitySchema.properties.isActive,
+    title: { type: 'string', minLength: 3, maxLength: 255, description: 'Job title' },
+    description: { type: 'string', minLength: 50, description: 'Detailed job description' },
+    company: { type: 'string', minLength: 1, description: 'Company name' },
+    location: { type: 'string', minLength: 1, description: 'Job location' },
+    slug: { type: 'string', minLength: 3, maxLength: 100, pattern: '^[a-z0-9-]+$', description: 'URL slug' },
+    jobType: { type: 'string', enum: JOB_TYPES, description: 'Type of employment' },
+    experienceLevel: { type: 'string', enum: EXPERIENCE_LEVELS, description: 'Required experience level' },
+    salary_min: { type: 'integer', minimum: 0, description: 'Minimum salary range' },
+    salary_max: { type: 'integer', minimum: 0, description: 'Maximum salary range' },
+    skills: { type: 'array', items: { type: 'string' }, description: 'Required skills' },
+    requirements: { type: 'array', items: { type: 'string' }, description: 'Job requirements' },
+    benefits: { type: 'array', items: { type: 'string' }, description: 'Job benefits' },
+    isRemote: { type: 'boolean', description: 'Whether the job is remote' },
+    application_deadline: { type: 'string', format: 'date-time', description: 'Application deadline' },
+    applicationUrl: { type: 'string', format: 'uri', description: 'External application URL' },
+    contactEmail: { type: 'string', format: 'email', description: 'Contact email for applications' },
+    isActive: { type: 'boolean', description: 'Whether the job is active' },
   },
+  additionalProperties: false,
 };
 
-/**
- * Jobs Query Parameters Schema
- */
 const jobsQuerySchema = {
   type: 'object',
   properties: {
@@ -224,13 +228,6 @@ const jobsQuerySchema = {
   },
 };
 
-// ========================
-// API ENDPOINT SCHEMAS
-// ========================
-
-/**
- * GET /api/jobs - Get all jobs with pagination
- */
 export const getAllJobsSchema = {
   summary: 'Get all jobs with pagination and filtering',
   description: 'Retrieve a paginated list of jobs with optional filtering',
@@ -242,9 +239,6 @@ export const getAllJobsSchema = {
   },
 };
 
-/**
- * GET /api/jobs/:id - Get job by ID
- */
 export const getJobByIdSchema = {
   summary: 'Get job by ID',
   description: 'Retrieve a specific job by its ID',
@@ -256,9 +250,6 @@ export const getJobByIdSchema = {
   },
 };
 
-/**
- * POST /api/admin/jobs - Create new job (Admin only)
- */
 export const createJobSchema = {
   summary: 'Create new job',
   description: 'Create a new job posting (Admin only)',
@@ -272,9 +263,6 @@ export const createJobSchema = {
   },
 };
 
-/**
- * PUT /api/admin/jobs/:id - Update job (Admin only)
- */
 export const updateJobSchema = {
   summary: 'Update job',
   description: 'Update an existing job posting (Admin only)',
@@ -290,9 +278,6 @@ export const updateJobSchema = {
   },
 };
 
-/**
- * DELETE /api/admin/jobs/:id - Delete job (Admin only)
- */
 export const deleteJobSchema = {
   summary: 'Delete job',
   description: 'Delete a job posting (Admin only)',
@@ -306,9 +291,6 @@ export const deleteJobSchema = {
   },
 };
 
-/**
- * GET /api/jobs/search - Search jobs
- */
 export const searchJobsSchema = {
   summary: 'Search jobs',
   description: 'Search jobs with advanced filtering and full-text search',
@@ -330,9 +312,6 @@ export const searchJobsSchema = {
   },
 };
 
-/**
- * GET /api/jobs/stats - Get job statistics
- */
 export const getJobStatsSchema = {
   summary: 'Get job statistics',
   description: 'Get aggregated statistics about jobs',

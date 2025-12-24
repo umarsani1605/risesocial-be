@@ -1,36 +1,27 @@
 
-import { EnrollmentService } from '../../services/enrollmentService.js';
+import { enrollmentService } from '../../services/enrollmentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * Admin Enrollment HTTP controllers
- * Handles admin-only enrollment management requests
- */
 export class AdminEnrollmentController {
   constructor() {
-    this.enrollmentService = new EnrollmentService();
+    this.enrollmentService = enrollmentService;
   }
 
-  /**
-   * Get all enrollments (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getAllEnrollments(request, reply) {
+    async getAllEnrollments(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] getAllEnrollments start');
       request.log.debug({ query: request.query }, '[adminEnrollmentController] rawQuery');
 
       const options = {
-        user_id: request.query.user_id ? parseInt(request.query.user_id) : undefined,
-        academy_id: request.query.academy_id ? parseInt(request.query.academy_id) : undefined,
+        user_id: request.query.user_id ? Number(request.query.user_id) : undefined,
+        academy_id: request.query.academy_id ? Number(request.query.academy_id) : undefined,
         enrollment_status: request.query.enrollment_status,
-        progress_min: request.query.progress_min ? parseInt(request.query.progress_min) : undefined,
-        progress_max: request.query.progress_max ? parseInt(request.query.progress_max) : undefined,
+        progress_min: request.query.progress_min ? Number(request.query.progress_min) : undefined,
+        progress_max: request.query.progress_max ? Number(request.query.progress_max) : undefined,
         enrolled_from: request.query.enrolled_from,
         enrolled_to: request.query.enrolled_to,
-        page: request.query.page ? parseInt(request.query.page) : 1,
-        limit: request.query.limit ? parseInt(request.query.limit) : 10,
+        page: request.query.page ? Number(request.query.page) : 1,
+        limit: request.query.limit ? Number(request.query.limit) : 10,
         include_user: request.query.include_user === 'true',
         include_academy: request.query.include_academy === 'true',
         include_pricing: request.query.include_pricing === 'true',
@@ -46,12 +37,7 @@ export class AdminEnrollmentController {
     }
   }
 
-  /**
-   * Get academy enrollments (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getAcademyEnrollments(request, reply) {
+    async getAcademyEnrollments(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] getAcademyEnrollments start');
       request.log.debug({ params: request.params, query: request.query }, '[adminEnrollmentController] rawParams');
@@ -59,13 +45,13 @@ export class AdminEnrollmentController {
       const { academyId } = request.params;
       const options = {
         enrollment_status: request.query.enrollment_status,
-        progress_min: request.query.progress_min ? parseInt(request.query.progress_min) : undefined,
-        progress_max: request.query.progress_max ? parseInt(request.query.progress_max) : undefined,
-        page: request.query.page ? parseInt(request.query.page) : 1,
-        limit: request.query.limit ? parseInt(request.query.limit) : 10,
+        progress_min: request.query.progress_min ? Number(request.query.progress_min) : undefined,
+        progress_max: request.query.progress_max ? Number(request.query.progress_max) : undefined,
+        page: request.query.page ? Number(request.query.page) : 1,
+        limit: request.query.limit ? Number(request.query.limit) : 10,
       };
 
-      const enrollments = await this.enrollmentService.getAcademyEnrollments(parseInt(academyId), options);
+      const enrollments = await this.enrollmentService.getAcademyEnrollments(Number(academyId), options);
 
       request.log.info('[adminEnrollmentController] getAcademyEnrollments success');
       return reply.send(successResponse(enrollments, 'Enrollment academy berhasil ditemukan'));
@@ -75,12 +61,7 @@ export class AdminEnrollmentController {
     }
   }
 
-  /**
-   * Create new enrollment (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async createEnrollment(request, reply) {
+    async createEnrollment(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] createEnrollment start');
       request.log.debug({ body: request.body }, '[adminEnrollmentController] rawBody');
@@ -103,18 +84,13 @@ export class AdminEnrollmentController {
     }
   }
 
-  /**
-   * Update enrollment (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateEnrollment(request, reply) {
+    async updateEnrollment(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] updateEnrollment start');
       request.log.debug({ params: request.params, body: request.body }, '[adminEnrollmentController] rawParams');
 
       const { id } = request.params;
-      const enrollment = await this.enrollmentService.updateEnrollment(parseInt(id), request.body);
+      const enrollment = await this.enrollmentService.updateEnrollment(Number(id), request.body);
 
       if (!enrollment) {
         request.log.info({ id }, '[adminEnrollmentController] updateEnrollment not_found');
@@ -129,12 +105,7 @@ export class AdminEnrollmentController {
     }
   }
 
-  /**
-   * Update enrollment status (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async updateStatus(request, reply) {
+    async updateStatus(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] updateStatus start');
       request.log.debug({ params: request.params, body: request.body }, '[adminEnrollmentController] rawParams');
@@ -142,7 +113,7 @@ export class AdminEnrollmentController {
       const { id } = request.params;
       const { enrollment_status } = request.body;
 
-      const enrollment = await this.enrollmentService.updateStatus(parseInt(id), enrollment_status);
+      const enrollment = await this.enrollmentService.updateStatus(Number(id), enrollment_status);
 
       if (!enrollment) {
         request.log.info({ id }, '[adminEnrollmentController] updateStatus not_found');
@@ -157,18 +128,13 @@ export class AdminEnrollmentController {
     }
   }
 
-  /**
-   * Delete enrollment (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async deleteEnrollment(request, reply) {
+    async deleteEnrollment(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] deleteEnrollment start');
       request.log.debug({ params: request.params }, '[adminEnrollmentController] rawParams');
 
       const { id } = request.params;
-      const result = await this.enrollmentService.deleteEnrollment(parseInt(id));
+      const result = await this.enrollmentService.deleteEnrollment(Number(id));
 
       if (!result) {
         request.log.info({ id }, '[adminEnrollmentController] deleteEnrollment not_found');
@@ -183,12 +149,7 @@ export class AdminEnrollmentController {
     }
   }
 
-  /**
-   * Get enrollment statistics (Admin only)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getEnrollmentStats(request, reply) {
+    async getEnrollmentStats(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] getEnrollmentStats start');
       const stats = await this.enrollmentService.getEnrollmentStats();

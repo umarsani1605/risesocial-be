@@ -299,7 +299,8 @@ export const getAllAcademiesSchema = {
       type: 'array',
       items: userAcademyWithRelationsSchema,
     }),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid query parameters'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -313,7 +314,7 @@ export const getAcademyCategoriesSchema = {
       type: 'array',
       items: { type: 'string' },
     }),
-    500: createErrorResponseSchema(),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -335,7 +336,6 @@ export const getAcademyBySlugSchema = {
   },
 };
 
-// POST /api/admin/academys - Create academy
 export const createAcademySchema = {
   tags: ['Admin Academies'],
   summary: 'Create new academy',
@@ -343,6 +343,7 @@ export const createAcademySchema = {
   security: [{ bearerAuth: [] }],
   body: {
     type: 'object',
+    required: ['title'],
     properties: {
       title: { type: 'string', minLength: 3, maxLength: 255 },
       path_slug: { type: 'string', pattern: '^[a-z0-9-]+$', minLength: 3, maxLength: 100 },
@@ -357,16 +358,16 @@ export const createAcademySchema = {
       meta_title: { type: 'string', maxLength: 255 },
       meta_description: { type: 'string', maxLength: 500 },
     },
+    additionalProperties: false,
   },
   response: {
     201: createSuccessResponseSchema(academyEntitySchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
-// PUT /api/admin/academys/:id - Update academy
 export const updateAcademySchema = {
   tags: ['Admin Academies'],
   summary: 'Update academy',
@@ -389,13 +390,14 @@ export const updateAcademySchema = {
       meta_title: { type: 'string', maxLength: 255 },
       meta_description: { type: 'string', maxLength: 500 },
     },
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(academyEntitySchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -407,10 +409,10 @@ export const deleteAcademySchema = {
   security: [{ bearerAuth: [] }],
   params: idParamSchema,
   response: {
-    200: createSuccessResponseSchema({ type: 'object' }),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -496,8 +498,9 @@ export const getAdminAcademiesSchema = {
       type: 'array',
       items: adminAcademyWithRelationsSchema,
     }),
-    401: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid query parameters'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -515,9 +518,9 @@ export const getAdminAcademyBySlugSchema = {
   },
   response: {
     200: createSuccessResponseSchema(adminAcademyWithRelationsSchema),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -539,8 +542,8 @@ export const getAcademyStatisticsSchema = {
         averageRating: { type: 'number' },
       },
     }),
-    401: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -562,18 +565,19 @@ export const createPricingSchema = {
     type: 'object',
     properties: {
       name: { type: 'string', minLength: 1, maxLength: 50 },
-      original_price: { type: 'number', minimum: 0 },
+      original_price: { type: 'number', minimum: 1 },
       discount_price: { type: 'number', minimum: 0 },
       order: { type: 'number', minimum: 1 },
     },
     required: ['name', 'original_price', 'discount_price', 'order'],
+    additionalProperties: false,
   },
   response: {
     201: createSuccessResponseSchema(academyPricingSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -593,18 +597,19 @@ export const updatePricingSchema = {
     type: 'object',
     properties: {
       name: { type: 'string', minLength: 1, maxLength: 50 },
-      original_price: { type: 'number', minimum: 0 },
+      original_price: { type: 'number', minimum: 1 },
       discount_price: { type: 'number', minimum: 0 },
       order: { type: 'number', minimum: 1 },
     },
     required: ['name', 'original_price', 'discount_price', 'order'],
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(academyPricingSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Pricing not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -622,9 +627,9 @@ export const deletePricingSchema = {
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Pricing not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -651,13 +656,14 @@ export const createFeatureSchema = {
       feature_order: { type: 'number', minimum: 1 },
     },
     required: ['title', 'description', 'icon', 'feature_order'],
+    additionalProperties: false,
   },
   response: {
     201: createSuccessResponseSchema(academyFeatureSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -682,13 +688,14 @@ export const updateFeatureSchema = {
       feature_order: { type: 'number', minimum: 1 },
     },
     required: ['title', 'description', 'icon', 'feature_order'],
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(academyFeatureSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Feature not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -706,9 +713,9 @@ export const deleteFeatureSchema = {
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Feature not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -729,17 +736,21 @@ export const createInstructorSchema = {
   body: {
     type: 'object',
     properties: {
-      instructor_id: { type: 'number', minimum: 1 },
-      instructor_order: { type: 'number', minimum: 1 },
+      name: { type: 'string', minLength: 1, maxLength: 100 },
+      job_title: { type: 'string', minLength: 1, maxLength: 100 },
+      avatar_url: { type: 'string', maxLength: 500 },
+      description: { type: 'string', maxLength: 1000 },
+      order: { type: 'number', minimum: 1 },
     },
-    required: ['instructor_id', 'instructor_order'],
+    required: ['name', 'job_title', 'order'],
+    additionalProperties: false,
   },
   response: {
     201: createSuccessResponseSchema(academyInstructorSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -758,16 +769,20 @@ export const updateInstructorSchema = {
   body: {
     type: 'object',
     properties: {
-      instructor_order: { type: 'number', minimum: 1 },
+      name: { type: 'string', minLength: 1, maxLength: 100 },
+      job_title: { type: 'string', minLength: 1, maxLength: 100 },
+      avatar_url: { type: 'string', maxLength: 500 },
+      description: { type: 'string', maxLength: 1000 },
+      order: { type: 'number', minimum: 1 },
     },
-    required: ['instructor_order'],
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(academyInstructorSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Instructor not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -785,9 +800,9 @@ export const deleteInstructorSchema = {
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Instructor not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -813,13 +828,14 @@ export const createTopicSchema = {
       topic_order: { type: 'number', minimum: 1 },
     },
     required: ['title', 'description', 'topic_order'],
+    additionalProperties: false,
   },
   response: {
     201: createSuccessResponseSchema(academyTopicSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -842,14 +858,14 @@ export const updateTopicSchema = {
       description: { type: 'string', minLength: 1, maxLength: 1000 },
       topic_order: { type: 'number', minimum: 1 },
     },
-    required: ['title', 'description', 'topic_order'],
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(academyTopicSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Topic not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -867,9 +883,9 @@ export const deleteTopicSchema = {
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Topic not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -896,13 +912,14 @@ export const createTestimonialSchema = {
       testimonial_order: { type: 'number', minimum: 1 },
     },
     required: ['name', 'comment', 'testimonial_order'],
+    additionalProperties: false,
   },
   response: {
     201: createSuccessResponseSchema(academyTestimonialSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -926,14 +943,14 @@ export const updateTestimonialSchema = {
       comment: { type: 'string', minLength: 1, maxLength: 1000 },
       testimonial_order: { type: 'number', minimum: 1 },
     },
-    required: ['name', 'comment', 'testimonial_order'],
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(academyTestimonialSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Testimonial not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -951,9 +968,9 @@ export const deleteTestimonialSchema = {
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Testimonial not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -979,13 +996,14 @@ export const createFaqSchema = {
       faq_order: { type: 'number', minimum: 1 },
     },
     required: ['question', 'answer', 'faq_order'],
+    additionalProperties: false,
   },
   response: {
     201: createSuccessResponseSchema(academyFaqSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -1008,14 +1026,14 @@ export const updateFaqSchema = {
       answer: { type: 'string', minLength: 1, maxLength: 2000 },
       faq_order: { type: 'number', minimum: 1 },
     },
-    required: ['question', 'answer', 'faq_order'],
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(academyFaqSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'FAQ not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -1033,9 +1051,9 @@ export const deleteFaqSchema = {
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'FAQ not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -1049,10 +1067,10 @@ export const createSessionSchema = {
   params: {
     type: 'object',
     properties: {
-      academy_id: { type: 'string', minLength: 1 },
-      topic_id: { type: 'string', minLength: 1 },
+      academyId: { type: 'string', minLength: 1 },
+      topicId: { type: 'string', minLength: 1 },
     },
-    required: ['academy_id', 'topic_id'],
+    required: ['academyId', 'topicId'],
   },
   body: {
     type: 'object',
@@ -1061,13 +1079,14 @@ export const createSessionSchema = {
       session_order: { type: 'number', minimum: 1 },
     },
     required: ['title', 'session_order'],
+    additionalProperties: false,
   },
   response: {
     201: createSuccessResponseSchema(academySessionSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Topic not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -1081,11 +1100,11 @@ export const updateSessionSchema = {
   params: {
     type: 'object',
     properties: {
-      academy_id: { type: 'string', minLength: 1 },
-      topic_id: { type: 'string', minLength: 1 },
-      session_id: { type: 'string', minLength: 1 },
+      academyId: { type: 'string', minLength: 1 },
+      topicId: { type: 'string', minLength: 1 },
+      sessionId: { type: 'string', minLength: 1 },
     },
-    required: ['academy_id', 'topic_id', 'session_id'],
+    required: ['academyId', 'topicId', 'sessionId'],
   },
   body: {
     type: 'object',
@@ -1093,14 +1112,14 @@ export const updateSessionSchema = {
       title: { type: 'string', minLength: 1, maxLength: 200 },
       session_order: { type: 'number', minimum: 1 },
     },
-    required: ['title', 'session_order'],
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(academySessionSchema),
-    400: createErrorResponseSchema(),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Session not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -1114,16 +1133,16 @@ export const deleteSessionSchema = {
   params: {
     type: 'object',
     properties: {
-      academy_id: { type: 'string', minLength: 1 },
-      topic_id: { type: 'string', minLength: 1 },
-      session_id: { type: 'string', minLength: 1 },
+      academyId: { type: 'string', minLength: 1 },
+      topicId: { type: 'string', minLength: 1 },
+      sessionId: { type: 'string', minLength: 1 },
     },
-    required: ['academy_id', 'topic_id', 'session_id'],
+    required: ['academyId', 'topicId', 'sessionId'],
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),
-    401: createErrorResponseSchema(),
-    404: createErrorResponseSchema(),
-    500: createErrorResponseSchema(),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Session not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };

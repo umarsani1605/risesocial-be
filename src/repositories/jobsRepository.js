@@ -2,10 +2,6 @@ import prisma from '../lib/prisma.js';
 import { BaseRepository } from './base/BaseRepository.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * Jobs repository for data access operations
- * Includes full-text search and advanced filtering
- */
 export class JobsRepository extends BaseRepository {
   constructor() {
     super(prisma.job);
@@ -15,11 +11,6 @@ export class JobsRepository extends BaseRepository {
     return getLogger();
   }
 
-  /**
-   * Full-text search jobs with advanced filtering
-   * @param {Object} options - Search and filter options
-   * @returns {Promise<Object>} Paginated result with data and meta
-   */
   async searchJobs(options = {}) {
     this.logger.info({ options }, '[jobsRepository] searchJobs start');
 
@@ -158,12 +149,6 @@ export class JobsRepository extends BaseRepository {
     };
   }
 
-  /**
-   * Get job recommendations for a user based on skills and preferences
-   * @param {Object} userProfile - User profile with skills and preferences
-   * @param {number} limit - Number of recommendations
-   * @returns {Promise<Array>} Recommended jobs
-   */
   async getRecommendations(userProfile, limit = 10) {
     const { skills = [], preferredLocation, experienceLevel } = userProfile;
 
@@ -199,12 +184,6 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Check if job slug exists
-   * @param {string} slug - Job slug
-   * @param {number} excludeId - ID to exclude from check
-   * @returns {Promise<boolean>} True if exists
-   */
   async slugExists(slug, excludeId = null) {
     const where = { slug };
     if (excludeId) {
@@ -213,11 +192,6 @@ export class JobsRepository extends BaseRepository {
     return await this.exists(where);
   }
 
-  /**
-   * Find job by slug
-   * @param {string} slug - Job slug
-   * @returns {Promise<Object|null>} Job or null
-   */
   async findBySlug(slug) {
     return await this.model.findUnique({
       where: { slug },
@@ -233,11 +207,6 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Find job by ID
-   * @param {number} id - Job ID
-   * @returns {Promise<Object|null>} Job or null
-   */
   async findById(id) {
     return await this.model.findUnique({
       where: { id },
@@ -253,11 +222,6 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Find job by LinkedIn job ID
-   * @param {string} linkedinJobId - LinkedIn job ID
-   * @returns {Promise<Object|null>} Job or null
-   */
   async findJobByLinkedInId(linkedinJobId) {
     this.logger.debug({ linkedinJobId }, '[jobsRepository] findJobByLinkedInId');
     const job = await this.model.findFirst({
@@ -267,11 +231,6 @@ export class JobsRepository extends BaseRepository {
     return job;
   }
 
-  /**
-   * Create multiple jobs in batch
-   * @param {Array} jobsData - Array of job data
-   * @returns {Promise<Array>} Created jobs
-   */
   async createManyJobs(jobsData) {
     this.logger.info({ size: jobsData.length }, '[jobsRepository] createManyJobs');
     return await this.model.createMany({
@@ -280,11 +239,6 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Find jobs by list of LinkedIn job IDs
-   * @param {Array<string|number>} linkedinIds
-   * @returns {Promise<Array<Object>>}
-   */
   async findJobsByLinkedInIds(linkedinIds) {
     this.logger.debug({ size: linkedinIds?.length }, '[jobsRepository] findJobsByLinkedInIds');
     const ids = (linkedinIds || []).map((v) => String(v));
@@ -294,11 +248,6 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Create Job AI Insights record
-   * @param {Object} data - includes job_id and AI fields mapped to schema
-   * @returns {Promise<Object>}
-   */
   async createJobAIInsights(data) {
     this.logger.debug({ job_id: data.job_id }, '[jobsRepository] createJobAIInsights');
     return await prisma.jobAIInsights.create({
@@ -306,11 +255,6 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Find location by details
-   * @param {Object} locationData - Location data
-   * @returns {Promise<Object|null>} Location or null
-   */
   async findLocationByDetails(locationData) {
     const { city, region, country } = locationData;
     this.logger.debug({ city, region, country }, '[jobsRepository] findLocation');
@@ -323,35 +267,12 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Create new location
-   * @param {Object} locationData - Location data
-   * @returns {Promise<Object>} Created location
-   */
   async createLocation(locationData) {
     this.logger.debug({ locationData }, '[jobsRepository] createLocation');
     return await prisma.jobLocation.create({
       data: locationData,
     });
   }
-
-  /**
-   * Find company by ID
-   * @param {number} id - Company ID
-   * @returns {Promise<Object|null>} Company or null
-   */
-  async findCompanyById(id) {
-    this.logger.debug({ id }, '[jobsRepository] findCompanyById');
-    return await prisma.company.findUnique({
-      where: { id },
-    });
-  }
-
-  /**
-   * Find company by LinkedIn slug
-   * @param {string} slug - LinkedIn company slug
-   * @returns {Promise<Object|null>} Company or null
-   */
   async findCompanyBySlug(slug) {
     this.logger.debug({ slug }, '[jobsRepository] findCompanyBySlug');
     return await prisma.company.findUnique({
@@ -359,11 +280,6 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Create company from LinkedIn data
-   * @param {Object} linkedinJob - LinkedIn job data
-   * @returns {Promise<Object>} Created company
-   */
   async createCompanyFromLinkedIn(linkedinJob) {
     this.logger.info({ organization: linkedinJob.organization }, '[jobsRepository] createCompanyFromLinkedIn');
 
@@ -396,19 +312,6 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
-  /**
-   * Search companies with filtering and pagination
-   * @param {Object} options - Search and filter options
-   * @returns {Promise<Object>} Paginated result with data and meta
-   */
-  /**
-   * Update job with company and location relations
-   * @param {number} id - Job ID
-   * @param {Object} jobData - Job update data
-   * @param {Object} companyData - Company update data
-   * @param {Object} locationData - Location update data
-   * @returns {Promise<Object>} Updated job with relations
-   */
   async updateWithRelations(id, jobData, companyData, locationData) {
     this.logger.info({ id, jobData, companyData, locationData }, '[jobsRepository] updateWithRelations start');
 

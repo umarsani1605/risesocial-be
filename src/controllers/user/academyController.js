@@ -1,17 +1,8 @@
 import { academyService } from '../../services/academyService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * User Academy HTTP controllers
- * Handles public academy-related requests
- */
 export class UserAcademyController {
-  /**
-   * Get all academies with pagination and filtering
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getAcademys(request, reply) {
+    async getAcademys(request, reply) {
     try {
       request.log.info('[userAcademyController] getAcademys start');
       request.log.debug({ query: request.query }, '[userAcademyController] rawQuery');
@@ -24,12 +15,7 @@ export class UserAcademyController {
     }
   }
 
-  /**
-   * Get academy by slug
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getAcademyBySlug(request, reply) {
+    async getAcademyBySlug(request, reply) {
     try {
       const { slug } = request.params;
       request.log.info('[userAcademyController] getAcademyBySlug start');
@@ -50,12 +36,7 @@ export class UserAcademyController {
     }
   }
 
-  /**
-   * Get academy categories
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getCategories(request, reply) {
+    async getCategories(request, reply) {
     try {
       request.log.info('[userAcademyController] getCategories start');
       const categories = await academyService.getCategories();

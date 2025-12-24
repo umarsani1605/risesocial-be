@@ -2,21 +2,12 @@ import { adminService } from '../services/adminService.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * Admin Controller
- * Handles admin-specific operations
- */
 export class AdminController {
   constructor() {
     this.logger = getLogger();
   }
 
-  /**
-   * Upload image for academy, instructor, or testimonial
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async uploadImage(request, reply) {
+    async uploadImage(request, reply) {
     try {
       const { file } = request;
       const { type } = request.body; // ACADEMY_IMAGE, INSTRUCTOR_AVATAR, TESTIMONIAL_AVATAR

@@ -1,26 +1,17 @@
-import { RylsRegistrationRepository } from '../repositories/rylsRegistrationRepository.js';
-import { FileUploadService } from './fileUploadService.js';
+import { rylsRegistrationRepository } from '../repositories/rylsRegistrationRepository.js';
+import { fileUploadService } from './fileUploadService.js';
 import { getLogger } from '../lib/loggerContext.js';
 
-/**
- * RYLS Registration Service
- * Business logic for RYLS registration system
- */
 export class RylsRegistrationService {
   constructor() {
-    this.registrationRepository = new RylsRegistrationRepository();
-    this.fileUploadService = new FileUploadService();
+    this.registrationRepository = rylsRegistrationRepository;
+    this.fileUploadService = fileUploadService;
   }
 
   get logger() {
     return getLogger();
   }
 
-  /**
-   * Get base URL for file uploads
-   * @private
-   * @returns {string} Base URL
-   */
   getBaseUrl() {
     return process.env.BACKEND_URL || 'http://localhost:8000';
   }
@@ -67,9 +58,6 @@ export class RylsRegistrationService {
     }
   }
 
-  /**
-   * Submit fully funded registration
-   */
   async submitFullyFundedRegistration(formData) {
     this.logger.info('[rylsRegistrationService] submitFullyFundedRegistration start');
     try {
@@ -100,9 +88,6 @@ export class RylsRegistrationService {
     }
   }
 
-  /**
-   * Submit self funded registration
-   */
   async submitSelfFundedRegistration(formData, paymentOrderId = null) {
     this.logger.info('[rylsRegistrationService] submitSelfFundedRegistration start');
     try {
@@ -139,9 +124,6 @@ export class RylsRegistrationService {
     }
   }
 
-  /**
-   * Get registration by submission ID
-   */
   async getRegistrationBySubmissionId(submissionId) {
     this.logger.info({ submissionId }, '[rylsRegistrationService] getRegistrationBySubmissionId start');
     try {
@@ -155,9 +137,6 @@ export class RylsRegistrationService {
     }
   }
 
-  /**
-   * Get registration by ID
-   */
   async getRegistrationById(id) {
     this.logger.info({ id }, '[rylsRegistrationService] getRegistrationById start');
     try {
@@ -171,9 +150,6 @@ export class RylsRegistrationService {
     }
   }
 
-  /**
-   * Get all registrations with pagination and filters
-   */
   async getRegistrations(options = {}) {
     this.logger.info('[rylsRegistrationService] getRegistrations start');
     this.logger.debug({ options }, '[rylsRegistrationService] rawOptions');
@@ -187,17 +163,9 @@ export class RylsRegistrationService {
     }
   }
 
-  /**
-   * Update registration status
-   */
   async updateRegistrationStatus(id, status) {
     this.logger.info({ id, status }, '[rylsRegistrationService] updateRegistrationStatus start');
     try {
-      const validStatuses = ['PENDING', 'PAID', 'FAILED', 'EXPIRED'];
-      if (!validStatuses.includes(status)) {
-        throw new Error(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
-      }
-
       const updatedRegistration = await this.registrationRepository.updateStatus(id, status);
       this.logger.info('[rylsRegistrationService] updateRegistrationStatus success');
       return updatedRegistration;
@@ -207,9 +175,6 @@ export class RylsRegistrationService {
     }
   }
 
-  /**
-   * Get registration statistics
-   */
   async getRegistrationStatistics() {
     this.logger.info('[rylsRegistrationService] getRegistrationStatistics start');
     try {
@@ -236,9 +201,6 @@ export class RylsRegistrationService {
     }
   }
 
-  /**
-   * Get registrations by date range
-   */
   async getRegistrationsByDateRange(startDate, endDate, options = {}) {
     this.logger.info({ startDate, endDate }, '[rylsRegistrationService] getRegistrationsByDateRange start');
     try {
@@ -251,9 +213,6 @@ export class RylsRegistrationService {
     }
   }
 
-  /**
-   * Delete registration
-   */
   async deleteRegistration(id) {
     this.logger.info({ id }, '[rylsRegistrationService] deleteRegistration start');
     try {
@@ -328,7 +287,6 @@ export class RylsRegistrationService {
     }
   }
 
-  // helper methods (prepare*, extractUploadPath, calculateColumnWidths) tetap sama
   prepareMainSheetData(registrations) {
     const headers = [
       'ID',
@@ -474,3 +432,5 @@ export class RylsRegistrationService {
     return columnWidths;
   }
 }
+
+export const rylsRegistrationService = new RylsRegistrationService();

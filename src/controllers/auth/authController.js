@@ -1,17 +1,8 @@
 import { userService } from '../../services/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-/**
- * Authentication HTTP controllers
- * Handles login, register, and current user operations
- */
 export class AuthController {
-  /**
-   * User login
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async login(request, reply) {
+    async login(request, reply) {
     try {
       request.log.info('[authController] login start');
       request.log.debug({ body: { email: request.body?.email, rememberMe: request.body?.rememberMe } }, '[authController] rawBody');
@@ -20,48 +11,54 @@ export class AuthController {
       const result = await userService.login(email, password, rememberMe, request.server);
 
       request.log.info('[authController] login success');
-      return reply.send(result);
+      return reply.send(successResponse(result, 'Login successful'));
     } catch (error) {
       request.log.error({ err: error }, '[authController] login error');
 
       if (error.statusCode === 401) {
-        return reply.status(401).send(errorResponse(error.message, 401));
+        return reply.status(401).send({
+          success: false,
+          message: error.message,
+          statusCode: 401,
+        });
       }
 
-      return reply.status(500).send(errorResponse('Login failed', 500, error.message));
+      return reply.status(500).send({
+        success: false,
+        message: 'Login failed',
+        statusCode: 500,
+      });
     }
   }
 
-  /**
-   * User registration
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async register(request, reply) {
+    async register(request, reply) {
     try {
       request.log.info('[authController] register start');
       request.log.debug({ body: { email: request.body?.email } }, '[authController] rawBody');
       const result = await userService.register(request.body, request.server);
 
       request.log.info('[authController] register success');
-      return reply.status(201).send(result);
+      return reply.status(201).send(successResponse(result, 'Registration successful'));
     } catch (error) {
       request.log.error({ err: error }, '[authController] register error');
 
       if (error.statusCode === 400) {
-        return reply.status(400).send(errorResponse(error.message, 400));
+        return reply.status(400).send({
+          success: false,
+          message: error.message,
+          statusCode: 400,
+        });
       }
 
-      return reply.status(500).send(errorResponse('Failed to register user', 500, error.message));
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to register user',
+        statusCode: 500,
+      });
     }
   }
 
-  /**
-   * Get current user (requires authentication)
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async getCurrentUser(request, reply) {
+    async getCurrentUser(request, reply) {
     try {
       request.log.info('[authController] getCurrentUser start');
       request.log.info({ user: request.user }, '[authController] request.user');
@@ -73,25 +70,28 @@ export class AuthController {
 
       request.log.info('[authController] getCurrentUser success');
 
-      // Return user data directly for Sidebase Auth compatibility
-      return reply.send(user);
+      // Return user directly in data field (not wrapped in { user: ... })
+      return reply.send(successResponse(user, 'User profile retrieved successfully'));
     } catch (error) {
       request.log.error({ err: error }, '[authController] getCurrentUser error');
 
       if (error.statusCode === 404) {
-        return reply.status(404).send(errorResponse(error.message, 404));
+        return reply.status(404).send({
+          success: false,
+          message: error.message,
+          statusCode: 404,
+        });
       }
 
-      return reply.status(500).send(errorResponse('Failed to fetch user profile', 500, error.message));
+      return reply.status(500).send({
+        success: false,
+        message: 'Failed to fetch user profile',
+        statusCode: 500,
+      });
     }
   }
 
-  /**
-   * User logout
-   * @param {Object} request - Fastify request
-   * @param {Object} reply - Fastify reply
-   */
-  async logout(request, reply) {
+    async logout(request, reply) {
     try {
       request.log.info('[authController] logout start');
       const { id: userId, email, role } = request.user;
