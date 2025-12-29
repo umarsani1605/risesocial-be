@@ -1,0 +1,66 @@
+export const swaggerConfig = {
+  swagger: {
+    info: {
+      title: 'Rise Social API',
+      description: 'Backend API documentation for the Rise Social platform.',
+      version: '1.0.0',
+    },
+    externalDocs: {
+      url: 'https://swagger.io',
+      description: 'Find more info here',
+    },
+    host: `localhost:${process.env.PORT || 8000}`,
+    schemes: ['http'],
+    consumes: ['application/json'],
+    produces: ['application/json'],
+    securityDefinitions: {
+      bearerAuth: {
+        type: 'apiKey',
+        name: 'Authorization',
+        in: 'header',
+        description: 'Enter your Bearer token in the format: Bearer <token>',
+      },
+    },
+    security: [{ bearerAuth: [] }],
+    tags: [
+      { name: 'Auth', description: 'Authentication endpoints' },
+      { name: 'User Self-Management', description: 'User profile and account management' },
+      { name: 'User Utilities', description: 'User utility endpoints' },
+      { name: 'User Academies', description: 'User academy browsing and information' },
+      { name: 'User Instructors', description: 'User instructor browsing and information' },
+      { name: 'User Jobs', description: 'User job browsing endpoints' },
+      { name: 'User Testimonials', description: 'User testimonial viewing' },
+      { name: 'User Enrollments', description: 'User enrollment management' },
+      { name: 'User File Upload', description: 'User file upload functionality' },
+      { name: 'User RYLS Registration', description: 'User RYLS registration' },
+      { name: 'Admin User Management', description: 'Admin user management' },
+      { name: 'Admin Academies', description: 'Admin academy management' },
+      { name: 'Admin Instructors', description: 'Admin instructor management' },
+      { name: 'Admin Jobs', description: 'Admin job management endpoints' },
+      { name: 'Admin Testimonials', description: 'Admin testimonial management' },
+      { name: 'Admin Enrollments', description: 'Admin enrollment management' },
+      { name: 'Admin File Upload', description: 'Admin file upload management' },
+      { name: 'Admin', description: 'Admin operations' },
+      { name: 'Admin RYLS Registration', description: 'Admin RYLS registration management' },
+      { name: 'Admin System Settings', description: 'Admin system configuration' },
+      { name: 'Academy Related', description: 'Combined academy data endpoints' },
+      { name: 'Academy Pricing', description: 'Academy pricing management' },
+      { name: 'Academy Features', description: 'Academy features management' },
+      { name: 'Academy Topics', description: 'Academy topics and curriculum' },
+      { name: 'Academy FAQs', description: 'Academy FAQ management' },
+      { name: 'System', description: 'System health and debugging endpoints' },
+      { name: 'File Upload', description: 'File upload functionality' },
+      { name: 'RYLS Payments', description: 'RYLS payment processing and management' },
+    ],
+  },
+};
+
+export const swaggerUiConfig = {
+  routePrefix: '/documentation',
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: true,
+  },
+  staticCSP: true,
+  transformSpecificationClone: true,
+};

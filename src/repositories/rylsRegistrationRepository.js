@@ -1,6 +1,6 @@
 import { BaseRepository } from './base/BaseRepository.js';
-import prisma from '../lib/prisma.js';
-import { getLogger } from '../lib/loggerContext.js';
+import prisma from '../config/database.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class RylsRegistrationRepository extends BaseRepository {
   constructor() {
@@ -106,6 +106,36 @@ export class RylsRegistrationRepository extends BaseRepository {
       throw error;
     }
   }
+
+  async getRegistrationWithPayments(id) {
+    this.logger.info({ id }, '[rylsRegistrationRepository] getRegistrationWithPayments called');
+    try {
+      return await this.model.findUnique({
+        where: { id },
+        include: {
+          payments: { include: { midtrans: true, payment_proof: true }, orderBy: { created_at: 'desc' } },
+        },
+      });
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsRegistrationRepository] getRegistrationWithPayments error');
+      throw error;
+    }
+  }
+
+  async findByIdWithPayments(id, { includePayments = true } = {}) {
+    this.logger.info({ id, includePayments }, '[rylsRegistrationRepository] findByIdWithPayments called');
+    try {
+      const include = { fully_funded_submission: true, self_funded_submission: true };
+      if (includePayments) {
+        include.payments = { include: { midtrans: true, payment_proof: true }, orderBy: { created_at: 'desc' } };
+      }
+      return await this.model.findUnique({ where: { id: parseInt(id) }, include });
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsRegistrationRepository] findByIdWithPayments error');
+      throw new Error('Failed to find registration with payments');
+    }
+  }
+
   async findByEmail(email) {
     this.logger.info({ email }, '[rylsRegistrationRepository] findByEmail called');
     try {

@@ -1,6 +1,6 @@
 import { rylsRegistrationRepository } from '../repositories/rylsRegistrationRepository.js';
 import { fileUploadService } from './fileUploadService.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class RylsRegistrationService {
   constructor() {
@@ -13,7 +13,7 @@ export class RylsRegistrationService {
   }
 
   getBaseUrl() {
-    return process.env.BACKEND_URL || 'http://localhost:8000';
+    return process.env.BACKEND_URL;
   }
 
   async createRegistration(formData) {

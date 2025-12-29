@@ -1,77 +1,43 @@
 import { convertUsdToIdr } from '../integrations/currencyConverter.js';
 
-/**
- * Payment Constants for RYLS Registration
- * Centralized configuration for payment amounts, settings, and validation
- */
-
-/**
- * RYLS Payment Amounts in USD
- * @constant {Object}
- */
 export const RYLS_PAYMENT_AMOUNTS_USD = {
   FULLY_FUNDED: 0.1,
   SELF_FUNDED: 750,
 };
 
-/**
- * Order ID Configuration
- * @constant {Object}
- */
 export const ORDER_ID_CONFIG = {
   PREFIX: 'RYLS',
-  PADDING: 2, // RYLS0001, RYLS0002, etc.
-  START_NUMBER: 1, // Start from 1
+  PADDING: 2, 
+  START_NUMBER: 1, 
 };
 
-/**
- * Payment Expiry Configuration
- * @constant {Object}
- */
 export const PAYMENT_EXPIRY = {
-  DURATION: 24, // 24 hours
-  UNIT: 'hour', // Midtrans expiry unit
+  DURATION: 24, 
+  UNIT: 'hour', 
 };
 
-/**
- * Payment Status Mapping
- * Maps Midtrans transaction_status to RYLS registration status
- * @constant {Object}
- */
 export const PAYMENT_STATUS_MAPPING = {
-  // Success states
+  
   settlement: 'PAID',
   capture: 'PAID',
 
-  // Pending states
   pending: 'PENDING',
   challenge: 'PENDING',
 
-  // Failed states
   deny: 'FAILED',
   cancel: 'FAILED',
   expire: 'EXPIRED',
 
-  // Other states (not mapped to registration enum)
-  refund: 'PAID', // keep as PAID (refund handling can be added later)
-  chargeback: 'FAILED', // treat as failed for now
+  refund: 'PAID', 
+  chargeback: 'FAILED', 
 };
 
-/**
- * Fraud Status Mapping
- * Maps Midtrans fraud_status to payment processing decisions
- * @constant {Object}
- */
 export const FRAUD_STATUS_MAPPING = {
   accept: 'ACCEPTED',
   challenge: 'REVIEW_REQUIRED',
   deny: 'REJECTED',
 };
 
-/**
- * Payment Item Details Templates
- * @constant {Object}
- */
 export const PAYMENT_ITEM_TEMPLATES = {
   FULLY_FUNDED: {
     id: 'ryls-fully-funded-fee',
@@ -85,32 +51,19 @@ export const PAYMENT_ITEM_TEMPLATES = {
   },
 };
 
-/**
- * Webhook Configuration
- * @constant {Object}
- */
 export const WEBHOOK_CONFIG = {
-  TIMEOUT_MS: 30000, // 30 seconds timeout
-  RETRY_ATTEMPTS: 3, // Retry attempts for failed webhooks
-  SIGNATURE_ALGORITHM: 'sha512', // SHA512 for signature verification
+  TIMEOUT_MS: 30000, 
+  RETRY_ATTEMPTS: 3, 
+  SIGNATURE_ALGORITHM: 'sha512', 
 };
 
-/**
- * Validation Rules
- * @constant {Object}
- */
 export const VALIDATION_RULES = {
-  MIN_AMOUNT_IDR: 1000, // Midtrans minimum amount
-  MAX_AMOUNT_IDR: 999999999, // Midtrans maximum amount
-  ORDER_ID_MAX_LENGTH: 50, // Midtrans order_id max length
-  CUSTOMER_NAME_MAX_LENGTH: 100, // Customer name max length
+  MIN_AMOUNT_IDR: 1000, 
+  MAX_AMOUNT_IDR: 999999999, 
+  ORDER_ID_MAX_LENGTH: 50, 
+  CUSTOMER_NAME_MAX_LENGTH: 100, 
 };
 
-/**
- * Generate order ID for RYLS payment
- * @param {number} sequenceNumber - Sequential number for order
- * @returns {string} Formatted order ID (e.g., RYLS0001)
- */
 export const generateOrderId = (sequenceNumber) => {
   const randomStr = Array.from(crypto.getRandomValues(new Uint8Array(8)))
     .map((b) => b.toString(36).toUpperCase())
@@ -122,11 +75,6 @@ export const generateOrderId = (sequenceNumber) => {
   return ORDER_ID_CONFIG.PREFIX + paddedNumber + randomStr;
 };
 
-/**
- * Get payment amount in USD based on scholarship type
- * @param {string} scholarshipType - FULLY_FUNDED or SELF_FUNDED
- * @returns {number} Amount in USD
- */
 export const getPaymentAmountUsd = (scholarshipType) => {
   switch (scholarshipType) {
     case 'FULLY_FUNDED':
@@ -138,11 +86,6 @@ export const getPaymentAmountUsd = (scholarshipType) => {
   }
 };
 
-/**
- * Get item details template based on scholarship type
- * @param {string} scholarshipType - FULLY_FUNDED or SELF_FUNDED
- * @returns {Object} Item details template
- */
 export const getItemTemplate = (scholarshipType) => {
   switch (scholarshipType) {
     case 'FULLY_FUNDED':
@@ -154,16 +97,10 @@ export const getItemTemplate = (scholarshipType) => {
   }
 };
 
-/**
- * Map Midtrans transaction status to RYLS registration status
- * @param {string} transactionStatus - Midtrans transaction_status
- * @returns {string} RYLS registration status
- */
 export const mapTransactionStatus = (transactionStatus) => {
   return PAYMENT_STATUS_MAPPING[transactionStatus] || 'UNKNOWN';
 };
 
-// New async helper to get IDR amount using currency API
 export const getPaymentAmountIdr = async (scholarshipType, fastify) => {
   console.log('[Payments] getPaymentAmountIdr called');
   console.log('[Payments] Scholarship type:', scholarshipType);
@@ -179,11 +116,6 @@ export const getPaymentAmountIdr = async (scholarshipType, fastify) => {
   return Math.round(conv.result);
 };
 
-/**
- * Map Midtrans fraud status to payment decision
- * @param {string} fraudStatus - Midtrans fraud_status
- * @returns {string} Payment decision
- */
 export const mapFraudStatus = (fraudStatus) => {
   return FRAUD_STATUS_MAPPING[fraudStatus] || 'UNKNOWN';
 };

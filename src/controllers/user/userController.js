@@ -2,7 +2,8 @@ import { userService } from '../../services/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class UserController {
-    getCurrentUser = async (request, reply) => {
+  
+  getCurrentUser = async (request, reply) => {
     try {
       request.log.info('[userUserController] getCurrentUser start');
       const { userId } = request.user;
@@ -21,7 +22,7 @@ export class UserController {
     }
   };
 
-    getUserSettings = async (request, reply) => {
+  getUserSettings = async (request, reply) => {
     try {
       request.log.info('[userUserController] getUserSettings start');
       const { userId } = request.user;
@@ -34,7 +35,7 @@ export class UserController {
     }
   };
 
-    updateUserSettings = async (request, reply) => {
+  updateUserSettings = async (request, reply) => {
     try {
       request.log.info('[userUserController] updateUserSettings start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');
@@ -54,7 +55,7 @@ export class UserController {
     }
   };
 
-    getNotificationPreferences = async (request, reply) => {
+  getNotificationPreferences = async (request, reply) => {
     try {
       request.log.info('[userUserController] getNotificationPreferences start');
       const { userId } = request.user;
@@ -68,7 +69,7 @@ export class UserController {
     }
   };
 
-    updateNotificationPreferences = async (request, reply) => {
+  updateNotificationPreferences = async (request, reply) => {
     try {
       request.log.info('[userUserController] updateNotificationPreferences start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');
@@ -88,14 +89,13 @@ export class UserController {
     }
   };
 
-    updateUserAccount = async (request, reply) => {
+  updateUserAccount = async (request, reply) => {
     try {
       request.log.info('[userUserController] updateUserAccount start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');
       const { userId } = request.user;
       const accountData = request.body || {};
 
-      // Handle avatar file upload
       if (request.uploadedFile) {
         accountData.avatarFile = request.uploadedFile;
         request.log.info({ uploadedFile: request.uploadedFile }, '[userUserController] user avatar file received from middleware');
@@ -117,7 +117,7 @@ export class UserController {
     }
   };
 
-    updateUserPassword = async (request, reply) => {
+  updateUserPassword = async (request, reply) => {
     try {
       request.log.info('[userUserController] updateUserPassword start');
       request.log.debug({ body: request.body }, '[userUserController] rawBody');
@@ -142,5 +142,4 @@ export class UserController {
   };
 }
 
-// Export instance
 export const userController = new UserController();

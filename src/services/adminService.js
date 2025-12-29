@@ -1,13 +1,13 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class AdminService {
   constructor() {
     this.logger = getLogger();
   }
 
-    async uploadImage(file, type) {
+  async uploadImage(file, type) {
     try {
       const allowedTypes = ['ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR'];
 
@@ -38,7 +38,6 @@ export class AdminService {
           break;
       }
 
-      // Ensure directory exists
       if (!fs.existsSync(uploadPath)) {
         fs.mkdirSync(uploadPath, { recursive: true });
       }
@@ -60,5 +59,4 @@ export class AdminService {
   }
 }
 
-// Export instance
 export const adminService = new AdminService();

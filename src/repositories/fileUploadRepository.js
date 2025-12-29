@@ -1,6 +1,6 @@
 import { BaseRepository } from './base/BaseRepository.js';
-import prisma from '../lib/prisma.js';
-import { getLogger } from '../lib/loggerContext.js';
+import prisma from '../config/database.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class FileUploadRepository extends BaseRepository {
   constructor() {
@@ -87,6 +87,26 @@ export class FileUploadRepository extends BaseRepository {
       throw new Error('Failed to get file upload statistics');
     }
   }
+
+  async findByDateRange(startDate, endDate, options = {}) {
+    this.logger.info({ startDate, endDate, options }, '[fileUploadRepository] findByDateRange start');
+    try {
+      const { uploadType, page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc' } = options;
+      const skip = (page - 1) * limit;
+
+      const whereClause = { created_at: { gte: startDate, lte: endDate } };
+      if (uploadType) whereClause.upload_type = uploadType;
+
+      const files = await this.model.findMany({ where: whereClause, orderBy: { [sortBy]: sortOrder }, skip, take: limit });
+
+      this.logger.info({ count: files.length }, '[fileUploadRepository] findByDateRange success');
+      return files;
+    } catch (error) {
+      this.logger.error({ err: error }, '[fileUploadRepository] findByDateRange error');
+      throw new Error('Failed to find files by date range');
+    }
+  }
+
   async deleteFileUpload(id) {
     this.logger.info({ id }, '[fileUploadRepository] deleteFileUpload start');
     try {
@@ -96,6 +116,54 @@ export class FileUploadRepository extends BaseRepository {
     } catch (error) {
       this.logger.error({ err: error }, '[fileUploadRepository] deleteFileUpload error');
       throw new Error('Failed to delete file upload record');
+    }
+  }
+
+  async updateFileUpload(id, updateData) {
+    this.logger.info({ id }, '[fileUploadRepository] updateFileUpload start');
+    this.logger.debug({ updateData }, '[fileUploadRepository] update payload');
+    try {
+      const updatedFile = await this.model.update({ where: { id: parseInt(id) }, data: updateData });
+      this.logger.info({ id: updatedFile.id }, '[fileUploadRepository] updateFileUpload success');
+      return updatedFile;
+    } catch (error) {
+      this.logger.error({ err: error }, '[fileUploadRepository] updateFileUpload error');
+      throw new Error('Failed to update file upload record');
+    }
+  }
+
+  async findByOriginalName(namePattern, options = {}) {
+    this.logger.info({ namePattern, options }, '[fileUploadRepository] findByOriginalName start');
+    try {
+      const { uploadType, page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc' } = options;
+      const skip = (page - 1) * limit;
+
+      const whereClause = { original_name: { contains: namePattern, mode: 'insensitive' } };
+      if (uploadType) whereClause.upload_type = uploadType;
+
+      const files = await this.model.findMany({ where: whereClause, orderBy: { [sortBy]: sortOrder }, skip, take: limit });
+
+      this.logger.info({ count: files.length }, '[fileUploadRepository] findByOriginalName success');
+      return files;
+    } catch (error) {
+      this.logger.error({ err: error }, '[fileUploadRepository] findByOriginalName error');
+      throw new Error('Failed to find files by original name');
+    }
+  }
+
+  async getCountByType() {
+    this.logger.info('[fileUploadRepository] getCountByType start');
+    try {
+      const counts = await this.model.groupBy({ by: ['upload_type'], _count: { id: true } });
+      const result = {};
+      counts.forEach((count) => {
+        result[count.upload_type] = count._count.id;
+      });
+      this.logger.info('[fileUploadRepository] getCountByType success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[fileUploadRepository] getCountByType error');
+      throw new Error('Failed to get count by type');
     }
   }
 

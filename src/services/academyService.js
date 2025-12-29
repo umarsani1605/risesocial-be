@@ -1,6 +1,6 @@
 import { academyRepository } from '../repositories/academyRepository.js';
 import { fileUploadService } from './fileUploadService.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class AcademyService {
   constructor() {
@@ -39,6 +39,8 @@ export class AcademyService {
   async createAcademy(academyData) {
     this.logger.info('[academyService] createAcademy start');
     try {
+      await this.validateAcademyData(academyData);
+
       if (!academyData.path_slug) {
         academyData.path_slug = this.generateSlug(academyData.title);
       } else {
@@ -125,7 +127,12 @@ export class AcademyService {
     this.logger.info('[academyService] deleteAcademy start');
     try {
       const academy = await this.academyRepository.findById(id);
-      if (!academy) throw new Error('Academy not found');
+      if (!academy) {
+        const error = new Error('Academy tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
       await this.academyRepository.delete(id);
       this.logger.info('[academyService] deleteAcademy success');
     } catch (error) {
@@ -158,6 +165,30 @@ export class AcademyService {
     }
   }
 
+  async getAllFaqsByAcademyId(academyId) {
+    const faqs = await this.academyRepository.findFaqsByAcademyId(academyId);
+    return faqs;
+  }
+
+  async getAllFeaturesByAcademyId(academyId) {
+    const features = await this.academyRepository.findFeaturesByAcademyId(academyId);
+    return features;
+  }
+
+  async getAllPricingsByAcademyId(academyId) {
+    const pricings = await this.academyRepository.findPricingsByAcademyId(academyId);
+    return pricings;
+  }
+
+  async getAllTopicsByAcademyId(academyId, includeSessions = false) {
+    const topics = await this.academyRepository.findTopicsByAcademyId(academyId, includeSessions);
+    return topics;
+  }
+
+  async validateAcademyData(data, isUpdate = false) {
+    return;
+  }
+
   generateSlug(title) {
     return title
       .toLowerCase()
@@ -168,9 +199,83 @@ export class AcademyService {
       .replace(/^-|-$/g, '');
   }
 
+  async generateUniqueSlug(title) {
+    let baseSlug = this.generateSlug(title);
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (await this.academyRepository.slugExists(slug)) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return slug;
+  }
+
+  generateMetaTitle(title) {
+    return title.trim();
+  }
+
   generateMetaDescription(description) {
     const cleanDescription = description.trim();
+
     return cleanDescription.length > 160 ? cleanDescription.substring(0, 157) + '...' : cleanDescription;
+  }
+
+  validateFaqData(data) {
+    return;
+  }
+
+  validateFeatureData(data) {
+    return;
+  }
+
+  validatePricingData(data) {
+    if (data.original_price !== undefined && data.original_price <= 0) {
+      throw new Error('Harga asli harus lebih dari 0');
+    }
+
+    if (data.discount_price !== undefined && data.original_price !== undefined) {
+      if (data.discount_price > data.original_price) {
+        throw new Error('Harga diskon tidak boleh lebih tinggi dari harga asli');
+      }
+    }
+
+    if (data.order !== undefined && data.order <= 0) {
+      throw new Error('Tier order harus lebih dari 0');
+    }
+  }
+
+  validateTopicData(data) {
+    if (data.title !== undefined && !data.title.trim()) {
+      throw new Error('Title topic tidak boleh kosong');
+    }
+
+    if (data.title && data.title.length > 255) {
+      throw new Error('Title topic maksimal 255 karakter');
+    }
+
+    if (data.topic_order !== undefined && data.topic_order <= 0) {
+      throw new Error('Topic order harus lebih dari 0');
+    }
+  }
+
+  validateSessionData(data) {
+    if (data.title !== undefined && !data.title.trim()) {
+      throw new Error('Title session tidak boleh kosong');
+    }
+
+    if (data.title && data.title.length > 255) {
+      throw new Error('Title session maksimal 255 karakter');
+    }
+
+    if (data.session_order !== undefined && data.session_order <= 0) {
+      throw new Error('Session order harus lebih dari 0');
+    }
+  }
+
+  validateSlug(slug) {
+    return;
   }
 
   async createPricing(academyId, data) {

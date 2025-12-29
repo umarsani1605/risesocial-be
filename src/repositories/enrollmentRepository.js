@@ -1,6 +1,6 @@
 import { BaseRepository } from './base/BaseRepository.js';
-import prisma from '../lib/prisma.js';
-import { getLogger } from '../lib/loggerContext.js';
+import prisma from '../config/database.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 class EnrollmentRepository extends BaseRepository {
   constructor() {
@@ -255,6 +255,42 @@ class EnrollmentRepository extends BaseRepository {
     };
   }
 
+  async getExpiringEnrollments(days = 7) {
+    this.logger.info({ days }, '[enrollmentRepository] getExpiringEnrollments called');
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + days);
+
+    return await this.model.findMany({
+      where: {
+        enrollment_status: 'ENROLLED',
+        enrolled_at: { lte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) },
+      },
+      include: {
+        user: { select: { id: true, first_name: true, last_name: true, email: true } },
+        academy: { select: { id: true, title: true, path_slug: true, duration: true } },
+      },
+      orderBy: { enrolled_at: 'asc' },
+    });
+  }
+
+  async getTopLearners(options = {}) {
+    this.logger.info({ options }, '[enrollmentRepository] getTopLearners called');
+    const { limit = 10, academy_id } = options;
+
+    const where = { enrollment_status: 'ENROLLED' };
+    if (academy_id) where.academy_id = academy_id;
+
+    return await this.model.findMany({
+      where,
+      include: {
+        user: { select: { id: true, username: true, first_name: true, last_name: true, avatar: true } },
+        academy: { select: { id: true, title: true, path_slug: true, image_url: true } },
+      },
+      orderBy: [{ progress_percentage: 'desc' }, { enrolled_at: 'asc' }],
+      take: limit,
+    });
+  }
+
   async validateEnrollment(data) {
     this.logger.info('[enrollmentRepository] validateEnrollment called');
     const { user_id, academy_id, pricing_tier_id } = data;
@@ -280,6 +316,19 @@ class EnrollmentRepository extends BaseRepository {
     }
 
     return { valid: true, message: 'Enrollment dapat dibuat' };
+  }
+
+  async bulkUpdateStatus(enrollmentIds, status) {
+    this.logger.info({ count: Array.isArray(enrollmentIds) ? enrollmentIds.length : 0, status }, '[enrollmentRepository] bulkUpdateStatus called');
+    const updateData = { enrollment_status: status };
+    if (status === 'COMPLETED') {
+      updateData.completed_at = new Date();
+      updateData.progress_percentage = 100;
+    }
+
+    const result = await this.model.updateMany({ where: { id: { in: enrollmentIds } }, data: updateData });
+
+    return { updated_count: result.count, message: `Berhasil mengupdate ${result.count} enrollment` };
   }
 }
 

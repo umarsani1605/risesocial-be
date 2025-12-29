@@ -8,9 +8,6 @@ import {
   idParamSchema,
 } from './baseSchemas.js';
 
-/**
- * Base Academy Entity Schema
- */
 export const academyEntitySchema = {
   type: 'object',
   properties: {
@@ -33,9 +30,6 @@ export const academyEntitySchema = {
   },
 };
 
-/**
- * Academy Pricing Schema
- */
 export const academyPricingSchema = {
   type: 'object',
   properties: {
@@ -52,9 +46,6 @@ export const academyPricingSchema = {
   },
 };
 
-/**
- * Academy Feature Schema
- */
 export const academyFeatureSchema = {
   type: 'object',
   properties: {
@@ -68,9 +59,6 @@ export const academyFeatureSchema = {
   },
 };
 
-/**
- * Academy Session Schema
- */
 export const academySessionSchema = {
   type: 'object',
   properties: {
@@ -82,9 +70,6 @@ export const academySessionSchema = {
   },
 };
 
-/**
- * Academy Topic Schema
- */
 export const academyTopicSchema = {
   type: 'object',
   properties: {
@@ -101,9 +86,6 @@ export const academyTopicSchema = {
   },
 };
 
-/**
- * Academy Instructor Schema (denormalized)
- */
 export const academyInstructorSchema = {
   type: 'object',
   properties: {
@@ -119,9 +101,6 @@ export const academyInstructorSchema = {
   },
 };
 
-/**
- * Academy Testimonial Schema
- */
 export const academyTestimonialSchema = {
   type: 'object',
   properties: {
@@ -135,9 +114,6 @@ export const academyTestimonialSchema = {
   },
 };
 
-/**
- * Academy FAQ Schema
- */
 export const academyFaqSchema = {
   type: 'object',
   properties: {
@@ -150,9 +126,6 @@ export const academyFaqSchema = {
   },
 };
 
-/**
- * Complete Academy Detail Schema (with all relations)
- */
 export const academyDetailSchema = {
   type: 'object',
   properties: {
@@ -181,7 +154,7 @@ export const academyDetailSchema = {
       type: 'array',
       items: academyFaqSchema,
     },
-    // Additional computed fields
+
     isPopular: { type: 'boolean' },
     isPremium: { type: 'boolean' },
     enrollmentCount: { type: 'integer' },
@@ -199,9 +172,6 @@ export const academyDetailSchema = {
   },
 };
 
-/**
- * Academy Query Schema
- */
 export const academyQuerySchema = {
   type: 'object',
   properties: {
@@ -213,17 +183,10 @@ export const academyQuerySchema = {
   },
 };
 
-/**
- * Route Schemas for Fastify
- */
-
-/**
- * User Academy with Full Relations Schema
- */
 export const userAcademyWithRelationsSchema = {
   type: 'object',
+  additionalProperties: true,
   properties: {
-    // Base academy properties
     id: { type: 'integer' },
     title: { type: 'string' },
     path_slug: { type: 'string' },
@@ -242,7 +205,6 @@ export const userAcademyWithRelationsSchema = {
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
 
-    // Relations
     pricing: {
       type: 'array',
       items: academyPricingSchema,
@@ -268,7 +230,6 @@ export const userAcademyWithRelationsSchema = {
       items: academyTestimonialSchema,
     },
 
-    // Computed fields
     _count: {
       type: 'object',
       properties: {
@@ -288,23 +249,18 @@ export const userAcademyWithRelationsSchema = {
   },
 };
 
-// GET /api/academys - Get all academys
 export const getAllAcademiesSchema = {
   tags: ['User Academies'],
   summary: 'Get all academies',
   description: 'Retrieve all available academies with pagination and filtering',
   querystring: academyQuerySchema,
   response: {
-    200: createPaginatedResponseSchema({
-      type: 'array',
-      items: userAcademyWithRelationsSchema,
-    }),
+    200: createPaginatedResponseSchema(userAcademyWithRelationsSchema),
     400: createErrorResponseSchema(400, 'Bad Request - Invalid query parameters'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
-// GET /api/academys/categories - Get academy categories
 export const getAcademyCategoriesSchema = {
   tags: ['User Academies'],
   summary: 'Get academy categories',
@@ -318,7 +274,6 @@ export const getAcademyCategoriesSchema = {
   },
 };
 
-// GET /api/academys/:slug - Get academy by slug
 export const getAcademyBySlugSchema = {
   tags: ['User Academies'],
   summary: 'Get academy by slug',
@@ -401,7 +356,6 @@ export const updateAcademySchema = {
   },
 };
 
-// DELETE /api/admin/academys/:id - Delete academy
 export const deleteAcademySchema = {
   tags: ['Admin Academies'],
   summary: 'Delete academy',
@@ -416,13 +370,9 @@ export const deleteAcademySchema = {
   },
 };
 
-/**
- * Admin Academy with Full Relations Schema
- */
 export const adminAcademyWithRelationsSchema = {
   type: 'object',
   properties: {
-    // Base academy properties
     id: { type: 'integer' },
     title: { type: 'string' },
     path_slug: { type: 'string' },
@@ -441,7 +391,6 @@ export const adminAcademyWithRelationsSchema = {
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
 
-    // Relations
     pricing: {
       type: 'array',
       items: academyPricingSchema,
@@ -467,7 +416,6 @@ export const adminAcademyWithRelationsSchema = {
       items: academyTestimonialSchema,
     },
 
-    // Computed fields
     _count: {
       type: 'object',
       properties: {
@@ -487,7 +435,6 @@ export const adminAcademyWithRelationsSchema = {
   },
 };
 
-// GET /api/admin/academys - Get all academys for admin
 export const getAdminAcademiesSchema = {
   tags: ['Admin Academies'],
   summary: 'Get all academys for admin',
@@ -504,7 +451,6 @@ export const getAdminAcademiesSchema = {
   },
 };
 
-// GET /api/admin/academys/:slug - Get academy by slug (Admin only)
 export const getAdminAcademyBySlugSchema = {
   tags: ['Admin Academies'],
   summary: 'Get academy by slug (Admin only)',
@@ -524,7 +470,6 @@ export const getAdminAcademyBySlugSchema = {
   },
 };
 
-// GET /api/admin/academys/statistics - Get academy statistics
 export const getAcademyStatisticsSchema = {
   tags: ['Admin Academies'],
   summary: 'Get academy statistics',
@@ -547,9 +492,6 @@ export const getAcademyStatisticsSchema = {
   },
 };
 
-/**
- * Pricing CRUD Schemas
- */
 export const createPricingSchema = {
   tags: ['Admin Academies'],
   summary: 'Create pricing for academy',
@@ -633,9 +575,6 @@ export const deletePricingSchema = {
   },
 };
 
-/**
- * Features CRUD Schemas
- */
 export const createFeatureSchema = {
   tags: ['Admin Academies'],
   summary: 'Create feature for academy',
@@ -719,9 +658,6 @@ export const deleteFeatureSchema = {
   },
 };
 
-/**
- * Instructors CRUD Schemas
- */
 export const createInstructorSchema = {
   tags: ['Admin Academies'],
   summary: 'Create instructor for academy',
@@ -806,9 +742,6 @@ export const deleteInstructorSchema = {
   },
 };
 
-/**
- * Topics CRUD Schemas
- */
 export const createTopicSchema = {
   tags: ['Admin Academies'],
   summary: 'Create topic for academy',
@@ -889,9 +822,6 @@ export const deleteTopicSchema = {
   },
 };
 
-/**
- * Testimonials CRUD Schemas
- */
 export const createTestimonialSchema = {
   tags: ['Admin Academies'],
   summary: 'Create testimonial for academy',
@@ -974,9 +904,6 @@ export const deleteTestimonialSchema = {
   },
 };
 
-/**
- * FAQs CRUD Schemas
- */
 export const createFaqSchema = {
   tags: ['Admin Academies'],
   summary: 'Create FAQ for academy',
@@ -1057,9 +984,6 @@ export const deleteFaqSchema = {
   },
 };
 
-/**
- * Create Session Schema
- */
 export const createSessionSchema = {
   tags: ['Admin Academies'],
   summary: 'Create session for topic',
@@ -1067,10 +991,10 @@ export const createSessionSchema = {
   params: {
     type: 'object',
     properties: {
-      academyId: { type: 'string', minLength: 1 },
-      topicId: { type: 'string', minLength: 1 },
+      academy_id: { type: 'string', minLength: 1 },
+      topic_id: { type: 'string', minLength: 1 },
     },
-    required: ['academyId', 'topicId'],
+    required: ['academy_id', 'topic_id'],
   },
   body: {
     type: 'object',
@@ -1090,9 +1014,6 @@ export const createSessionSchema = {
   },
 };
 
-/**
- * Update Session Schema
- */
 export const updateSessionSchema = {
   tags: ['Admin Academies'],
   summary: 'Update session',
@@ -1100,11 +1021,11 @@ export const updateSessionSchema = {
   params: {
     type: 'object',
     properties: {
-      academyId: { type: 'string', minLength: 1 },
-      topicId: { type: 'string', minLength: 1 },
-      sessionId: { type: 'string', minLength: 1 },
+      academy_id: { type: 'string', minLength: 1 },
+      topic_id: { type: 'string', minLength: 1 },
+      session_id: { type: 'string', minLength: 1 },
     },
-    required: ['academyId', 'topicId', 'sessionId'],
+    required: ['academy_id', 'topic_id', 'session_id'],
   },
   body: {
     type: 'object',
@@ -1123,9 +1044,6 @@ export const updateSessionSchema = {
   },
 };
 
-/**
- * Delete Session Schema
- */
 export const deleteSessionSchema = {
   tags: ['Admin Academies'],
   summary: 'Delete session',
@@ -1133,11 +1051,11 @@ export const deleteSessionSchema = {
   params: {
     type: 'object',
     properties: {
-      academyId: { type: 'string', minLength: 1 },
-      topicId: { type: 'string', minLength: 1 },
-      sessionId: { type: 'string', minLength: 1 },
+      academy_id: { type: 'string', minLength: 1 },
+      topic_id: { type: 'string', minLength: 1 },
+      session_id: { type: 'string', minLength: 1 },
     },
-    required: ['academyId', 'topicId', 'sessionId'],
+    required: ['academy_id', 'topic_id', 'session_id'],
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),

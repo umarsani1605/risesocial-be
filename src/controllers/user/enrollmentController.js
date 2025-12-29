@@ -7,7 +7,7 @@ export class UserEnrollmentController {
     this.enrollmentService = enrollmentService;
   }
 
-    async getEnrollmentById(request, reply) {
+  async getEnrollmentById(request, reply) {
     try {
       request.log.info('[userEnrollmentController] getEnrollmentById start');
       request.log.debug({ params: request.params }, '[userEnrollmentController] rawParams');
@@ -28,7 +28,7 @@ export class UserEnrollmentController {
     }
   }
 
-    async getEnrollmentByUserAndAcademy(request, reply) {
+  async getEnrollmentByUserAndAcademy(request, reply) {
     try {
       request.log.info('[userEnrollmentController] getEnrollmentByUserAndAcademy start');
       request.log.debug({ params: request.params }, '[userEnrollmentController] rawParams');
@@ -49,7 +49,7 @@ export class UserEnrollmentController {
     }
   }
 
-    async getUserEnrollments(request, reply) {
+  async getUserEnrollments(request, reply) {
     try {
       request.log.info('[userEnrollmentController] getUserEnrollments start');
       request.log.debug({ params: request.params, query: request.query }, '[userEnrollmentController] rawParams');
@@ -73,7 +73,7 @@ export class UserEnrollmentController {
     }
   }
 
-    async updateProgress(request, reply) {
+  async updateProgress(request, reply) {
     try {
       request.log.info('[userEnrollmentController] updateProgress start');
       request.log.debug({ params: request.params, body: request.body }, '[userEnrollmentController] rawParams');
@@ -92,5 +92,4 @@ export class UserEnrollmentController {
   }
 }
 
-// Export instance
 export const userEnrollmentController = new UserEnrollmentController();

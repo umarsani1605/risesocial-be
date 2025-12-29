@@ -10,10 +10,35 @@ import {
 } from '../../schemas/fileUploadSchemas.js';
 
 export default async function userFileUploadRoutes(fastify) {
-  fastify.post('/headshot', { schema: uploadHeadshotSchema, preHandler: [uploadHeadshot] }, fileUploadController.uploadHeadshot);
-  fastify.post('/payment-proof', { schema: uploadPaymentProofSchema, preHandler: [uploadPaymentProof] }, fileUploadController.uploadPaymentProof);
-  fastify.get('/health', { schema: healthCheckSchema }, fileUploadController.healthCheck);
-  fastify.get('/type/:uploadType', { schema: getFilesByTypeSchema }, fileUploadController.getFilesByType);
-  fastify.get('/:id', { schema: downloadFileSchema }, fileUploadController.downloadFile);
-  fastify.get('/:id/info', { schema: getFileInfoSchema }, fileUploadController.getFileInfo);
+  fastify.post('/headshot', {
+    schema: uploadHeadshotSchema,
+    preHandler: [uploadHeadshot],
+    handler: fileUploadController.uploadHeadshot,
+  });
+
+  fastify.post('/payment-proof', {
+    schema: uploadPaymentProofSchema,
+    preHandler: [uploadPaymentProof],
+    handler: fileUploadController.uploadPaymentProof,
+  });
+
+  fastify.get('/:id', {
+    schema: downloadFileSchema,
+    handler: fileUploadController.downloadFile,
+  });
+
+  fastify.get('/:id/info', {
+    schema: getFileInfoSchema,
+    handler: fileUploadController.getFileInfo,
+  });
+
+  fastify.get('/type/:uploadType', {
+    schema: getFilesByTypeSchema,
+    handler: fileUploadController.getFilesByType,
+  });
+
+  fastify.get('/health', {
+    schema: healthCheckSchema,
+    handler: fileUploadController.healthCheck,
+  });
 }

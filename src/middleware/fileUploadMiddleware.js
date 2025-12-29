@@ -1,15 +1,10 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { fileURLToPath } from 'url';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-/**
- * Fastify-compatible file upload middleware
- * Uses @fastify/multipart plugin instead of multer
- */
 
 const uploadsBaseDir = path.join(__dirname, '../../uploads');
 const documentsDir = path.join(uploadsBaseDir, 'documents');
@@ -18,14 +13,6 @@ const imagesDir = path.join(uploadsBaseDir, 'images');
 fs.ensureDirSync(documentsDir);
 fs.ensureDirSync(imagesDir);
 
-/**
- * Process uploaded file with Fastify multipart
- * @param {Object} file - File from request.file()
- * @param {Array} allowedTypes - Allowed MIME types
- * @param {number} maxSize - Maximum file size in bytes
- * @param {string} uploadType - Type of upload ('ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'ACADEMY_IMAGE')
- * @returns {Object} Processed file info
- */
 const processUploadedFile = async (file, allowedTypes, maxSize, uploadType) => {
   const logger = getLogger();
   logger.info('[fileUploadMiddleware] processUploadedFile start');
@@ -78,18 +65,13 @@ const processUploadedFile = async (file, allowedTypes, maxSize, uploadType) => {
   };
 };
 
-/**
- * Essay upload handler (PDF only)
- * @param {Object} request - Fastify request
- * @param {Object} reply - Fastify reply
- */
 export const uploadEssay = async (request, reply) => {
   try {
     request.log.info('[fileUploadMiddleware] uploadEssay start');
     const file = await request.file();
 
     const allowedTypes = ['application/pdf'];
-    const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 10 * 1024 * 1024; // 10MB
+    const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 10 * 1024 * 1024;
 
     const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'ESSAY');
 
@@ -104,18 +86,13 @@ export const uploadEssay = async (request, reply) => {
   }
 };
 
-/**
- * Headshot upload handler (Images only)
- * @param {Object} request - Fastify request
- * @param {Object} reply - Fastify reply
- */
 export const uploadHeadshot = async (request, reply) => {
   try {
     request.log.info('[fileUploadMiddleware] uploadHeadshot start');
     const file = await request.file();
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 10 * 1024 * 1024; // 10MB
+    const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 10 * 1024 * 1024;
 
     const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'HEADSHOT');
 
@@ -130,18 +107,13 @@ export const uploadHeadshot = async (request, reply) => {
   }
 };
 
-/**
- * Payment proof upload handler (Images only)
- * @param {Object} request - Fastify request
- * @param {Object} reply - Fastify reply
- */
 export const uploadPaymentProof = async (request, reply) => {
   try {
     request.log.info('[fileUploadMiddleware] uploadPaymentProof start');
     const file = await request.file();
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-    const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 10 * 1024 * 1024; // 10MB
+    const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 10 * 1024 * 1024;
 
     const processedFile = await processUploadedFile(file, allowedTypes, maxSize, 'PAYMENT_PROOF');
 
@@ -156,32 +128,23 @@ export const uploadPaymentProof = async (request, reply) => {
   }
 };
 
-/**
- * Academy image upload handler (Images only)
- * @param {Object} request - Fastify request
- * @param {Object} reply - Fastify reply
- */
 export const uploadAcademyImage = async (request, reply) => {
   try {
     request.log.info('[fileUploadMiddleware] uploadAcademyImage start');
 
-    // Parse FormData fields
     const formData = {};
     const parts = request.parts();
 
     for await (const part of parts) {
       if (part.type === 'file') {
-        // Handle file upload
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        const maxSize = 5 * 1024 * 1024; // 5MB untuk optimasi
+        const maxSize = 5 * 1024 * 1024;
         const processedFile = await processUploadedFile(part, allowedTypes, maxSize, 'ACADEMY_IMAGE');
         request.uploadedFile = processedFile;
         request.log.info('[fileUploadMiddleware] file processed');
       } else {
-        // Handle form fields
         let value = part.value;
 
-        // Convert numeric fields to numbers
         if (
           part.fieldname === 'order' ||
           part.fieldname === 'tier_order' ||
@@ -192,7 +155,6 @@ export const uploadAcademyImage = async (request, reply) => {
           value = parseInt(value, 10);
         }
 
-        // Convert boolean fields to booleans
         if (part.fieldname === 'certificate' || part.fieldname === 'portfolio') {
           value = value === 'true';
         }
@@ -201,7 +163,6 @@ export const uploadAcademyImage = async (request, reply) => {
       }
     }
 
-    // Set parsed form data to request body
     request.body = formData;
     request.log.info('[fileUploadMiddleware] uploadAcademyImage success');
   } catch (error) {
@@ -213,12 +174,6 @@ export const uploadAcademyImage = async (request, reply) => {
   }
 };
 
-/**
- * Delete physical file helper
- * Exported for reuse in services
- * @param {string} filePath
- * @returns {Promise<boolean>} true if deleted or not exists, false if failed
- */
 export const deleteFile = async (filePath) => {
   const logger = getLogger();
   try {
@@ -232,32 +187,23 @@ export const deleteFile = async (filePath) => {
   }
 };
 
-/**
- * User avatar upload handler (Images only)
- * @param {Object} request - Fastify request
- * @param {Object} reply - Fastify reply
- */
 export const uploadUserAvatar = async (request, reply) => {
   try {
     request.log.info('[fileUploadMiddleware] uploadUserAvatar start');
 
-    // Parse FormData fields
     const formData = {};
     const parts = request.parts();
 
     for await (const part of parts) {
       if (part.type === 'file') {
-        // Handle file upload
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        const maxSize = 5 * 1024 * 1024;
         const processedFile = await processUploadedFile(part, allowedTypes, maxSize, 'USER_AVATAR');
         request.uploadedFile = processedFile;
         request.log.info('[fileUploadMiddleware] user avatar file processed');
       } else {
-        // Handle form fields
         let value = part.value;
 
-        // Convert boolean fields to booleans
         if (part.fieldname === 'email_verified' || part.fieldname === 'phone_verified') {
           value = value === 'true';
         }
@@ -266,7 +212,6 @@ export const uploadUserAvatar = async (request, reply) => {
       }
     }
 
-    // Set parsed form data to request body
     request.body = formData;
     request.log.info('[fileUploadMiddleware] uploadUserAvatar success');
   } catch (error) {
@@ -293,11 +238,6 @@ export const uploadUserAvatar = async (request, reply) => {
   }
 };
 
-/**
- * Simple upload middleware for Fastify
- * @param {Object} request - Fastify request
- * @param {Object} reply - Fastify reply
- */
 export const uploadMiddleware = async (request, reply) => {
   try {
     request.log.info('[fileUploadMiddleware] uploadMiddleware start');

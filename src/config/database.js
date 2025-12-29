@@ -1,20 +1,7 @@
-/**
- * Prisma Database Client
- * Singleton pattern untuk koneksi database yang optimal
- */
-
 import { PrismaClient } from '@prisma/client';
 
-/**
- * Global Prisma client instance
- * @type {PrismaClient}
- */
 let prisma;
 
-/**
- * Initialize Prisma client dengan konfigurasi optimal
- * @returns {PrismaClient}
- */
 function createPrismaClient() {
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
@@ -22,7 +9,6 @@ function createPrismaClient() {
   });
 }
 
-// Singleton pattern untuk development (prevent hot reload issues)
 if (process.env.NODE_ENV === 'production') {
   prisma = createPrismaClient();
 } else {
@@ -34,9 +20,6 @@ if (process.env.NODE_ENV === 'production') {
 
 export default prisma;
 
-/**
- * Graceful shutdown - disconnect database pada app termination
- */
 export async function disconnectDatabase() {
   try {
     await prisma.$disconnect();

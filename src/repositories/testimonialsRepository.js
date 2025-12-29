@@ -1,6 +1,6 @@
-import prisma from '../lib/prisma.js';
+import prisma from '../config/database.js';
 import { BaseRepository } from './base/BaseRepository.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 class TestimonialsRepository extends BaseRepository {
   constructor() {

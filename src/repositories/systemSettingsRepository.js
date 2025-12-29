@@ -1,5 +1,5 @@
-import prisma from '../lib/prisma.js';
-import { getLogger } from '../lib/loggerContext.js';
+import prisma from '../config/database.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class SystemSettingsRepository {
   get logger() {
@@ -44,5 +44,4 @@ export class SystemSettingsRepository {
   }
 }
 
-// Export instance
 export const systemSettingsRepository = new SystemSettingsRepository();

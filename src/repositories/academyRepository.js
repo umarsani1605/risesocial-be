@@ -1,6 +1,6 @@
-import prisma from '../lib/prisma.js';
+import prisma from '../config/database.js';
 import { BaseRepository } from './base/BaseRepository.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class AcademyRepository extends BaseRepository {
   constructor() {
@@ -10,8 +10,6 @@ export class AcademyRepository extends BaseRepository {
   get logger() {
     return getLogger();
   }
-
-  // MAIN ACADEMY METHODS
 
   async findBySlug(slug, options = {}) {
     this.logger.info({ slug }, '[academyRepository] findBySlug called');
@@ -125,8 +123,6 @@ export class AcademyRepository extends BaseRepository {
     };
   }
 
-  // PRICING METHODS
-
   async findPricingsByAcademyId(academyId) {
     return await prisma.academyPricing.findMany({
       where: { academy_id: academyId },
@@ -229,8 +225,6 @@ export class AcademyRepository extends BaseRepository {
     return { message: 'Pricing deleted successfully' };
   }
 
-  // FEATURE METHODS
-
   async findFeaturesByAcademyId(academyId) {
     return await prisma.academyFeature.findMany({
       where: { academy_id: academyId },
@@ -332,6 +326,13 @@ export class AcademyRepository extends BaseRepository {
     return { message: 'Feature deleted successfully' };
   }
 
+  async findInstructorsByAcademyId(academyId) {
+    return await prisma.academyInstructor.findMany({
+      where: { academy_id: academyId },
+      orderBy: { order: 'asc' },
+    });
+  }
+
   async createInstructor(academyId, data) {
     this.logger.info({ academyId, data }, '[academyRepository] createInstructor called');
 
@@ -425,8 +426,6 @@ export class AcademyRepository extends BaseRepository {
     this.logger.info({ instructorId }, '[academyRepository] deleteInstructor success');
     return { message: 'Instructor removed successfully' };
   }
-
-  // TOPIC METHODS
 
   async findTopicsByAcademyId(academyId, includeSessions = false) {
     const includeOption = includeSessions
@@ -542,6 +541,13 @@ export class AcademyRepository extends BaseRepository {
     return { message: 'Topic deleted successfully' };
   }
 
+  async findTestimonialsByAcademyId(academyId) {
+    return await prisma.academyTestimonial.findMany({
+      where: { academy_id: academyId },
+      orderBy: { order: 'asc' },
+    });
+  }
+
   async createTestimonial(academyId, data) {
     this.logger.info({ academyId, data }, '[academyRepository] createTestimonial called');
 
@@ -635,8 +641,6 @@ export class AcademyRepository extends BaseRepository {
     this.logger.info({ testimonialId }, '[academyRepository] deleteTestimonial success');
     return { message: 'Testimonial deleted successfully' };
   }
-
-  // FAQ METHODS
 
   async findFaqsByAcademyId(academyId) {
     return await prisma.academyFaq.findMany({
@@ -739,6 +743,34 @@ export class AcademyRepository extends BaseRepository {
     return { message: 'FAQ deleted successfully' };
   }
 
+  async findSessionsByTopicId(topicId) {
+    return await prisma.academySession.findMany({
+      where: { topic_id: topicId },
+      orderBy: { order: 'asc' },
+    });
+  }
+
+  async findSessionsByAcademyId(academyId) {
+    return await prisma.academySession.findMany({
+      where: {
+        topic: {
+          academy_id: academyId,
+        },
+      },
+      include: {
+        topic: {
+          select: {
+            id: true,
+            title: true,
+            order: true,
+            academy_id: true,
+          },
+        },
+      },
+      orderBy: [{ topic: { order: 'asc' } }, { order: 'asc' }],
+    });
+  }
+
   async createSession(academyId, topicId, data) {
     this.logger.info({ academyId, topicId, data }, '[academyRepository] createSession called');
 
@@ -789,7 +821,6 @@ export class AcademyRepository extends BaseRepository {
 
       if (typeof order === 'number' && order >= 1 && existing) {
         if (order < existing.order) {
-          // Moving up: shift items between new position and old position down
           const shiftResult = await tx.academySession.updateMany({
             where: {
               topic_id: topicId,
@@ -799,7 +830,6 @@ export class AcademyRepository extends BaseRepository {
           });
           this.logger.info({ topicId, sessionId, order, shifted: shiftResult.count }, '[academyRepository] session shift-up');
         } else if (order > existing.order) {
-          // Moving down: shift items between old position and new position up
           const shiftResult = await tx.academySession.updateMany({
             where: {
               topic_id: topicId,

@@ -6,7 +6,7 @@ class JobsController {
     this.jobsService = jobsService;
   }
 
-    createJob = async (request, reply) => {
+  createJob = async (req, reply) => {
     try {
       request.log.info('[adminJobsController] createJob start');
       request.log.debug({ body: request.body }, '[adminJobsController] rawBody');
@@ -25,7 +25,7 @@ class JobsController {
     }
   };
 
-    updateJob = async (request, reply) => {
+  updateJob = async (req, reply) => {
     try {
       request.log.info('[adminJobsController] updateJob start');
       request.log.debug({ params: request.params, body: request.body }, '[adminJobsController] raw');
@@ -48,7 +48,7 @@ class JobsController {
     }
   };
 
-    deleteJob = async (request, reply) => {
+  deleteJob = async (req, reply) => {
     try {
       request.log.info('[adminJobsController] deleteJob start');
       request.log.debug({ params: request.params }, '[adminJobsController] rawParams');
@@ -70,7 +70,7 @@ class JobsController {
     }
   };
 
-    syncLinkedInJobs = async (request, reply) => {
+  syncLinkedInJobs = async (req, reply) => {
     try {
       request.log.info('[adminJobsController] syncLinkedInJobs start');
       request.log.debug({ body: request.body }, '[adminJobsController] rawBody');
@@ -93,7 +93,7 @@ class JobsController {
     }
   };
 
-    getJobStatistics = async (request, reply) => {
+  getJobStatistics = async (req, reply) => {
     try {
       request.log.info('[adminJobsController] getJobStatistics start');
       request.log.debug({ params: request.params }, '[adminJobsController] rawParams');
@@ -109,7 +109,7 @@ class JobsController {
     }
   };
 
-    getAllJobsStatistics = async (request, reply) => {
+  getAllJobsStatistics = async (req, reply) => {
     try {
       request.log.info('[adminJobsController] getAllJobsStatistics start');
       const stats = await this.jobsService.getAllJobsStatistics();
@@ -121,7 +121,7 @@ class JobsController {
     }
   };
 
-    getJobsStatistics = async (request, reply) => {
+  getJobsStatistics = async (req, reply) => {
     try {
       request.log.info('[adminJobsController] getJobsStatistics start');
       const stats = await this.jobsService.getJobsStatistics();

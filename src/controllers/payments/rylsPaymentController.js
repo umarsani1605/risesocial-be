@@ -1,12 +1,12 @@
 import { rylsPaymentService } from '../../services/rylsPaymentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
-class RylsPaymentController {
+export class RylsPaymentController {
   constructor() {
     this.paymentService = rylsPaymentService;
   }
 
-    async createTransaction(request, reply) {
+  async createTransaction(request, reply) {
     request.log.info('[rylsPaymentController] createTransaction start');
     request.log.debug({ body: request.body }, '[rylsPaymentController] rawBody');
 
@@ -32,7 +32,7 @@ class RylsPaymentController {
     }
   }
 
-    async handleWebhookNotification(request, reply) {
+  async handleWebhookNotification(request, reply) {
     request.log.info('[rylsPaymentController] handleWebhookNotification start');
     request.log.debug({ body: request.body }, '[rylsPaymentController] webhookPayload');
 
@@ -66,7 +66,7 @@ class RylsPaymentController {
     }
   }
 
-    async getPaymentStatus(request, reply) {
+  async getPaymentStatus(request, reply) {
     request.log.info('[rylsPaymentController] getPaymentStatus start');
     request.log.debug({ params: request.params }, '[rylsPaymentController] rawParams');
 
@@ -82,7 +82,7 @@ class RylsPaymentController {
     }
   }
 
-    async getPaymentStatistics(request, reply) {
+  async getPaymentStatistics(request, reply) {
     request.log.info('[rylsPaymentController] getPaymentStatistics start');
     request.log.debug({ query: request.query }, '[rylsPaymentController] rawQuery');
 
@@ -98,7 +98,7 @@ class RylsPaymentController {
     }
   }
 
-    async cancelPayment(request, reply) {
+  async cancelPayment(request, reply) {
     request.log.info('[rylsPaymentController] cancelPayment start');
     request.log.debug({ params: request.params }, '[rylsPaymentController] rawParams');
 
@@ -123,7 +123,7 @@ class RylsPaymentController {
     }
   }
 
-    async healthCheck(request, reply) {
+  async healthCheck(request, reply) {
     request.log.info('[rylsPaymentController] healthCheck start');
 
     try {

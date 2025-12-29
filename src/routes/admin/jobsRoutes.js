@@ -1,14 +1,108 @@
 import { adminJobsController } from '../../controllers/admin/jobsController.js';
 import { authMiddleware } from '../../middleware/auth.js';
-import { createJobSchema, updateJobSchema, deleteJobSchema } from '../../schemas/jobsSchemas.js';
 
-export default async function adminJobsRoutes(fastify) {
+export async function jobsRoutes(fastify) {
+  const jobsTag = { tags: ['Admin Jobs'] };
+
   fastify.addHook('preHandler', authMiddleware);
 
-  fastify.get('/statistics', adminJobsController.getAllJobsStatistics);
-  fastify.get('/:id/statistics', adminJobsController.getJobStatistics);
-  fastify.post('/sync-linkedin', adminJobsController.syncLinkedInJobs);
-  fastify.post('/', { schema: createJobSchema }, adminJobsController.createJob);
-  fastify.put('/:id', { schema: updateJobSchema }, adminJobsController.updateJob);
-  fastify.delete('/:id', { schema: deleteJobSchema }, adminJobsController.deleteJob);
+  fastify.get(
+    '/statistics',
+    {
+      schema: { ...jobsTag, description: 'Get all jobs statistics' },
+    },
+    adminJobsController.getAllJobsStatistics
+  );
+
+  fastify.get(
+    '/:id/statistics',
+    {
+      schema: {
+        ...jobsTag,
+        description: 'Get job statistics by ID',
+        params: {
+          type: 'object',
+          properties: { id: { type: 'integer' } },
+          required: ['id'],
+        },
+      },
+    },
+    adminJobsController.getJobStatistics
+  );
+
+  fastify.post(
+    '/sync-linkedin',
+    {
+      schema: { ...jobsTag, description: 'Sync jobs from LinkedIn' },
+    },
+    adminJobsController.syncLinkedInJobs
+  );
+
+  fastify.post(
+    '/',
+    {
+      schema: {
+        ...jobsTag,
+        description: 'Create a new job',
+        body: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            description: { type: 'string' },
+            company: { type: 'string' },
+            location: { type: 'string' },
+            jobType: { type: 'string' },
+            experienceLevel: { type: 'string' },
+          },
+          required: ['title'],
+        },
+      },
+    },
+    adminJobsController.createJob
+  );
+
+  fastify.put(
+    '/:id',
+    {
+      schema: {
+        ...jobsTag,
+        description: 'Update a job',
+        params: {
+          type: 'object',
+          properties: { id: { type: 'integer' } },
+          required: ['id'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            description: { type: 'string' },
+            company: { type: 'string' },
+            location: { type: 'string' },
+            jobType: { type: 'string' },
+            experienceLevel: { type: 'string' },
+          },
+        },
+      },
+    },
+    adminJobsController.updateJob
+  );
+
+  fastify.delete(
+    '/:id',
+    {
+      schema: {
+        ...jobsTag,
+        description: 'Delete a job',
+        params: {
+          type: 'object',
+          properties: { id: { type: 'integer' } },
+          required: ['id'],
+        },
+      },
+    },
+    adminJobsController.deleteJob
+  );
 }
+
+export default jobsRoutes;

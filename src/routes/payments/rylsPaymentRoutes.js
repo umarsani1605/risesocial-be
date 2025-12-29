@@ -8,7 +8,7 @@ import {
   healthCheckSchema,
 } from '../../schemas/rylsPaymentSchemas.js';
 
-export default async function rylsPaymentRoutes(fastify) {
+async function rylsPaymentRoutes(fastify, options) {
   fastify.post('/ryls/transactions', {
     schema: createTransactionSchema,
     handler: rylsPaymentController.createTransaction,
@@ -39,3 +39,5 @@ export default async function rylsPaymentRoutes(fastify) {
     handler: rylsPaymentController.healthCheck,
   });
 }
+
+export default rylsPaymentRoutes;

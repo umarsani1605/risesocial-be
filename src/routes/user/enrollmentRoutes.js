@@ -2,33 +2,33 @@ import { userEnrollmentController } from '../../controllers/user/enrollmentContr
 import { optionalAuthMiddleware } from '../../middleware/auth.js';
 import {
   getEnrollmentByIdSchema,
-  getUserEnrollmentsSchema,
   getEnrollmentByUserAndAcademySchema,
+  getUserEnrollmentsSchema,
   updateProgressSchema,
 } from '../../schemas/enrollmentSchemas.js';
 
 export default async function userEnrollmentRoutes(fastify) {
   fastify.get('/:id', {
-    preHandler: optionalAuthMiddleware,
     schema: getEnrollmentByIdSchema,
+    preHandler: optionalAuthMiddleware,
     handler: userEnrollmentController.getEnrollmentById,
   });
 
-  fastify.get('/user/:userId', {
-    preHandler: optionalAuthMiddleware,
-    schema: getUserEnrollmentsSchema,
-    handler: userEnrollmentController.getUserEnrollments,
-  });
-
   fastify.get('/user/:userId/academy/:academyId', {
-    preHandler: optionalAuthMiddleware,
     schema: getEnrollmentByUserAndAcademySchema,
+    preHandler: optionalAuthMiddleware,
     handler: userEnrollmentController.getEnrollmentByUserAndAcademy,
   });
 
-  fastify.put('/:id/progress', {
+  fastify.get('/user/:userId', {
+    schema: getUserEnrollmentsSchema,
     preHandler: optionalAuthMiddleware,
+    handler: userEnrollmentController.getUserEnrollments,
+  });
+
+  fastify.put('/:id/progress', {
     schema: updateProgressSchema,
+    preHandler: optionalAuthMiddleware,
     handler: userEnrollmentController.updateProgress,
   });
 }

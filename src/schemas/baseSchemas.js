@@ -1,18 +1,6 @@
-/**
- * Base Schemas untuk Response Standardization
- * Mengikuti format dari utils/response.js
- */
-
-// ========================
-// BASE RESPONSE SCHEMAS
-// ========================
-
-/**
- * Standard Success Response Schema
- */
 export const successResponseSchema = {
   type: 'object',
-  // Minimal required - for documentation only
+
   properties: {
     success: {
       type: 'boolean',
@@ -41,12 +29,8 @@ export const successResponseSchema = {
   },
 };
 
-/**
- * Standard Error Response Schema
- */
 export const errorResponseSchema = {
   type: 'object',
-  // Minimal required - for documentation only
   properties: {
     success: {
       type: 'boolean',
@@ -67,13 +51,6 @@ export const errorResponseSchema = {
   },
 };
 
-// ========================
-// PAGINATION SCHEMAS
-// ========================
-
-/**
- * Pagination Query Parameters Schema
- */
 export const paginationQuerySchema = {
   type: 'object',
   properties: {
@@ -93,9 +70,6 @@ export const paginationQuerySchema = {
   },
 };
 
-/**
- * Search Query Parameters Schema
- */
 export const searchQuerySchema = {
   type: 'object',
   properties: {
@@ -118,16 +92,8 @@ export const searchQuerySchema = {
   },
 };
 
-// ========================
-// COMMON FIELD SCHEMAS
-// ========================
-
-/**
- * ID Parameter Schema
- */
 export const idParamSchema = {
   type: 'object',
-  // No required fields - documentation only
   properties: {
     id: {
       type: 'integer',
@@ -136,9 +102,6 @@ export const idParamSchema = {
   },
 };
 
-/**
- * Timestamp Fields Schema
- */
 export const timestampFieldsSchema = {
   created_at: {
     type: 'string',
@@ -152,21 +115,11 @@ export const timestampFieldsSchema = {
   },
 };
 
-// ========================
-// HELPER FUNCTIONS
-// ========================
-
-/**
- * Create success response schema with specific data type
- * @param {Object} dataSchema - Schema for the data field
- * @param {string} description - Description for the response
- * @returns {Object} Complete success response schema
- */
 export function createSuccessResponseSchema(dataSchema, description = 'Successful response') {
   return {
     description,
     type: 'object',
-    // No required fields - documentation only
+
     properties: {
       ...successResponseSchema.properties,
       data: dataSchema,
@@ -174,17 +127,11 @@ export function createSuccessResponseSchema(dataSchema, description = 'Successfu
   };
 }
 
-/**
- * Create paginated response schema
- * @param {Object} itemSchema - Schema for individual items
- * @param {string} description - Description for the response
- * @returns {Object} Complete paginated response schema
- */
 export function createPaginatedResponseSchema(itemSchema, description = 'Paginated response') {
   return {
     description,
     type: 'object',
-    // No required fields - documentation only
+
     properties: {
       ...successResponseSchema.properties,
       data: {
@@ -193,24 +140,18 @@ export function createPaginatedResponseSchema(itemSchema, description = 'Paginat
       },
       meta: {
         type: 'object',
-        // No required fields - documentation only
+
         properties: successResponseSchema.properties.meta.properties,
       },
     },
   };
 }
 
-/**
- * Create error response schema with specific status code
- * @param {number} statusCode - HTTP status code
- * @param {string} description - Description for the error
- * @returns {Object} Complete error response schema
- */
 export function createErrorResponseSchema(statusCode, description = 'Error response') {
   return {
     description,
     type: 'object',
-    // No required fields - documentation only
+
     properties: {
       ...errorResponseSchema.properties,
       statusCode: {

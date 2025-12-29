@@ -1,6 +1,6 @@
-import prisma from '../lib/prisma.js';
+import prisma from '../config/database.js';
 import { BaseRepository } from './base/BaseRepository.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class JobsRepository extends BaseRepository {
   constructor() {
@@ -196,8 +196,8 @@ export class JobsRepository extends BaseRepository {
     return await this.model.findUnique({
       where: { slug },
       include: {
-        company: true, // Include all company fields
-        location: true, // Include all location fields
+        company: true,
+        location: true,
         _count: {
           select: {
             applications: true,
@@ -211,8 +211,8 @@ export class JobsRepository extends BaseRepository {
     return await this.model.findUnique({
       where: { id },
       include: {
-        company: true, // Include all company fields
-        location: true, // Include all location fields
+        company: true,
+        location: true,
         _count: {
           select: {
             applications: true,
@@ -235,7 +235,7 @@ export class JobsRepository extends BaseRepository {
     this.logger.info({ size: jobsData.length }, '[jobsRepository] createManyJobs');
     return await this.model.createMany({
       data: jobsData,
-      skipDuplicates: true, // Skip if linkedin_job_id already exists
+      skipDuplicates: true,
     });
   }
 
@@ -273,6 +273,14 @@ export class JobsRepository extends BaseRepository {
       data: locationData,
     });
   }
+
+  async findCompanyById(id) {
+    this.logger.debug({ id }, '[jobsRepository] findCompanyById');
+    return await prisma.company.findUnique({
+      where: { id },
+    });
+  }
+
   async findCompanyBySlug(slug) {
     this.logger.debug({ slug }, '[jobsRepository] findCompanyBySlug');
     return await prisma.company.findUnique({
@@ -284,7 +292,6 @@ export class JobsRepository extends BaseRepository {
     this.logger.info({ organization: linkedinJob.organization }, '[jobsRepository] createCompanyFromLinkedIn');
 
     const companyData = {
-      // Core fields
       name: linkedinJob.organization,
       slug: linkedinJob.linkedin_org_slug,
       logo_url: linkedinJob.organization_logo,
@@ -293,7 +300,6 @@ export class JobsRepository extends BaseRepository {
       headquarters: linkedinJob.linkedin_org_headquarters,
       description: linkedinJob.linkedin_org_description,
 
-      // LinkedIn specific fields
       linkedin_url: linkedinJob.organization_url,
       linkedin_slug: linkedinJob.linkedin_org_slug,
       linkedin_employees: linkedinJob.linkedin_org_employees,
@@ -316,7 +322,6 @@ export class JobsRepository extends BaseRepository {
     this.logger.info({ id, jobData, companyData, locationData }, '[jobsRepository] updateWithRelations start');
 
     return await prisma.$transaction(async (tx) => {
-      // Update company if provided
       if (companyData && Object.keys(companyData).length > 0) {
         const existingJob = await tx.job.findUnique({
           where: { id },
@@ -331,7 +336,6 @@ export class JobsRepository extends BaseRepository {
         }
       }
 
-      // Update location if provided
       if (locationData && Object.keys(locationData).length > 0) {
         const existingJob = await tx.job.findUnique({
           where: { id },
@@ -346,7 +350,6 @@ export class JobsRepository extends BaseRepository {
         }
       }
 
-      // Update job
       const updatedJob = await tx.job.update({
         where: { id },
         data: jobData,
@@ -374,7 +377,6 @@ export class JobsRepository extends BaseRepository {
     const skip = (page - 1) * limit;
     const where = {};
 
-    // Search across multiple fields
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -384,7 +386,6 @@ export class JobsRepository extends BaseRepository {
       ];
     }
 
-    // Exact match filters
     if (slug) {
       where.slug = slug;
     }
@@ -405,7 +406,6 @@ export class JobsRepository extends BaseRepository {
       where.linkedin_size = { contains: linkedinSize, mode: 'insensitive' };
     }
 
-    // Sort options
     let orderBy = {};
     switch (sortBy) {
       case 'created_at':
@@ -468,5 +468,4 @@ export class JobsRepository extends BaseRepository {
   }
 }
 
-// Export instance
 export const jobsRepository = new JobsRepository();

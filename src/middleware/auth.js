@@ -1,11 +1,5 @@
 import { errorResponse } from '../utils/response.js';
 
-/**
- * Authentication middleware
- * Verifies JWT token and attaches user to request
- * @param {Object} request - Fastify request object
- * @param {Object} reply - Fastify reply object
- */
 export async function authMiddleware(request, reply) {
   try {
     request.log.info('[authMiddleware] start');
@@ -31,17 +25,11 @@ export async function authMiddleware(request, reply) {
   }
 }
 
-/**
- * Optional authentication middleware
- * Attaches user if token is valid, but doesn't fail if no token
- * @param {Object} request - Fastify request object
- * @param {Object} reply - Fastify reply object
- */
 export async function optionalAuthMiddleware(request, reply) {
   try {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return; // No token, proceed without user
+      return; 
     }
 
     const token = authHeader.substring(7);
@@ -54,12 +42,6 @@ export async function optionalAuthMiddleware(request, reply) {
   }
 }
 
-/**
- * Role authorization middleware factory
- * Creates middleware that checks if user has required role(s)
- * @param {Array<string>} requiredRoles - Array of required roles
- * @returns {Function} Middleware function
- */
 export function authorizeRoles(requiredRoles) {
   return async (request, reply) => {
     try {

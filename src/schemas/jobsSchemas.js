@@ -416,3 +416,107 @@ export const getCompaniesSchema = {
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
+
+// User Jobs Schemas
+export const getUserJobsSchema = {
+  summary: 'Get all jobs for users',
+  description: 'Retrieve paginated list of active jobs for public users',
+  tags: ['User Jobs'],
+  querystring: jobsQuerySchema,
+  response: {
+    200: createPaginatedResponseSchema(jobEntitySchema, 'Jobs retrieved successfully'),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid query parameters'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getFeaturedJobsSchema = {
+  summary: 'Get featured jobs',
+  description: 'Retrieve list of featured/highlighted jobs',
+  tags: ['User Jobs'],
+  querystring: {
+    type: 'object',
+    properties: {
+      limit: { type: 'integer', minimum: 1, maximum: 50, default: 10, description: 'Number of jobs to return' },
+    },
+  },
+  response: {
+    200: createSuccessResponseSchema({ type: 'array', items: jobEntitySchema }, 'Featured jobs retrieved'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getJobCategoriesSchema = {
+  summary: 'Get job categories',
+  description: 'Retrieve available job categories/types',
+  tags: ['User Jobs'],
+  response: {
+    200: createSuccessResponseSchema(
+      {
+        type: 'array',
+        items: { type: 'string' },
+      },
+      'Job categories retrieved'
+    ),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getUserJobByIdSchema = {
+  summary: 'Get job by ID',
+  description: 'Retrieve a specific job by its ID',
+  tags: ['User Jobs'],
+  params: idParamSchema,
+  response: {
+    200: createSuccessResponseSchema(jobEntitySchema, 'Job retrieved successfully'),
+    404: createErrorResponseSchema(404, 'Job not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getJobRecommendationsSchema = {
+  summary: 'Get job recommendations',
+  description: 'Get recommended jobs based on a specific job',
+  tags: ['User Jobs'],
+  params: idParamSchema,
+  querystring: {
+    type: 'object',
+    properties: {
+      limit: { type: 'integer', minimum: 1, maximum: 20, default: 5, description: 'Number of recommendations' },
+    },
+  },
+  response: {
+    200: createSuccessResponseSchema({ type: 'array', items: jobEntitySchema }, 'Recommendations retrieved'),
+    404: createErrorResponseSchema(404, 'Job not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getUserSearchJobsSchema = {
+  summary: 'Search jobs',
+  description: 'Search jobs with filters',
+  tags: ['User Jobs'],
+  querystring: {
+    type: 'object',
+    properties: {
+      ...jobsQuerySchema.properties,
+      q: { type: 'string', minLength: 1, description: 'Search query' },
+    },
+  },
+  response: {
+    200: createPaginatedResponseSchema(jobEntitySchema, 'Search results'),
+    400: createErrorResponseSchema(400, 'Bad Request'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getUserCompaniesSchema = {
+  summary: 'Get companies',
+  description: 'Retrieve list of companies with job postings',
+  tags: ['User Jobs'],
+  querystring: getCompaniesSchema.querystring,
+  response: {
+    200: getCompaniesSchema.response[200],
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};

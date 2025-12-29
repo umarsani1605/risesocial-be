@@ -6,7 +6,7 @@ export class UserTestimonialsController {
     this.testimonialsService = testimonialsService;
   }
 
-    getTestimonials = async (request, reply) => {
+  getTestimonials = async (req, reply) => {
     try {
       request.log.info('[userTestimonialsController] getTestimonials start');
       request.log.debug({ query: request.query }, '[userTestimonialsController] rawQuery');
@@ -14,7 +14,7 @@ export class UserTestimonialsController {
 
       const filters = {
         search,
-        status: 'ACTIVE', // Only show active testimonials for public
+        status: 'ACTIVE', 
         country: country || undefined,
         minRating: minRating || undefined,
         featured: featured || undefined,
@@ -30,7 +30,7 @@ export class UserTestimonialsController {
     }
   };
 
-    getTestimonialById = async (request, reply) => {
+  getTestimonialById = async (req, reply) => {
     try {
       request.log.info('[userTestimonialsController] getTestimonialById start');
       request.log.debug({ params: request.params }, '[userTestimonialsController] rawParams');
@@ -50,7 +50,7 @@ export class UserTestimonialsController {
     }
   };
 
-    getFeaturedTestimonials = async (request, reply) => {
+  getFeaturedTestimonials = async (req, reply) => {
     try {
       request.log.info('[userTestimonialsController] getFeaturedTestimonials start');
       request.log.debug({ query: request.query }, '[userTestimonialsController] rawQuery');
@@ -65,7 +65,7 @@ export class UserTestimonialsController {
     }
   };
 
-    getTestimonialsByCountry = async (request, reply) => {
+  getTestimonialsByCountry = async (req, reply) => {
     try {
       request.log.info('[userTestimonialsController] getTestimonialsByCountry start');
       request.log.debug({ query: request.query }, '[userTestimonialsController] rawQuery');
@@ -85,7 +85,7 @@ export class UserTestimonialsController {
     }
   };
 
-    getTestimonialsByRating = async (request, reply) => {
+  getTestimonialsByRating = async (req, reply) => {
     try {
       request.log.info('[userTestimonialsController] getTestimonialsByRating start');
       request.log.debug({ query: request.query }, '[userTestimonialsController] rawQuery');
@@ -105,7 +105,7 @@ export class UserTestimonialsController {
     }
   };
 
-    getCountriesWithCounts = async (request, reply) => {
+  getCountriesWithCounts = async (req, reply) => {
     try {
       request.log.info('[userTestimonialsController] getCountriesWithCounts start');
       const countries = await this.testimonialsService.getCountriesWithCounts();
@@ -119,5 +119,4 @@ export class UserTestimonialsController {
   };
 }
 
-// Export instance
 export const userTestimonialsController = new UserTestimonialsController();

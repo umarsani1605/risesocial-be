@@ -1,6 +1,6 @@
-import prisma from '../lib/prisma.js';
+import prisma from '../config/database.js';
 import { ORDER_ID_CONFIG } from '../constants/payments.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class RylsPaymentRepository {
   get logger() {
@@ -59,6 +59,30 @@ export class RylsPaymentRepository {
       throw error;
     }
   }
+
+  async findMidtransPaymentByOrderId(orderId) {
+    this.logger.info({ orderId }, '[rylsPaymentRepository] findMidtransPaymentByOrderId called');
+
+    try {
+      const payment = await prisma.midtransPayment.findUnique({
+        where: { order_id: orderId },
+        include: {
+          ryls_payment: {
+            include: {
+              registration: { select: { id: true, full_name: true, email: true, scholarship_type: true } },
+            },
+          },
+        },
+      });
+
+      this.logger.info({ found: !!payment }, '[rylsPaymentRepository] midtrans payment found');
+      return payment;
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsPaymentRepository] findMidtransPaymentByOrderId error');
+      throw error;
+    }
+  }
+
   async findById(paymentId) {
     this.logger.info({ paymentId }, '[rylsPaymentRepository] findById called');
 
@@ -76,6 +100,78 @@ export class RylsPaymentRepository {
       return payment;
     } catch (error) {
       this.logger.error({ err: error }, '[rylsPaymentRepository] findById error');
+      throw error;
+    }
+  }
+
+  async findRegistrationPayments(registrationId, options = {}) {
+    this.logger.info({ registrationId, options }, '[rylsPaymentRepository] findRegistrationPayments called');
+
+    try {
+      const whereClause = {
+        registration_id: registrationId,
+        ...(options.status && { status: options.status }),
+        ...(options.type && { type: options.type }),
+      };
+
+      if (options.minAmount) {
+        whereClause.amount = { gte: options.minAmount };
+      }
+      if (options.maxAmount) {
+        whereClause.amount = { ...whereClause.amount, lte: options.maxAmount };
+      }
+
+      const payments = await prisma.rylsPayment.findMany({
+        where: whereClause,
+        orderBy: { created_at: 'desc' },
+        ...(options.limit && { take: options.limit }),
+        include: {
+          midtrans_payment: true,
+          payment_proof: true,
+          registration: { select: { id: true, full_name: true, email: true, scholarship_type: true } },
+        },
+      });
+
+      this.logger.info({ count: payments.length }, '[rylsPaymentRepository] payments found');
+      return payments;
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsPaymentRepository] findRegistrationPayments error');
+      throw error;
+    }
+  }
+
+  async linkPaymentToRegistration(paymentId, registrationId) {
+    this.logger.info({ paymentId, registrationId }, '[rylsPaymentRepository] linkPaymentToRegistration called');
+
+    try {
+      const payment = await prisma.rylsPayment.update({
+        where: { id: paymentId },
+        data: { registration: { connect: { id: registrationId } } },
+        include: { midtrans_payment: true, payment_proof: true },
+      });
+
+      this.logger.info('[rylsPaymentRepository] payment linked to registration');
+      return payment;
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsPaymentRepository] linkPaymentToRegistration error');
+      throw error;
+    }
+  }
+
+  async findActivePendingPayment(registrationId) {
+    this.logger.info({ registrationId }, '[rylsPaymentRepository] findActivePendingPayment called');
+
+    try {
+      const payment = await prisma.rylsPayment.findFirst({
+        where: { registration_id: registrationId, status: 'PENDING', expiry_time: { gt: new Date() } },
+        orderBy: { created_at: 'desc' },
+        include: { registration: { select: { id: true, full_name: true, email: true, scholarship_type: true, payment_status: true } } },
+      });
+
+      this.logger.info({ found: !!payment, order_id: payment?.order_id }, '[rylsPaymentRepository] active payment check');
+      return payment;
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsPaymentRepository] findActivePendingPayment error');
       throw error;
     }
   }

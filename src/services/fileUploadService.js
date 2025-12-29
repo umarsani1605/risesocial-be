@@ -2,7 +2,7 @@ import { fileUploadRepository } from '../repositories/fileUploadRepository.js';
 import { deleteFile } from '../middleware/fileUploadMiddleware.js';
 import fs from 'fs-extra';
 import path from 'path';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class FileUploadService {
   constructor() {
@@ -142,12 +142,12 @@ export class FileUploadService {
   }
 
   generateFileUrl(fileId) {
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+    const baseUrl = process.env.BACKEND_URL;
     return `${baseUrl}/api/uploads/${fileId}`;
   }
 
   generatePublicFileUrl(fileData) {
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+    const baseUrl = process.env.BACKEND_URL;
     const relativePath = fileData.relativePath || fileData.path;
     return `${baseUrl}/${relativePath}`;
   }

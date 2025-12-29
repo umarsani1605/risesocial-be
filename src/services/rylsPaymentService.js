@@ -10,7 +10,7 @@ import {
   mapFraudStatus,
   WEBHOOK_CONFIG,
 } from '../constants/payments.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class RylsPaymentService {
   constructor() {

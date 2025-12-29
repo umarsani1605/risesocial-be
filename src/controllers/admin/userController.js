@@ -2,7 +2,8 @@ import { userService } from '../../services/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AdminUserController {
-    getAllUsers = async (request, reply) => {
+  
+  getAllUsers = async (request, reply) => {
     try {
       request.log.info('[adminUserController] getAllUsers start');
       request.log.debug({ query: request.query }, '[adminUserController] rawQuery');
@@ -15,7 +16,7 @@ export class AdminUserController {
     }
   };
 
-    getUserById = async (request, reply) => {
+  getUserById = async (request, reply) => {
     try {
       request.log.info('[adminUserController] getUserById start');
       request.log.debug({ params: request.params }, '[adminUserController] rawParams');
@@ -34,7 +35,7 @@ export class AdminUserController {
     }
   };
 
-    createUser = async (request, reply) => {
+  createUser = async (request, reply) => {
     try {
       request.log.info('[adminUserController] createUser start');
       request.log.debug({ body: request.body }, '[adminUserController] rawBody');
@@ -52,7 +53,7 @@ export class AdminUserController {
     }
   };
 
-    updateUser = async (request, reply) => {
+  updateUser = async (request, reply) => {
     try {
       request.log.info('[adminUserController] updateUser start');
       request.log.debug({ params: request.params, body: request.body }, '[adminUserController] rawParams');
@@ -75,7 +76,7 @@ export class AdminUserController {
     }
   };
 
-    deleteUser = async (request, reply) => {
+  deleteUser = async (request, reply) => {
     try {
       request.log.info('[adminUserController] deleteUser start');
       request.log.debug({ params: request.params }, '[adminUserController] rawParams');
@@ -95,5 +96,4 @@ export class AdminUserController {
   };
 }
 
-// Export instance
 export const adminUserController = new AdminUserController();

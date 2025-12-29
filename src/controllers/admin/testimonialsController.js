@@ -7,7 +7,7 @@ export class AdminTestimonialsController {
     this.testimonialsService = testimonialsService;
   }
 
-    async createTestimonial(request, reply) {
+  async createTestimonial(req, reply) {
     try {
       request.log.info('[adminTestimonialsController] createTestimonial start');
       request.log.debug({ body: request.body }, '[adminTestimonialsController] rawBody');
@@ -21,7 +21,7 @@ export class AdminTestimonialsController {
     }
   }
 
-    async updateTestimonial(request, reply) {
+  async updateTestimonial(req, reply) {
     try {
       request.log.info('[adminTestimonialsController] updateTestimonial start');
       request.log.debug({ params: request.params, body: request.body }, '[adminTestimonialsController] rawParams');
@@ -42,7 +42,7 @@ export class AdminTestimonialsController {
     }
   }
 
-    async deleteTestimonial(request, reply) {
+  async deleteTestimonial(req, reply) {
     try {
       request.log.info('[adminTestimonialsController] deleteTestimonial start');
       request.log.debug({ params: request.params }, '[adminTestimonialsController] rawParams');
@@ -62,7 +62,7 @@ export class AdminTestimonialsController {
     }
   }
 
-    async getTestimonialsForAdmin(request, reply) {
+  async getTestimonialsForAdmin(req, reply) {
     try {
       request.log.info('[adminTestimonialsController] getTestimonialsForAdmin start');
       request.log.debug({ query: request.query }, '[adminTestimonialsController] rawQuery');
@@ -80,7 +80,7 @@ export class AdminTestimonialsController {
 
       const filters = {
         search,
-        status: status || undefined, // Admin can see all statuses
+        status: status || undefined, 
         country: country || undefined,
         minRating: minRating || undefined,
         featured: featured || undefined,
@@ -96,7 +96,7 @@ export class AdminTestimonialsController {
     }
   }
 
-    async getTestimonialStatistics(request, reply) {
+  async getTestimonialStatistics(req, reply) {
     try {
       request.log.info('[adminTestimonialsController] getTestimonialStatistics start');
       const { id } = request.params;
@@ -115,7 +115,7 @@ export class AdminTestimonialsController {
     }
   }
 
-    async getAllTestimonialsStatistics(request, reply) {
+  async getAllTestimonialsStatistics(req, reply) {
     try {
       request.log.info('[adminTestimonialsController] getAllTestimonialsStatistics start');
       const statistics = await this.testimonialsService.getAllTestimonialsStatistics();
@@ -128,7 +128,7 @@ export class AdminTestimonialsController {
     }
   }
 
-    async toggleFeaturedTestimonial(request, reply) {
+  async toggleFeaturedTestimonial(req, reply) {
     try {
       request.log.info('[adminTestimonialsController] toggleFeaturedTestimonial start');
       request.log.debug({ params: request.params }, '[adminTestimonialsController] rawParams');
@@ -148,7 +148,7 @@ export class AdminTestimonialsController {
     }
   }
 
-    async approveTestimonial(request, reply) {
+  async approveTestimonial(req, reply) {
     try {
       request.log.info('[adminTestimonialsController] approveTestimonial start');
       request.log.debug({ params: request.params }, '[adminTestimonialsController] rawParams');
@@ -168,7 +168,7 @@ export class AdminTestimonialsController {
     }
   }
 
-    async rejectTestimonial(request, reply) {
+  async rejectTestimonial(req, reply) {
     try {
       request.log.info('[adminTestimonialsController] rejectTestimonial start');
       request.log.debug({ params: request.params }, '[adminTestimonialsController] rawParams');
@@ -188,7 +188,7 @@ export class AdminTestimonialsController {
     }
   }
 
-    async uploadTestimonialAvatar(request, reply) {
+  async uploadTestimonialAvatar(request, reply) {
     try {
       request.log.info('[adminTestimonialsController] uploadTestimonialAvatar start');
 
@@ -199,14 +199,12 @@ export class AdminTestimonialsController {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
       }
 
-      // Upload file using service
       const uploadResult = await fileUploadService.uploadFile(file, {
         uploadType: 'TESTIMONIAL_AVATAR',
-        maxSize: 2 * 1024 * 1024, // 2MB for testimonial avatar
+        maxSize: 2 * 1024 * 1024, 
         allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       });
 
-      // Update testimonial with new avatar URL
       const testimonial = await this.testimonialsService.updateTestimonial(Number(id), {
         avatar_url: uploadResult.fileUrl,
       });
@@ -220,5 +218,4 @@ export class AdminTestimonialsController {
   }
 }
 
-// Export instance
 export const adminTestimonialsController = new AdminTestimonialsController();

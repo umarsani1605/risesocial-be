@@ -1,13 +1,53 @@
 import { userJobsController } from '../../controllers/user/jobsController.js';
 import { optionalAuthMiddleware } from '../../middleware/auth.js';
-import { getAllJobsSchema, getJobByIdSchema, searchJobsSchema, getCompaniesSchema } from '../../schemas/jobsSchemas.js';
+import {
+  getUserJobsSchema,
+  getFeaturedJobsSchema,
+  getJobCategoriesSchema,
+  getUserCompaniesSchema,
+  getUserSearchJobsSchema,
+  getUserJobByIdSchema,
+  getJobRecommendationsSchema,
+} from '../../schemas/jobsSchemas.js';
 
-export default async function userJobsRoutes(fastify) {
-  fastify.get('/', { schema: getAllJobsSchema, preHandler: optionalAuthMiddleware }, userJobsController.getJobs);
-  fastify.get('/featured', userJobsController.getFeaturedJobs);
-  fastify.get('/categories', userJobsController.getJobCategories);
-  fastify.get('/company', { schema: getCompaniesSchema, preHandler: optionalAuthMiddleware }, userJobsController.getCompanies);
-  fastify.get('/search', { schema: searchJobsSchema }, userJobsController.searchJobs);
-  fastify.get('/:id', { schema: getJobByIdSchema, preHandler: optionalAuthMiddleware }, userJobsController.getJobById);
-  fastify.get('/:id/recommendations', userJobsController.getJobRecommendations);
+export async function jobsRoutes(fastify) {
+  fastify.get('/', {
+    schema: getUserJobsSchema,
+    preHandler: optionalAuthMiddleware,
+    handler: userJobsController.getJobs,
+  });
+
+  fastify.get('/featured', {
+    schema: getFeaturedJobsSchema,
+    handler: userJobsController.getFeaturedJobs,
+  });
+
+  fastify.get('/categories', {
+    schema: getJobCategoriesSchema,
+    handler: userJobsController.getJobCategories,
+  });
+
+  fastify.get('/company', {
+    schema: getUserCompaniesSchema,
+    preHandler: optionalAuthMiddleware,
+    handler: userJobsController.getCompanies,
+  });
+
+  fastify.get('/search', {
+    schema: getUserSearchJobsSchema,
+    handler: userJobsController.searchJobs,
+  });
+
+  fastify.get('/:id', {
+    schema: getUserJobByIdSchema,
+    preHandler: optionalAuthMiddleware,
+    handler: userJobsController.getJobById,
+  });
+
+  fastify.get('/:id/recommendations', {
+    schema: getJobRecommendationsSchema,
+    handler: userJobsController.getJobRecommendations,
+  });
 }
+
+export default jobsRoutes;

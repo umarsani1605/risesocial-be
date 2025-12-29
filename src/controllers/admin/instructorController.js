@@ -6,7 +6,7 @@ export class AdminInstructorController {
     this.instructorService = instructorService;
   }
 
-    async createInstructor(request, reply) {
+  async createInstructor(request, reply) {
     try {
       request.log.info('[adminInstructorController] createInstructor start');
       request.log.debug({ body: request.body }, '[adminInstructorController] rawBody');
@@ -20,7 +20,7 @@ export class AdminInstructorController {
     }
   }
 
-    async updateInstructor(request, reply) {
+  async updateInstructor(request, reply) {
     try {
       request.log.info('[adminInstructorController] updateInstructor start');
       request.log.debug({ params: request.params, body: request.body }, '[adminInstructorController] rawParams');
@@ -41,7 +41,7 @@ export class AdminInstructorController {
     }
   }
 
-    async deleteInstructor(request, reply) {
+  async deleteInstructor(request, reply) {
     try {
       request.log.info('[adminInstructorController] deleteInstructor start');
       request.log.debug({ params: request.params }, '[adminInstructorController] rawParams');
@@ -62,7 +62,7 @@ export class AdminInstructorController {
     }
   }
 
-    async getAvailableInstructorsForAcademy(request, reply) {
+  async getAvailableInstructorsForAcademy(request, reply) {
     try {
       request.log.info('[adminInstructorController] getAvailableInstructorsForAcademy start');
       request.log.debug({ params: request.params }, '[adminInstructorController] rawParams');
@@ -87,7 +87,7 @@ export class AdminInstructorController {
     }
   }
 
-    async assignInstructorToAcademy(request, reply) {
+  async assignInstructorToAcademy(request, reply) {
     try {
       request.log.info('[adminInstructorController] assignInstructorToAcademy start');
       request.log.debug({ params: request.params, body: request.body }, '[adminInstructorController] rawParams');
@@ -105,7 +105,7 @@ export class AdminInstructorController {
     }
   }
 
-    async removeInstructorFromAcademy(request, reply) {
+  async removeInstructorFromAcademy(request, reply) {
     try {
       request.log.info('[adminInstructorController] removeInstructorFromAcademy start');
       request.log.debug({ params: request.params }, '[adminInstructorController] rawParams');
@@ -126,7 +126,7 @@ export class AdminInstructorController {
     }
   }
 
-    async getInstructorStats(request, reply) {
+  async getInstructorStats(request, reply) {
     try {
       request.log.info('[adminInstructorController] getInstructorStats start');
       const stats = await this.instructorService.getInstructorStats();
@@ -138,7 +138,7 @@ export class AdminInstructorController {
     }
   }
 
-    async uploadInstructorAvatar(request, reply) {
+  async uploadInstructorAvatar(request, reply) {
     try {
       request.log.info('[adminInstructorController] uploadInstructorAvatar start');
 
@@ -149,10 +149,9 @@ export class AdminInstructorController {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
       }
 
-      // Simple file upload - just return success for now
       const result = {
         id: Number(id),
-        name: 'Instructor Name', // This should come from database
+        name: 'Instructor Name',
         avatar_url: `/uploads/images/${file.filename}`,
       };
 
@@ -165,5 +164,4 @@ export class AdminInstructorController {
   }
 }
 
-// Export instance
 export const adminInstructorController = new AdminInstructorController();

@@ -6,7 +6,7 @@ export class AdminRylsRegistrationController {
     this.registrationService = rylsRegistrationService;
   }
 
-    getRegistrations = async (request, reply) => {
+  getRegistrations = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] getRegistrations start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
@@ -37,7 +37,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-    getRegistrationById = async (request, reply) => {
+  getRegistrationById = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] getRegistrationById start');
       request.log.debug({ params: request.params }, '[adminRylsRegistrationController] rawParams');
@@ -57,7 +57,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-    updateRegistrationStatus = async (request, reply) => {
+  updateRegistrationStatus = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] updateRegistrationStatus start');
       request.log.debug({ params: request.params, body: request.body }, '[adminRylsRegistrationController] raw');
@@ -79,7 +79,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-    deleteRegistration = async (request, reply) => {
+  deleteRegistration = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] deleteRegistration start');
       request.log.debug({ params: request.params }, '[adminRylsRegistrationController] rawParams');
@@ -100,7 +100,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-    getRegistrationStatistics = async (request, reply) => {
+  getRegistrationStatistics = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] getRegistrationStatistics start');
       const result = await this.registrationService.getRegistrationStatistics();
@@ -113,7 +113,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-    getRegistrationsByDateRange = async (request, reply) => {
+  getRegistrationsByDateRange = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] getRegistrationsByDateRange start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
@@ -138,7 +138,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-    exportRegistrations = async (request, reply) => {
+  exportRegistrations = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] exportRegistrations start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
@@ -155,7 +155,6 @@ export class AdminRylsRegistrationController {
 
       request.log.info('[adminRylsRegistrationController] exportRegistrations success');
 
-      // Set appropriate headers for file download
       const filename = `registrations_${new Date().toISOString().split('T')[0]}.${format}`;
       reply.header('Content-Disposition', `attachment; filename="${filename}"`);
       reply.header('Content-Type', format === 'csv' ? 'text/csv' : 'application/json');
@@ -167,7 +166,7 @@ export class AdminRylsRegistrationController {
     }
   };
 
-    exportRegistrationsExcel = async (request, reply) => {
+  exportRegistrationsExcel = async (request, reply) => {
     try {
       request.log.info('[adminRylsRegistrationController] exportRegistrationsExcel start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
@@ -197,5 +196,4 @@ export class AdminRylsRegistrationController {
   };
 }
 
-// Export instance
 export const adminRylsRegistrationController = new AdminRylsRegistrationController();

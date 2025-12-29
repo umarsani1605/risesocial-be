@@ -2,7 +2,7 @@ import { userService } from '../../services/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AuthController {
-    async login(request, reply) {
+  async login(request, reply) {
     try {
       request.log.info('[authController] login start');
       request.log.debug({ body: { email: request.body?.email, rememberMe: request.body?.rememberMe } }, '[authController] rawBody');
@@ -31,7 +31,7 @@ export class AuthController {
     }
   }
 
-    async register(request, reply) {
+  async register(request, reply) {
     try {
       request.log.info('[authController] register start');
       request.log.debug({ body: { email: request.body?.email } }, '[authController] rawBody');
@@ -58,7 +58,7 @@ export class AuthController {
     }
   }
 
-    async getCurrentUser(request, reply) {
+  async getCurrentUser(request, reply) {
     try {
       request.log.info('[authController] getCurrentUser start');
       request.log.info({ user: request.user }, '[authController] request.user');
@@ -70,7 +70,6 @@ export class AuthController {
 
       request.log.info('[authController] getCurrentUser success');
 
-      // Return user directly in data field (not wrapped in { user: ... })
       return reply.send(successResponse(user, 'User profile retrieved successfully'));
     } catch (error) {
       request.log.error({ err: error }, '[authController] getCurrentUser error');
@@ -91,7 +90,7 @@ export class AuthController {
     }
   }
 
-    async logout(request, reply) {
+  async logout(request, reply) {
     try {
       request.log.info('[authController] logout start');
       const { id: userId, email, role } = request.user;
@@ -106,5 +105,4 @@ export class AuthController {
   }
 }
 
-// Export instance
 export const authController = new AuthController();

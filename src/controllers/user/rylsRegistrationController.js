@@ -6,7 +6,7 @@ export class UserRylsRegistrationController {
     this.registrationService = rylsRegistrationService;
   }
 
-    createRegistration = async (request, reply) => {
+  createRegistration = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] createRegistration start');
       request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
@@ -31,13 +31,12 @@ export class UserRylsRegistrationController {
     }
   };
 
-    submitFullyFundedRegistration = async (request, reply) => {
+  submitFullyFundedRegistration = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] submitFullyFundedRegistration start');
       request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
       const formData = request.body;
 
-      // Validate required data structure
       if (!formData.step1 || !formData.essayTopic || !formData.essayFileId) {
         return reply.status(400).send(errorResponse('Missing required form data', 400, 'Incomplete form submission'));
       }
@@ -57,13 +56,12 @@ export class UserRylsRegistrationController {
     }
   };
 
-    submitSelfFundedRegistration = async (request, reply) => {
+  submitSelfFundedRegistration = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] submitSelfFundedRegistration start');
       request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
       const formData = request.body;
 
-      // Validate required data structure
       if (!formData.step1 || !formData.essayTopic || !formData.essayFileId || !formData.paymentProofFileId) {
         return reply.status(400).send(errorResponse('Missing required form data', 400, 'Incomplete form submission'));
       }
@@ -83,7 +81,7 @@ export class UserRylsRegistrationController {
     }
   };
 
-    getRegistrationBySubmissionId = async (request, reply) => {
+  getRegistrationBySubmissionId = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] getRegistrationBySubmissionId start');
       request.log.debug({ params: request.params }, '[userRylsRegistrationController] rawParams');
@@ -107,7 +105,7 @@ export class UserRylsRegistrationController {
     }
   };
 
-    checkEmailExists = async (request, reply) => {
+  checkEmailExists = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] checkEmailExists start');
       request.log.debug({ params: request.params }, '[userRylsRegistrationController] rawParams');
@@ -127,7 +125,7 @@ export class UserRylsRegistrationController {
     }
   };
 
-    healthCheck = async (request, reply) => {
+  healthCheck = async (request, reply) => {
     try {
       request.log.info('[userRylsRegistrationController] healthCheck start');
       const result = await this.registrationService.healthCheck();
@@ -141,5 +139,4 @@ export class UserRylsRegistrationController {
   };
 }
 
-// Export instance
 export const userRylsRegistrationController = new UserRylsRegistrationController();

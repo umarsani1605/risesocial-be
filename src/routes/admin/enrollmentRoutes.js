@@ -2,12 +2,12 @@ import { adminEnrollmentController } from '../../controllers/admin/enrollmentCon
 import { authMiddleware } from '../../middleware/auth.js';
 import {
   getAllEnrollmentsSchema,
-  getEnrollmentStatsSchema,
   getAcademyEnrollmentsSchema,
   createEnrollmentSchema,
   updateEnrollmentSchema,
   updateStatusSchema,
   deleteEnrollmentSchema,
+  getEnrollmentStatsSchema,
 } from '../../schemas/enrollmentSchemas.js';
 
 export default async function adminEnrollmentRoutes(fastify) {
@@ -16,11 +16,6 @@ export default async function adminEnrollmentRoutes(fastify) {
   fastify.get('/', {
     schema: getAllEnrollmentsSchema,
     handler: adminEnrollmentController.getAllEnrollments,
-  });
-
-  fastify.get('/statistics', {
-    schema: getEnrollmentStatsSchema,
-    handler: adminEnrollmentController.getEnrollmentStats,
   });
 
   fastify.get('/academy/:academyId', {
@@ -46,5 +41,10 @@ export default async function adminEnrollmentRoutes(fastify) {
   fastify.delete('/:id', {
     schema: deleteEnrollmentSchema,
     handler: adminEnrollmentController.deleteEnrollment,
+  });
+
+  fastify.get('/statistics', {
+    schema: getEnrollmentStatsSchema,
+    handler: adminEnrollmentController.getEnrollmentStats,
   });
 }

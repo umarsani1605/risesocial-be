@@ -1,14 +1,4 @@
-/**
- * Cache Helper Class untuk Fastify
- * Menyediakan methods sederhana untuk operasi cache
- */
 export class CacheHelper {
-  /**
-   * Get data dari cache
-   * @param {Object} fastify - Fastify instance
-   * @param {string} key - Cache key
-   * @returns {Promise<any>} Cached data atau null
-   */
   static async get(fastify, key) {
     return new Promise((resolve) => {
       fastify.cache.get(key, (err, value) => {
@@ -22,14 +12,6 @@ export class CacheHelper {
     });
   }
 
-  /**
-   * Set data ke cache
-   * @param {Object} fastify - Fastify instance
-   * @param {string} key - Cache key
-   * @param {any} value - Data yang akan di-cache
-   * @param {number} ttl - Time to live dalam milidetik (default: 1 jam)
-   * @returns {Promise<boolean>} Success status
-   */
   static async set(fastify, key, value, ttl = 3600000) {
     return new Promise((resolve) => {
       fastify.cache.set(key, value, ttl, (err) => {
@@ -43,12 +25,6 @@ export class CacheHelper {
     });
   }
 
-  /**
-   * Delete data dari cache
-   * @param {Object} fastify - Fastify instance
-   * @param {string} key - Cache key
-   * @returns {Promise<boolean>} Success status
-   */
   static async delete(fastify, key) {
     return new Promise((resolve) => {
       fastify.cache.delete(key, (err) => {

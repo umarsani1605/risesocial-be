@@ -2,8 +2,8 @@ import bcrypt from 'bcryptjs';
 import { userRepository } from '../repositories/userRepository.js';
 import { userSettingsRepository } from '../repositories/userSettingsRepository.js';
 import { fileUploadService } from './fileUploadService.js';
-import { generateToken } from '../lib/jwt.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { generateToken } from '../utils/jwt.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class UserService {
   constructor() {
@@ -20,6 +20,7 @@ export class UserService {
     this.logger.info('[userService] getAllUsers start');
     try {
       const result = await userRepository.findManyWithPagination(options);
+
       result.data = result.data.map((user) => this.excludePassword(user));
       this.logger.info('[userService] getAllUsers success');
       return result;
@@ -42,13 +43,7 @@ export class UserService {
   async createUser(userData) {
     this.logger.info('[userService] createUser start');
     try {
-      const emailExists = await userRepository.emailExists(userData.email);
-      if (emailExists) throw new Error('Email is already registered');
-
-      if (userData.username) {
-        const usernameExists = await userRepository.usernameExists(userData.username);
-        if (usernameExists) throw new Error('Username is already taken');
-      }
+      await this.validateUserCreation(userData);
 
       if (!userData.username) {
         userData.username = this.generateUsername(userData.first_name, userData.last_name);
@@ -73,6 +68,8 @@ export class UserService {
 
   async updateUser(id, updateData) {
     this.logger.info('[userService] updateUser start');
+    this.logger.debug({ id, updateData }, '[userService] raw');
+
     const existingUser = await userRepository.findById(id);
     if (!existingUser) throw new Error('User not found');
 
@@ -201,7 +198,11 @@ export class UserService {
       const validatedPreferences = {};
 
       for (const key of validKeys) {
-        validatedPreferences[key] = preferences.hasOwnProperty(key) ? Boolean(preferences[key]) : false;
+        if (preferences.hasOwnProperty(key)) {
+          validatedPreferences[key] = Boolean(preferences[key]);
+        } else {
+          validatedPreferences[key] = false;
+        }
       }
 
       const result = await userSettingsRepository.upsertUserSetting(userId, 'notification_preferences', validatedPreferences);
@@ -284,8 +285,57 @@ export class UserService {
     return userWithoutPassword;
   }
 
+  async validateUserCreation(userData) {
+    if (!userData.email) {
+      const error = new Error('Email is required');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (!userData.first_name) {
+      const error = new Error('First name is required');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (!userData.last_name) {
+      const error = new Error('Last name is required');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const emailExists = await userRepository.emailExists(userData.email);
+    if (emailExists) {
+      const error = new Error('Email already exists');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (userData.username) {
+      const usernameExists = await userRepository.usernameExists(userData.username);
+      if (usernameExists) {
+        const error = new Error('Username already exists');
+        error.statusCode = 400;
+        throw error;
+      }
+    }
+  }
+
   generateUsername(firstName, lastName) {
-    return `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
+    this.logger.info('[userService] generateUsername start');
+
+    const username = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
+
+    this.logger.info('[userService] generateUsername - generated username');
+    return username;
+  }
+
+  async validateUserRegistration(userData) {
+    if (!userData.password || userData.password.length < 6) {
+      const error = new Error('Password must be at least 6 characters long');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    await this.validateUserCreation(userData);
   }
 }
 

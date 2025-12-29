@@ -1,4 +1,4 @@
-import { CacheHelper } from '../lib/CacheHelper.js';
+import { CacheHelper } from '../utils/CacheHelper.js';
 import Freecurrencyapi from '@everapi/freecurrencyapi-js';
 
 const API_KEY = process.env.CURRENCY_API_KEY;
@@ -56,7 +56,7 @@ export const convertUsdToIdr = async (usdAmount, fastify) => {
 
     if (fastify && fastify.cache) {
       try {
-        await CacheHelper.set(fastify, cacheKey, result, 3600000); // 1 jam TTL
+        await CacheHelper.set(fastify, cacheKey, result, 3600000);
         console.log('[CurrencyConverter] Cached result for amount:', usdAmount);
       } catch (cacheError) {
         console.warn('[CurrencyConverter] Cache set failed:', cacheError.message);

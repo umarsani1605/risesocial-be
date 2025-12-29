@@ -1,13 +1,5 @@
-import {
-  createSuccessResponseSchema,
-  createErrorResponseSchema,
-  timestampFieldsSchema,
-  idParamSchema,
-} from './baseSchemas.js';
+import { createSuccessResponseSchema, createErrorResponseSchema, timestampFieldsSchema, idParamSchema } from './baseSchemas.js';
 
-/**
- * User Entity Schema
- */
 const userEntitySchema = {
   type: 'object',
   properties: {
@@ -22,9 +14,6 @@ const userEntitySchema = {
   },
 };
 
-/**
- * Auth Response Schema (user + token)
- */
 const authResponseSchema = {
   type: 'object',
   properties: {
@@ -34,12 +23,8 @@ const authResponseSchema = {
   },
 };
 
-// Legacy export for backward compatibility
 export const userResponseSchema = userEntitySchema;
 
-/**
- * POST /api/admin/users - Create user (Admin only)
- */
 export const createUserSchema = {
   summary: 'Create user',
   description: 'Create a new user (Admin only)',
@@ -68,9 +53,6 @@ export const createUserSchema = {
   },
 };
 
-/**
- * PUT /api/admin/users/:id - Update user (Admin only)
- */
 export const updateUserSchema = {
   summary: 'Update user',
   description: 'Update an existing user (Admin only)',
@@ -100,9 +82,6 @@ export const updateUserSchema = {
   },
 };
 
-/**
- * POST /api/auth/login - User login
- */
 export const loginSchema = {
   summary: 'User login',
   description: 'Authenticate user with email and password',
@@ -125,9 +104,6 @@ export const loginSchema = {
   },
 };
 
-/**
- * POST /api/auth/register - User registration
- */
 export const registerSchema = {
   summary: 'User registration',
   description: 'Register a new user account',
@@ -152,9 +128,6 @@ export const registerSchema = {
   },
 };
 
-/**
- * GET /api/auth/me - Get current user profile
- */
 export const getCurrentUserSchema = {
   summary: 'Get current user profile',
   description: 'Retrieve the profile information of the currently authenticated user',
@@ -167,19 +140,138 @@ export const getCurrentUserSchema = {
   },
 };
 
-/**
- * POST /api/auth/logout - User logout
- */
 export const logoutSchema = {
   summary: 'User logout',
   description: 'Logout the currently authenticated user',
   tags: ['Auth'],
   security: [{ bearerAuth: [] }],
   response: {
-    200: createSuccessResponseSchema(
-      { type: 'object', properties: { message: { type: 'string' } } },
-      'Logout successful'
-    ),
+    200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }, 'Logout successful'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+// User Self-Management Schemas
+export const getUserProfileSchema = {
+  summary: 'Get current user profile',
+  description: 'Get the profile of the currently authenticated user',
+  tags: ['User Self-Management'],
+  security: [{ bearerAuth: [] }],
+  response: {
+    200: createSuccessResponseSchema(userEntitySchema, 'Profile retrieved'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getUserSettingsSchema = {
+  summary: 'Get user settings',
+  description: 'Get settings for the currently authenticated user',
+  tags: ['User Self-Management'],
+  security: [{ bearerAuth: [] }],
+  response: {
+    200: createSuccessResponseSchema({ type: 'object' }, 'Settings retrieved'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const updateUserSettingsSchema = {
+  summary: 'Update user settings',
+  description: 'Update settings for the currently authenticated user',
+  tags: ['User Self-Management'],
+  security: [{ bearerAuth: [] }],
+  body: {
+    type: 'object',
+    properties: {
+      theme: { type: 'string', enum: ['light', 'dark', 'system'] },
+      language: { type: 'string' },
+      timezone: { type: 'string' },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: createSuccessResponseSchema({ type: 'object' }, 'Settings updated'),
+    400: createErrorResponseSchema(400, 'Bad Request'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getNotificationPreferencesSchema = {
+  summary: 'Get notification preferences',
+  description: 'Get notification preferences for the currently authenticated user',
+  tags: ['User Self-Management'],
+  security: [{ bearerAuth: [] }],
+  response: {
+    200: createSuccessResponseSchema({ type: 'object' }, 'Preferences retrieved'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const updateNotificationPreferencesSchema = {
+  summary: 'Update notification preferences',
+  description: 'Update notification preferences for the currently authenticated user',
+  tags: ['User Self-Management'],
+  security: [{ bearerAuth: [] }],
+  body: {
+    type: 'object',
+    properties: {
+      email_notifications: { type: 'boolean' },
+      push_notifications: { type: 'boolean' },
+      marketing_emails: { type: 'boolean' },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: createSuccessResponseSchema({ type: 'object' }, 'Preferences updated'),
+    400: createErrorResponseSchema(400, 'Bad Request'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const updateUserAccountSchema = {
+  summary: 'Update user account',
+  description: 'Update account information for the currently authenticated user',
+  tags: ['User Self-Management'],
+  security: [{ bearerAuth: [] }],
+  body: {
+    type: 'object',
+    properties: {
+      first_name: { type: 'string', minLength: 1, maxLength: 100 },
+      last_name: { type: 'string', minLength: 1, maxLength: 100 },
+      phone: { type: 'string', maxLength: 20 },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: createSuccessResponseSchema(userEntitySchema, 'Account updated'),
+    400: createErrorResponseSchema(400, 'Bad Request'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const updateUserPasswordSchema = {
+  summary: 'Update user password',
+  description: 'Update password for the currently authenticated user',
+  tags: ['User Self-Management'],
+  security: [{ bearerAuth: [] }],
+  body: {
+    type: 'object',
+    required: ['current_password', 'new_password'],
+    properties: {
+      current_password: { type: 'string', minLength: 1 },
+      new_password: { type: 'string', minLength: 6 },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: createSuccessResponseSchema({ type: 'object' }, 'Password updated'),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid password'),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },

@@ -2,7 +2,7 @@ import { academyService } from '../../services/academyService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class UserAcademyController {
-    async getAcademys(request, reply) {
+  async getAcademys(request, reply) {
     try {
       request.log.info('[userAcademyController] getAcademys start');
       request.log.debug({ query: request.query }, '[userAcademyController] rawQuery');
@@ -15,7 +15,7 @@ export class UserAcademyController {
     }
   }
 
-    async getAcademyBySlug(request, reply) {
+  async getAcademyBySlug(request, reply) {
     try {
       const { slug } = request.params;
       request.log.info('[userAcademyController] getAcademyBySlug start');
@@ -36,7 +36,7 @@ export class UserAcademyController {
     }
   }
 
-    async getCategories(request, reply) {
+  async getCategories(request, reply) {
     try {
       request.log.info('[userAcademyController] getCategories start');
       const categories = await academyService.getCategories();
@@ -49,5 +49,4 @@ export class UserAcademyController {
   }
 }
 
-// Export instance
 export const userAcademyController = new UserAcademyController();

@@ -2,14 +2,13 @@ import { academyService } from '../../services/academyService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AdminAcademyController {
-    async createAcademy(request, reply) {
+  async createAcademy(request, reply) {
     try {
       request.log.info('[adminAcademyController] createAcademy start');
       request.log.debug({ body: request.body, user: request.user }, '[adminAcademyController] rawBody');
 
       const createData = request.body || {};
 
-      // Handle file upload if available (from middleware)
       if (request.uploadedFile) {
         createData.imageFile = request.uploadedFile;
         request.log.info('[adminAcademyController] image file received from middleware');
@@ -32,7 +31,7 @@ export class AdminAcademyController {
     }
   }
 
-    async updateAcademy(request, reply) {
+  async updateAcademy(request, reply) {
     try {
       request.log.info('[adminAcademyController] updateAcademy start');
       request.log.debug({ params: request.params, body: request.body }, '[adminAcademyController] rawParams');
@@ -42,7 +41,6 @@ export class AdminAcademyController {
 
       request.log.debug({ updateData }, '[adminAcademyController] updateData before file processing');
 
-      // Handle file upload if available (from middleware)
       if (request.uploadedFile) {
         updateData.imageFile = request.uploadedFile;
         request.log.info('[adminAcademyController] image file received from middleware');
@@ -70,7 +68,7 @@ export class AdminAcademyController {
     }
   }
 
-    async deleteAcademy(request, reply) {
+  async deleteAcademy(request, reply) {
     try {
       request.log.info('[adminAcademyController] deleteAcademy start');
       request.log.debug({ params: request.params }, '[adminAcademyController] rawParams');
@@ -93,7 +91,7 @@ export class AdminAcademyController {
     }
   }
 
-    async getAllAcademies(request, reply) {
+  async getAllAcademies(request, reply) {
     try {
       request.log.info('[adminAcademyController] getAllAcademies start');
 
@@ -108,7 +106,7 @@ export class AdminAcademyController {
     }
   }
 
-    async getAcademyBySlug(request, reply) {
+  async getAcademyBySlug(request, reply) {
     try {
       const { slug } = request.params;
       request.log.info({ slug }, '[adminAcademyController] getAcademyBySlug start');
@@ -130,7 +128,7 @@ export class AdminAcademyController {
     }
   }
 
-    async getStatistics(request, reply) {
+  async getStatistics(request, reply) {
     try {
       request.log.info('[adminAcademyController] getStatistics start');
 
@@ -145,9 +143,7 @@ export class AdminAcademyController {
     }
   }
 
-  // PRICING METHODS
-
-    async createPricing(request, reply) {
+  async createPricing(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createPricing start');
@@ -169,7 +165,7 @@ export class AdminAcademyController {
     }
   }
 
-    async updatePricing(request, reply) {
+  async updatePricing(request, reply) {
     try {
       const { id, pricingId } = request.params;
 
@@ -192,7 +188,7 @@ export class AdminAcademyController {
     }
   }
 
-    async deletePricing(request, reply) {
+  async deletePricing(request, reply) {
     try {
       const { id, pricingId } = request.params;
       request.log.info({ academyId: id, pricingId }, '[adminAcademyController] deletePricing start');
@@ -214,9 +210,7 @@ export class AdminAcademyController {
     }
   }
 
-  // FEATURES METHODS
-
-    async createFeature(request, reply) {
+  async createFeature(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createFeature start');
@@ -237,7 +231,7 @@ export class AdminAcademyController {
     }
   }
 
-    async updateFeature(request, reply) {
+  async updateFeature(request, reply) {
     try {
       const { id, featureId } = request.params;
       request.log.info({ academyId: id, featureId }, '[adminAcademyController] updateFeature start');
@@ -258,7 +252,7 @@ export class AdminAcademyController {
     }
   }
 
-    async deleteFeature(request, reply) {
+  async deleteFeature(request, reply) {
     try {
       const { id, featureId } = request.params;
       request.log.info({ academyId: id, featureId }, '[adminAcademyController] deleteFeature start');
@@ -279,16 +273,13 @@ export class AdminAcademyController {
     }
   }
 
-  // INSTRUCTORS METHODS
-
-    async createInstructor(request, reply) {
+  async createInstructor(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createInstructor start');
 
       const instructorData = request.body || {};
 
-      // Handle file upload if available (from middleware)
       if (request.uploadedFile) {
         instructorData.avatarFile = request.uploadedFile;
         request.log.info('[adminAcademyController] instructor avatar file received from middleware');
@@ -310,14 +301,13 @@ export class AdminAcademyController {
     }
   }
 
-    async updateInstructor(request, reply) {
+  async updateInstructor(request, reply) {
     try {
       const { id, instructorId } = request.params;
       request.log.info({ academyId: id, instructorId }, '[adminAcademyController] updateInstructor start');
 
       const instructorData = request.body || {};
 
-      // Handle file upload if available (from middleware)
       if (request.uploadedFile) {
         instructorData.avatarFile = request.uploadedFile;
         request.log.info('[adminAcademyController] instructor avatar file received from middleware');
@@ -342,7 +332,7 @@ export class AdminAcademyController {
     }
   }
 
-    async deleteInstructor(request, reply) {
+  async deleteInstructor(request, reply) {
     try {
       const { id, instructorId } = request.params;
       request.log.info({ academyId: id, instructorId }, '[adminAcademyController] deleteInstructor start');
@@ -366,9 +356,7 @@ export class AdminAcademyController {
     }
   }
 
-  // TOPICS METHODS
-
-    async createTopic(request, reply) {
+  async createTopic(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createTopic start');
@@ -389,7 +377,7 @@ export class AdminAcademyController {
     }
   }
 
-    async updateTopic(request, reply) {
+  async updateTopic(request, reply) {
     try {
       const { id, topicId } = request.params;
       request.log.info({ academyId: id, topicId }, '[adminAcademyController] updateTopic start');
@@ -410,7 +398,7 @@ export class AdminAcademyController {
     }
   }
 
-    async deleteTopic(request, reply) {
+  async deleteTopic(request, reply) {
     try {
       const { id, topicId } = request.params;
       request.log.info({ academyId: id, topicId }, '[adminAcademyController] deleteTopic start');
@@ -431,16 +419,13 @@ export class AdminAcademyController {
     }
   }
 
-  // TESTIMONIALS METHODS
-
-    async createTestimonial(request, reply) {
+  async createTestimonial(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createTestimonial start');
 
       const testimonialData = request.body || {};
 
-      // Handle file upload if available (from middleware)
       if (request.uploadedFile) {
         testimonialData.avatarFile = request.uploadedFile;
         request.log.info('[adminAcademyController] testimonial avatar file received from middleware');
@@ -462,14 +447,13 @@ export class AdminAcademyController {
     }
   }
 
-    async updateTestimonial(request, reply) {
+  async updateTestimonial(request, reply) {
     try {
       const { id, testimonialId } = request.params;
       request.log.info({ academyId: id, testimonialId }, '[adminAcademyController] updateTestimonial start');
 
       const testimonialData = request.body || {};
 
-      // Handle file upload if available (from middleware)
       if (request.uploadedFile) {
         testimonialData.avatarFile = request.uploadedFile;
         request.log.info('[adminAcademyController] testimonial avatar file received from middleware');
@@ -494,7 +478,7 @@ export class AdminAcademyController {
     }
   }
 
-    async deleteTestimonial(request, reply) {
+  async deleteTestimonial(request, reply) {
     try {
       const { id, testimonialId } = request.params;
       request.log.info({ academyId: id, testimonialId }, '[adminAcademyController] deleteTestimonial start');
@@ -518,9 +502,7 @@ export class AdminAcademyController {
     }
   }
 
-  // FAQs METHODS
-
-    async createFaq(request, reply) {
+  async createFaq(request, reply) {
     try {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createFaq start');
@@ -541,7 +523,7 @@ export class AdminAcademyController {
     }
   }
 
-    async updateFaq(request, reply) {
+  async updateFaq(request, reply) {
     try {
       const { id, faqId } = request.params;
       request.log.info({ academyId: id, faqId }, '[adminAcademyController] updateFaq start');
@@ -562,7 +544,7 @@ export class AdminAcademyController {
     }
   }
 
-    async deleteFaq(request, reply) {
+  async deleteFaq(request, reply) {
     try {
       const { id, faqId } = request.params;
       request.log.info({ academyId: id, faqId }, '[adminAcademyController] deleteFaq start');
@@ -583,9 +565,7 @@ export class AdminAcademyController {
     }
   }
 
-  // SESSION METHODS
-
-    async createSession(request, reply) {
+  async createSession(request, reply) {
     try {
       request.log.info('[adminAcademyController] createSession start');
       request.log.debug({ params: request.params, body: request.body }, '[adminAcademyController] createSession params');
@@ -606,7 +586,7 @@ export class AdminAcademyController {
     }
   }
 
-    async updateSession(request, reply) {
+  async updateSession(request, reply) {
     try {
       request.log.info('[adminAcademyController] updateSession start');
       request.log.debug({ params: request.params, body: request.body }, '[adminAcademyController] updateSession params');
@@ -631,7 +611,7 @@ export class AdminAcademyController {
     }
   }
 
-    async deleteSession(request, reply) {
+  async deleteSession(request, reply) {
     try {
       request.log.info('[adminAcademyController] deleteSession start');
       request.log.debug({ params: request.params }, '[adminAcademyController] deleteSession params');
@@ -657,5 +637,4 @@ export class AdminAcademyController {
   }
 }
 
-// Export instance
 export const adminAcademyController = new AdminAcademyController();

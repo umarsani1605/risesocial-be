@@ -1,4 +1,4 @@
-import { getLogger } from '../../lib/loggerContext.js';
+import { getLogger } from '../../utils/loggerContext.js';
 
 export class BaseRepository {
   constructor(model) {

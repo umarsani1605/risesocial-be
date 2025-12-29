@@ -6,7 +6,7 @@ class JobsController {
     this.jobsService = jobsService;
   }
 
-    getJobs = async (request, reply) => {
+  getJobs = async (request, reply) => {
     request.log.info('[userJobsController] getJobs start');
     request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
     try {
@@ -56,7 +56,7 @@ class JobsController {
     }
   };
 
-    getJobById = async (request, reply) => {
+  getJobById = async (request, reply) => {
     request.log.info('[userJobsController] getJobById start');
     request.log.debug({ params: request.params }, '[userJobsController] rawParams');
     try {
@@ -78,7 +78,7 @@ class JobsController {
     }
   };
 
-    getFeaturedJobs = async (request, reply) => {
+  getFeaturedJobs = async (request, reply) => {
     try {
       request.log.info('[userJobsController] getFeaturedJobs start');
       request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
@@ -92,7 +92,7 @@ class JobsController {
     }
   };
 
-    getJobCategories = async (request, reply) => {
+  getJobCategories = async (request, reply) => {
     try {
       request.log.info('[userJobsController] getJobCategories start');
       const categories = await this.jobsService.getJobCategories();
@@ -104,7 +104,7 @@ class JobsController {
     }
   };
 
-    searchJobs = async (request, reply) => {
+  searchJobs = async (request, reply) => {
     try {
       request.log.info('[userJobsController] searchJobs start');
       request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
@@ -129,7 +129,7 @@ class JobsController {
     }
   };
 
-    getCompanies = async (request, reply) => {
+  getCompanies = async (request, reply) => {
     try {
       request.log.info('[userJobsController] getCompanies start');
       request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
@@ -169,7 +169,7 @@ class JobsController {
     }
   };
 
-    getJobRecommendations = async (request, reply) => {
+  getJobRecommendations = async (request, reply) => {
     try {
       request.log.info('[userJobsController] getJobRecommendations start');
       request.log.debug({ query: request.query }, '[userJobsController] rawQuery');

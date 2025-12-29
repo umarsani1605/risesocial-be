@@ -2,7 +2,7 @@ import { systemSettingsService } from '../../services/systemSettingsService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AdminSystemSettingsController {
-    async getAllSettings(request, reply) {
+  async getAllSettings(request, reply) {
     request.log.info('[adminSystemSettingsController] getAllSettings start');
     try {
       const settings = await systemSettingsService.getAllSettings();
@@ -14,7 +14,7 @@ export class AdminSystemSettingsController {
     }
   }
 
-    async getSetting(request, reply) {
+  async getSetting(request, reply) {
     try {
       const { key } = request.params;
       request.log.info('[adminSystemSettingsController] getSetting start');
@@ -34,7 +34,7 @@ export class AdminSystemSettingsController {
     }
   }
 
-    async setSetting(request, reply) {
+  async setSetting(request, reply) {
     try {
       const { key } = request.params;
       const { value, description } = request.body;
@@ -56,7 +56,7 @@ export class AdminSystemSettingsController {
     }
   }
 
-    async getLinkedInRateLimit(request, reply) {
+  async getLinkedInRateLimit(request, reply) {
     try {
       request.log.info('[adminSystemSettingsController] getLinkedInRateLimit start');
       const rateLimit = await systemSettingsService.getLinkedInRateLimit();
@@ -74,7 +74,7 @@ export class AdminSystemSettingsController {
     }
   }
 
-    async deleteSetting(request, reply) {
+  async deleteSetting(request, reply) {
     try {
       const { key } = request.params;
       request.log.info('[adminSystemSettingsController] deleteSetting start');
@@ -89,5 +89,4 @@ export class AdminSystemSettingsController {
   }
 }
 
-// Export instance
 export const adminSystemSettingsController = new AdminSystemSettingsController();

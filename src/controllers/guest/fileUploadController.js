@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import path from 'path';
 
 export class FileUploadController {
-    async uploadEssay(request, reply) {
+  async uploadEssay(request, reply) {
     try {
       if (!request.uploadedFile) {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
@@ -19,7 +19,7 @@ export class FileUploadController {
     }
   }
 
-    async uploadHeadshot(request, reply) {
+  async uploadHeadshot(request, reply) {
     try {
       if (!request.uploadedFile) {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
@@ -33,7 +33,7 @@ export class FileUploadController {
     }
   }
 
-    async uploadPaymentProof(request, reply) {
+  async uploadPaymentProof(request, reply) {
     try {
       if (!request.uploadedFile) {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
@@ -50,7 +50,7 @@ export class FileUploadController {
     }
   }
 
-    async downloadFile(request, reply) {
+  async downloadFile(request, reply) {
     try {
       const { id } = request.params;
 
@@ -79,7 +79,7 @@ export class FileUploadController {
     }
   }
 
-    async getFileInfo(request, reply) {
+  async getFileInfo(request, reply) {
     try {
       const { id } = request.params;
 
@@ -96,7 +96,7 @@ export class FileUploadController {
     }
   }
 
-    async deleteFile(request, reply) {
+  async deleteFile(request, reply) {
     try {
       const { id } = request.params;
 
@@ -118,7 +118,7 @@ export class FileUploadController {
     }
   }
 
-    async getFilesByType(request, reply) {
+  async getFilesByType(request, reply) {
     try {
       const { uploadType } = request.params;
       const { page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc' } = request.query;
@@ -148,7 +148,7 @@ export class FileUploadController {
     }
   }
 
-    async getUploadStats(request, reply) {
+  async getUploadStats(request, reply) {
     try {
       const stats = await fileUploadService.getUploadStatistics();
 
@@ -163,7 +163,7 @@ export class FileUploadController {
     }
   }
 
-    async healthCheck(request, reply) {
+  async healthCheck(request, reply) {
     try {
       const uploadDir = path.join(process.cwd(), 'uploads');
       const dirExists = await fs.pathExists(uploadDir);
@@ -192,7 +192,7 @@ export class FileUploadController {
     }
   }
 
-    async cleanupOrphanedFiles(request, reply) {
+  async cleanupOrphanedFiles(request, reply) {
     try {
       const cleanupResult = await fileUploadService.cleanupOrphanedFiles();
 

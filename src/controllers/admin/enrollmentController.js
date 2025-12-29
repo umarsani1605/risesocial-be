@@ -1,4 +1,3 @@
-
 import { enrollmentService } from '../../services/enrollmentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
@@ -7,7 +6,7 @@ export class AdminEnrollmentController {
     this.enrollmentService = enrollmentService;
   }
 
-    async getAllEnrollments(request, reply) {
+  async getAllEnrollments(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] getAllEnrollments start');
       request.log.debug({ query: request.query }, '[adminEnrollmentController] rawQuery');
@@ -37,7 +36,7 @@ export class AdminEnrollmentController {
     }
   }
 
-    async getAcademyEnrollments(request, reply) {
+  async getAcademyEnrollments(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] getAcademyEnrollments start');
       request.log.debug({ params: request.params, query: request.query }, '[adminEnrollmentController] rawParams');
@@ -61,7 +60,7 @@ export class AdminEnrollmentController {
     }
   }
 
-    async createEnrollment(request, reply) {
+  async createEnrollment(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] createEnrollment start');
       request.log.debug({ body: request.body }, '[adminEnrollmentController] rawBody');
@@ -84,7 +83,7 @@ export class AdminEnrollmentController {
     }
   }
 
-    async updateEnrollment(request, reply) {
+  async updateEnrollment(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] updateEnrollment start');
       request.log.debug({ params: request.params, body: request.body }, '[adminEnrollmentController] rawParams');
@@ -105,7 +104,7 @@ export class AdminEnrollmentController {
     }
   }
 
-    async updateStatus(request, reply) {
+  async updateStatus(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] updateStatus start');
       request.log.debug({ params: request.params, body: request.body }, '[adminEnrollmentController] rawParams');
@@ -128,7 +127,7 @@ export class AdminEnrollmentController {
     }
   }
 
-    async deleteEnrollment(request, reply) {
+  async deleteEnrollment(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] deleteEnrollment start');
       request.log.debug({ params: request.params }, '[adminEnrollmentController] rawParams');
@@ -149,7 +148,7 @@ export class AdminEnrollmentController {
     }
   }
 
-    async getEnrollmentStats(request, reply) {
+  async getEnrollmentStats(request, reply) {
     try {
       request.log.info('[adminEnrollmentController] getEnrollmentStats start');
       const stats = await this.enrollmentService.getEnrollmentStats();
@@ -162,5 +161,4 @@ export class AdminEnrollmentController {
   }
 }
 
-// Export instance
 export const adminEnrollmentController = new AdminEnrollmentController();

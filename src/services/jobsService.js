@@ -1,6 +1,6 @@
 import { jobsRepository } from '../repositories/jobsRepository.js';
 import { linkedInJobSearch } from '../integrations/linkedinJobSearch.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class JobsService {
   get logger() {
@@ -12,6 +12,18 @@ export class JobsService {
     const result = await jobsRepository.searchJobs(options);
     this.logger.info('[jobsService] searchJobs success');
     return result;
+  }
+
+  async getJobBySlug(slug) {
+    const job = await jobsRepository.findBySlug(slug);
+
+    if (!job) {
+      const error = new Error(`Job with slug '${slug}' not found`);
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return job;
   }
 
   async getJobById(id) {
@@ -31,16 +43,12 @@ export class JobsService {
   }
 
   async createJob(jobData, userId) {
-    if (jobData.salary_min && jobData.salary_max && jobData.salary_min > jobData.salary_max) {
-      throw new Error('Minimum salary cannot be greater than maximum salary');
-    }
-    if (jobData.application_deadline && new Date(jobData.application_deadline) < new Date()) {
-      throw new Error('Application deadline cannot be in the past');
-    }
+    await this.validateJobData(jobData);
 
     if (!jobData.slug) {
       jobData.slug = await this.generateUniqueSlug(jobData.title);
     } else {
+      this.validateSlug(jobData.slug);
       const slugExists = await jobsRepository.slugExists(jobData.slug);
       if (slugExists) throw new Error('Slug is already taken');
     }
@@ -65,15 +73,24 @@ export class JobsService {
       throw new Error('Minimum salary cannot be greater than maximum salary');
     }
 
+    if (updateData.title || updateData.description) {
+      await this.validateJobData(updateData, true);
+    }
+
     if (updateData.slug && updateData.slug !== existingJob.slug) {
       const slugExists = await jobsRepository.slugExists(updateData.slug, id);
       if (slugExists) throw new Error('Slug is already taken');
     }
 
-    if (updateData.posted_date) updateData.posted_date = new Date(updateData.posted_date);
-    if (updateData.valid_until) updateData.valid_until = new Date(updateData.valid_until);
+    if (updateData.posted_date) {
+      updateData.posted_date = new Date(updateData.posted_date);
+    }
+    if (updateData.valid_until) {
+      updateData.valid_until = new Date(updateData.valid_until);
+    }
 
     const { company, location, ...jobUpdateData } = updateData;
+
     const job = await jobsRepository.updateWithRelations(id, jobUpdateData, company, location);
     return job;
   }
@@ -82,6 +99,67 @@ export class JobsService {
     const job = await jobsRepository.findById(id);
     if (!job) throw new Error('Job not found');
     await jobsRepository.delete(id);
+  }
+
+  async validateJobData(data, isUpdate = false) {
+    const errors = [];
+
+    if (!isUpdate && !data.title) {
+      errors.push('Title is required');
+    }
+
+    if (data.title && data.title.length < 3) {
+      errors.push('Title must be at least 3 characters long');
+    }
+
+    if (data.title && data.title.length > 255) {
+      errors.push('Title must not exceed 255 characters');
+    }
+
+    if (!isUpdate && !data.description) {
+      errors.push('Description is required');
+    }
+
+    if (data.description && data.description.length < 50) {
+      errors.push('Description must be at least 50 characters long');
+    }
+
+    if (!isUpdate && !data.company) {
+      errors.push('Company is required');
+    }
+
+    if (!isUpdate && !data.location) {
+      errors.push('Location is required');
+    }
+
+    if (data.salary_min && data.salary_max && data.salary_min > data.salary_max) {
+      errors.push('Minimum salary cannot be greater than maximum salary');
+    }
+
+    if (data.application_deadline) {
+      const deadline = new Date(data.application_deadline);
+      if (deadline < new Date()) {
+        errors.push('Application deadline cannot be in the past');
+      }
+    }
+
+    if (data.job_type && !this.isValidJobType(data.job_type)) {
+      errors.push('Invalid job type');
+    }
+
+    if (data.experience_level && !this.isValidExperienceLevel(data.experience_level)) {
+      errors.push('Invalid experience level');
+    }
+
+    if (data.slug) {
+      this.validateSlug(data.slug);
+    }
+
+    if (errors.length > 0) {
+      const error = new Error(errors.join(', '));
+      error.statusCode = 400;
+      throw error;
+    }
   }
 
   async generateUniqueSlug(title) {
@@ -101,6 +179,30 @@ export class JobsService {
     }
 
     return slug;
+  }
+
+  validateSlug(slug) {
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      const error = new Error('Slug can only contain lowercase letters, numbers, and hyphens');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (slug.length < 3 || slug.length > 100) {
+      const error = new Error('Slug must be between 3 and 100 characters long');
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  isValidJobType(jobType) {
+    const validTypes = ['full-time', 'part-time', 'contract', 'internship', 'freelance', 'temporary'];
+    return validTypes.includes(jobType.toLowerCase());
+  }
+
+  isValidExperienceLevel(experienceLevel) {
+    const validLevels = ['entry-level', 'junior', 'mid-level', 'senior', 'lead', 'executive'];
+    return validLevels.includes(experienceLevel.toLowerCase());
   }
 
   generateSlug(title) {

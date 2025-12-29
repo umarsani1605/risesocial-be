@@ -1,16 +1,16 @@
 import { adminService } from '../services/adminService.js';
 import { successResponse, errorResponse } from '../utils/response.js';
-import { getLogger } from '../lib/loggerContext.js';
+import { getLogger } from '../utils/loggerContext.js';
 
 export class AdminController {
   constructor() {
     this.logger = getLogger();
   }
 
-    async uploadImage(request, reply) {
+  async uploadImage(request, reply) {
     try {
       const { file } = request;
-      const { type } = request.body; // ACADEMY_IMAGE, INSTRUCTOR_AVATAR, TESTIMONIAL_AVATAR
+      const { type } = request.body;
 
       if (!file) {
         return reply.status(400).json({
@@ -35,5 +35,4 @@ export class AdminController {
   }
 }
 
-// Export instance
 export const adminController = new AdminController();

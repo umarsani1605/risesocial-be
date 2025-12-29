@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma.js';
+import prisma from '../config/database.js';
 
 export class UserSettingsRepository {
   async getUserSettings(userId) {
@@ -93,5 +93,4 @@ export class UserSettingsRepository {
   }
 }
 
-// Export instance
 export const userSettingsRepository = new UserSettingsRepository();

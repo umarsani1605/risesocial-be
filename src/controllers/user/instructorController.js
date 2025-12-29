@@ -6,7 +6,7 @@ export class UserInstructorController {
     this.instructorService = instructorService;
   }
 
-    getAllInstructors = async (request, reply) => {
+  getAllInstructors = async (request, reply) => {
     try {
       request.log.info('[userInstructorController] getAllInstructors start');
       request.log.debug({ query: request.query }, '[userInstructorController] rawQuery');
@@ -28,7 +28,7 @@ export class UserInstructorController {
     }
   };
 
-    async getInstructorById(request, reply) {
+  async getInstructorById(request, reply) {
     try {
       request.log.info('[userInstructorController] getInstructorById start');
       request.log.debug({ params: request.params, query: request.query }, '[userInstructorController] rawParams');
@@ -51,7 +51,7 @@ export class UserInstructorController {
     }
   }
 
-    async searchInstructorByName(request, reply) {
+  async searchInstructorByName(request, reply) {
     try {
       request.log.info('[userInstructorController] searchInstructorByName start');
       request.log.debug({ query: request.query }, '[userInstructorController] rawQuery');
@@ -76,7 +76,7 @@ export class UserInstructorController {
     }
   }
 
-    async getInstructorsByJobTitle(request, reply) {
+  async getInstructorsByJobTitle(request, reply) {
     try {
       request.log.info('[userInstructorController] getInstructorsByJobTitle start');
       request.log.debug({ query: request.query }, '[userInstructorController] rawQuery');
@@ -101,7 +101,7 @@ export class UserInstructorController {
     }
   }
 
-    async getPopularInstructors(request, reply) {
+  async getPopularInstructors(request, reply) {
     try {
       request.log.info('[userInstructorController] getPopularInstructors start');
       request.log.debug({ query: request.query }, '[userInstructorController] rawQuery');
@@ -126,7 +126,7 @@ export class UserInstructorController {
     }
   }
 
-    async getInstructorsByAcademyId(request, reply) {
+  async getInstructorsByAcademyId(request, reply) {
     try {
       request.log.info('[userInstructorController] getInstructorsByAcademyId start');
       request.log.debug({ params: request.params }, '[userInstructorController] rawParams');
@@ -151,7 +151,7 @@ export class UserInstructorController {
     }
   }
 
-    async getAcademiesByInstructorId(request, reply) {
+  async getAcademiesByInstructorId(request, reply) {
     try {
       request.log.info('[userInstructorController] getAcademiesByInstructorId start');
       request.log.debug({ params: request.params }, '[userInstructorController] rawParams');
@@ -177,5 +177,4 @@ export class UserInstructorController {
   }
 }
 
-// Export instance
 export const userInstructorController = new UserInstructorController();
