@@ -26,6 +26,7 @@ export class JobsRepository extends BaseRepository {
       company,
       companySlug,
       jobSlug,
+      industry,
       skills,
       isRemote,
       sortBy = 'postedDate',
@@ -36,26 +37,37 @@ export class JobsRepository extends BaseRepository {
 
     const where = {};
 
+    // Full-text search across multiple fields
     if (query) {
       where.OR = [
         { title: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } },
-        { company: { contains: query, mode: 'insensitive' } },
-        { skills: { has: query } },
-        { location: { contains: query, mode: 'insensitive' } },
+        { company: { name: { contains: query, mode: 'insensitive' } } },
       ];
     }
 
-    if (location) {
-      where.location = { contains: location, mode: 'insensitive' };
+    // Location filter - search in related location table
+    if (location && location !== 'all') {
+      if (location.toLowerCase() === 'remote') {
+        where.location = { is_remote: true };
+      } else {
+        where.location = {
+          OR: [
+            { city: { contains: location, mode: 'insensitive' } },
+            { region: { contains: location, mode: 'insensitive' } },
+            { country: { contains: location, mode: 'insensitive' } },
+          ],
+        };
+      }
     }
 
+    // Job type filter (employment_type in schema)
     if (jobType && jobType !== 'all') {
-      where.job_type = jobType;
+      where.employment_type = { equals: jobType, mode: 'insensitive' };
     }
 
     if (experienceLevel && experienceLevel !== 'all') {
-      where.experience_level = experienceLevel;
+      where.seniority_level = { contains: experienceLevel, mode: 'insensitive' };
     }
 
     if (salaryMin || salaryMax) {
@@ -64,18 +76,30 @@ export class JobsRepository extends BaseRepository {
       if (salaryMax) where.salary_max = { lte: Number(salaryMax) };
     }
 
+    // Company name filter
     if (company) {
-      where.company = { contains: company, mode: 'insensitive' };
+      where.company = { name: { contains: company, mode: 'insensitive' } };
     }
 
+    // Company slug filter (exact match)
     if (companySlug) {
       where.company = {
+        ...where.company,
         slug: companySlug,
       };
     }
 
+    // Job slug filter (exact match)
     if (jobSlug) {
       where.slug = jobSlug;
+    }
+
+    // Industry filter - search in related company table
+    if (industry && industry !== 'all') {
+      where.company = {
+        ...where.company,
+        industry: { contains: industry, mode: 'insensitive' },
+      };
     }
 
     if (skills && Array.isArray(skills) && skills.length > 0) {
@@ -85,10 +109,19 @@ export class JobsRepository extends BaseRepository {
     }
 
     if (isRemote !== undefined) {
-      where.is_remote = Boolean(isRemote);
+      where.location = {
+        ...where.location,
+        is_remote: Boolean(isRemote),
+      };
     }
 
-    const orderBy = { created_at: sortOrder };
+    // Sort options
+    let orderBy = { created_at: sortOrder };
+    if (sortBy === 'postedDate') {
+      orderBy = { posted_date: sortOrder };
+    } else if (sortBy === 'title') {
+      orderBy = { title: sortOrder };
+    }
 
     const [data, total] = await Promise.all([
       this.model.findMany({
@@ -193,7 +226,7 @@ export class JobsRepository extends BaseRepository {
   }
 
   async findBySlug(slug) {
-    return await this.model.findUnique({
+    return await this.model.findFirst({
       where: { slug },
       include: {
         company: true,

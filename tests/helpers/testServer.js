@@ -14,6 +14,7 @@ import userUserRoutes from '../../src/routes/user/userRoutes.js';
 import adminUserRoutes from '../../src/routes/admin/userRoutes.js';
 import userAcademyRoutes from '../../src/routes/user/academyRoutes.js';
 import adminAcademyRoutes from '../../src/routes/admin/academyRoutes.js';
+import jobsRoutes from '../../src/routes/user/jobsRoutes.js';
 
 /**
  * Create a configured Fastify test instance
@@ -58,9 +59,10 @@ export async function createTestApp() {
   await fastify.register(adminUserRoutes, { prefix: '/api/admin/users' });
   await fastify.register(userAcademyRoutes, { prefix: '/api/academies' });
   await fastify.register(adminAcademyRoutes, { prefix: '/api/admin/academies' });
+  await fastify.register(jobsRoutes, { prefix: '/api/jobs' });
 
   await fastify.ready();
-  
+
   return fastify;
 }
 
@@ -87,15 +89,18 @@ export function generateAuthToken(payload) {
         reject(err);
         return;
       }
-      
-      const token = fastify.jwt.sign({
-        userId: payload.userId,
-        email: payload.email,
-        role: payload.role || 'USER',
-        firstName: payload.firstName || 'Test',
-        lastName: payload.lastName || 'User',
-      }, { expiresIn: '1h' });
-      
+
+      const token = fastify.jwt.sign(
+        {
+          userId: payload.userId,
+          email: payload.email,
+          role: payload.role || 'USER',
+          firstName: payload.firstName || 'Test',
+          lastName: payload.lastName || 'User',
+        },
+        { expiresIn: '1h' }
+      );
+
       fastify.close();
       resolve(token);
     });

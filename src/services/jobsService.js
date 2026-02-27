@@ -32,14 +32,26 @@ export class JobsService {
     return job;
   }
 
-  async getJobRecommendations(userId, preferences = {}) {
-    const userProfile = {
-      skills: preferences.skills || [],
-      preferredLocation: preferences.location,
-      experienceLevel: preferences.experienceLevel,
+  async getJobRecommendations(jobId, limit = 4) {
+    // Get the current job to find similar ones
+    const currentJob = await jobsRepository.findById(jobId);
+    if (!currentJob) {
+      throw new Error('Job not found');
+    }
+
+    // Find similar jobs based on company industry, excluding current job
+    const options = {
+      page: 1,
+      limit: limit + 1, // Get one extra to filter out current job
+      industry: currentJob.company?.industry,
     };
-    const jobs = await jobsRepository.getRecommendations(userProfile, preferences.limit || 10);
-    return jobs;
+
+    const result = await jobsRepository.searchJobs(options);
+
+    // Filter out the current job and limit results
+    const recommendations = result.data.filter((job) => job.id !== jobId).slice(0, limit);
+
+    return recommendations;
   }
 
   async createJob(jobData, userId) {

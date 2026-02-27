@@ -14,6 +14,7 @@ class JobsController {
         page = 1,
         limit = 10,
         search = '',
+        query = '',
         location = '',
         jobType = '',
         experienceLevel = '',
@@ -23,15 +24,16 @@ class JobsController {
         companyName = '',
         companySlug = '',
         jobSlug = '',
+        industry = '',
         skills = '',
-        sortBy = 'createdAt',
+        sortBy = 'postedDate',
         sortOrder = 'desc',
       } = request.query;
 
       const options = {
-        page: Number(page),
-        limit: Number(limit),
-        query: search,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        query: search || query,
         location,
         jobType,
         experienceLevel,
@@ -41,6 +43,7 @@ class JobsController {
         company: companyName,
         companySlug,
         jobSlug,
+        industry,
         skills: skills ? skills.split(',').map((skill) => skill.trim()) : undefined,
         sortBy,
         sortOrder,
@@ -49,7 +52,12 @@ class JobsController {
       const result = await this.jobsService.searchJobs(options);
 
       request.log.info('[userJobsController] getJobs success');
-      return reply.send(successResponse(result.data, 'Jobs retrieved successfully'));
+      return reply.send({
+        success: true,
+        message: 'Jobs retrieved successfully',
+        data: result.data,
+        meta: result.meta,
+      });
     } catch (error) {
       request.log.error({ err: error }, '[userJobsController] getJobs error');
       return reply.send(errorResponse(error.message, 500));
@@ -172,11 +180,12 @@ class JobsController {
   getJobRecommendations = async (request, reply) => {
     try {
       request.log.info('[userJobsController] getJobRecommendations start');
-      request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
-      const userId = request.user?.id;
-      const { limit = 10 } = request.query;
+      request.log.debug({ params: request.params, query: request.query }, '[userJobsController] rawParams');
+      const { id } = request.params;
+      const jobId = Number(id);
+      const { limit = 4 } = request.query;
 
-      const recommendations = await this.jobsService.getJobRecommendations(userId, Number(limit));
+      const recommendations = await this.jobsService.getJobRecommendations(jobId, Number(limit));
 
       request.log.info('[userJobsController] getJobRecommendations success');
       return reply.send(successResponse(recommendations, 'Job recommendations retrieved successfully'));

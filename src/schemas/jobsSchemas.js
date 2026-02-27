@@ -29,13 +29,15 @@ const jobEntitySchema = {
       nullable: true,
     },
     company: {
-      type: 'string',
-      description: 'Company name',
+      type: 'object',
+      additionalProperties: true,
+      description: 'Company information',
       nullable: true,
     },
     location: {
-      type: 'string',
-      description: 'Job location',
+      type: 'object',
+      additionalProperties: true,
+      description: 'Job location information',
       nullable: true,
     },
     jobType: {
