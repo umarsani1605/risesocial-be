@@ -21,7 +21,7 @@ class JobsController {
     try {
       const {
         page = 1,
-        limit = 10,
+        limit = 1000,
         search = '',
         location = '',
         jobType = '',

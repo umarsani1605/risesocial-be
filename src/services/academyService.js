@@ -37,6 +37,25 @@ export class AcademyService {
   }
 
   /**
+   * Get all academies with pagination and filtering
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} Paginated academies
+   */
+  async getAllAcademiesAdmin(options = {}) {
+    this.logger.info('[academyService] getAllAcademies start');
+    try {
+      const result = await this.academyRepository.findWithPaginationAdmin(options);
+
+      this.logger.info('[academyService] getAllAcademies success');
+      return result;
+    } catch (error) {
+      this.logger.error({ err: error }, '[academyService] getAllAcademies error');
+      throw error;
+    }
+  }
+
+
+  /**
    * Get academy by slug
    * @param {string} slug - Academy slug
    * @returns {Promise<Object>} Academy details

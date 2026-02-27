@@ -18,7 +18,7 @@ DROP INDEX "users_username_key";
 ALTER TABLE "user_settings" DROP COLUMN "job_notification",
 DROP COLUMN "program_notification",
 DROP COLUMN "promo_notification",
-ADD COLUMN     "key" VARCHAR(100) NOT NULL,
+ADD COLUMN     "key" VARCHAR(100),
 ADD COLUMN     "value" JSONB;
 
 -- CreateIndex

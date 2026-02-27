@@ -14,49 +14,6 @@ export default async function adminRylsRegistrationRoutes(fastify) {
    * GET /api/admin/ryls/registrations
    */
   fastify.get('/', {
-    schema: {
-      description: 'Get all registrations with pagination and filters (Admin only)',
-      tags: ['Admin RYLS Registration'],
-      querystring: {
-        type: 'object',
-        properties: {
-          page: { type: 'integer', minimum: 1, default: 1 },
-          limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
-          status: { type: 'string', enum: ['PENDING', 'APPROVED', 'REJECTED', 'WAITLISTED'] },
-          registrationType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'] },
-          sortBy: { type: 'string', default: 'createdAt' },
-          sortOrder: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
-          search: { type: 'string' },
-          startDate: { type: 'string', format: 'date' },
-          endDate: { type: 'string', format: 'date' },
-        },
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' },
-            data: {
-              type: 'object',
-              properties: {
-                registrations: { type: 'array' },
-                pagination: {
-                  type: 'object',
-                  properties: {
-                    page: { type: 'integer' },
-                    limit: { type: 'integer' },
-                    total: { type: 'integer' },
-                    pages: { type: 'integer' },
-                  },
-                },
-              },
-            },
-            timestamp: { type: 'string' },
-          },
-        },
-      },
-    },
     preHandler: [authMiddleware, authorizeRoles(['ADMIN'])],
     handler: adminRylsRegistrationController.getRegistrations,
   });

@@ -71,6 +71,64 @@ export class AcademyRepository extends BaseRepository {
         }
       : { _count: { select: { enrollments: true } } };
 
+    where.status = 'ACTIVE';
+    
+    const [data, total] = await Promise.all([
+      this.model.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        include,
+        orderBy: [{ rating: 'desc' }, { created_at: 'desc' }],
+      }),
+      this.model.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    };
+  }
+  
+  /**
+   * Find academies with pagination and filtering
+   */
+  async findWithPaginationAdmin(options = {}) {
+    this.logger.info({ options }, '[academyRepository] findWithPagination called');
+    const { page = 1, limit = 10, category, search, minRating, includeRelations = false } = options;
+
+    const skip = (page - 1) * limit;
+
+    let where = {};
+
+    if (category) {
+      where.category = category;
+    }
+
+    if (search) {
+      where.OR = [{ title: { contains: search, mode: 'insensitive' } }, { description: { contains: search, mode: 'insensitive' } }];
+    }
+
+    if (minRating) {
+      where.rating = { gte: Number(minRating) };
+    }
+
+    const include = includeRelations
+      ? {
+          pricing: { orderBy: { order: 'asc' } },
+          features: { orderBy: { order: 'asc' } },
+          instructors: { orderBy: { order: 'asc' } },
+          _count: { select: { enrollments: true } },
+        }
+      : { _count: { select: { enrollments: true } } };
+    
     const [data, total] = await Promise.all([
       this.model.findMany({
         where,

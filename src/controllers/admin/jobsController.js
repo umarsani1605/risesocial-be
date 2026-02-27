@@ -80,11 +80,6 @@ class JobsController {
 
       const success = await this.jobsService.deleteJob(jobId);
 
-      if (!success) {
-        req.log.info({ id: jobId }, '[adminJobsController] deleteJob not_found');
-        return reply.send(errorResponse('Job not found', 404));
-      }
-
       req.log.info('[adminJobsController] deleteJob success');
       return reply.send(successResponse(null, 'Job deleted successfully'));
     } catch (error) {

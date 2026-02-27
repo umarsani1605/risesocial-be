@@ -2,7 +2,6 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
-import fastifyCaching from '@fastify/caching';
 import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
 import { disconnectDatabase } from './lib/prisma.js';

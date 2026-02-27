@@ -174,13 +174,6 @@ export class JobsService {
    * @throws {Error} If job not found
    */
   async deleteJob(id) {
-    const job = await jobsRepository.findById(id);
-    if (!job) {
-      const error = new Error('Job not found');
-      error.statusCode = 404;
-      throw error;
-    }
-
     await jobsRepository.delete(id);
   }
 

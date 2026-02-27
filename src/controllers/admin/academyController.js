@@ -121,7 +121,7 @@ export class AdminAcademyController {
     try {
       request.log.info('[adminAcademyController] getAllAcademies start');
 
-      const result = await academyService.getAllAcademies(request.query);
+      const result = await academyService.getAllAcademiesAdmin(request.query);
 
       request.log.info('[adminAcademyController] getAllAcademies success');
 

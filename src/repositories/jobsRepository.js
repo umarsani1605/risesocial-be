@@ -96,6 +96,8 @@ export class JobsRepository extends BaseRepository {
     if (isRemote !== undefined) {
       where.is_remote = Boolean(isRemote);
     }
+    
+    where.status = 'active';
 
     const orderBy = { created_at: sortOrder };
 

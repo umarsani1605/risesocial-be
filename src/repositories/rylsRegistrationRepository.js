@@ -201,7 +201,7 @@ export class RylsRegistrationRepository extends BaseRepository {
   async getRegistrations(options = {}) {
     this.logger.info({ options }, '[rylsRegistrationRepository] getRegistrations called');
     try {
-      const { page = 1, limit = 10, status, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search } = options;
+      const { page = 1, limit = 1000, status, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search } = options;
 
       const skip = (page - 1) * limit;
       const whereClause = {};

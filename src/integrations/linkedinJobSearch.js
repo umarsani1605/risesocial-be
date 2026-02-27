@@ -30,7 +30,7 @@ export class LinkedInJobSearch {
     this.logger.info('[linkedinJobSearch] searchJobs start');
 
     const { filter = {} } = options;
-    const FIXED_LIMIT = 10; // fixed limit defined at integration layer
+    const FIXED_LIMIT = 20; // fixed limit defined at integration layer
 
     try {
       const hasWhitespace = (val) => /\s/.test(String(val));

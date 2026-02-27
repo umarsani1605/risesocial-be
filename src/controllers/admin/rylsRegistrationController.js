@@ -19,7 +19,7 @@ export class AdminRylsRegistrationController {
       request.log.info('[adminRylsRegistrationController] getRegistrations start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
 
-      const { page = 1, limit = 10, status, registrationType, sortBy = 'createdAt', sortOrder = 'desc', search, startDate, endDate } = request.query;
+      const { page = 1, limit = 1000, status, registrationType, sortBy = 'createdAt', sortOrder = 'desc', search, startDate, endDate } = request.query;
 
       const filters = {
         status,
