@@ -2,7 +2,6 @@ import { userService } from '../../services/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class UserController {
-  
   getCurrentUser = async (request, reply) => {
     try {
       request.log.info('[userUserController] getCurrentUser start');
@@ -61,8 +60,18 @@ export class UserController {
       const { userId } = request.user;
 
       const preferences = await userService.getNotificationPreferences(userId);
+      request.log.info({ preferences }, '[userUserController] getNotificationPreferences - preferences received');
+
+      // Ensure preferences is a plain object for serialization
+      const plainPreferences = {
+        promo_notification: preferences.promo_notification,
+        job_notification: preferences.job_notification,
+        program_notification: preferences.program_notification,
+      };
+
+      request.log.info({ plainPreferences }, '[userUserController] getNotificationPreferences - plain preferences');
       request.log.info('[userUserController] getNotificationPreferences success');
-      return reply.send(successResponse(preferences, 'Notification preferences retrieved successfully'));
+      return reply.send(successResponse(plainPreferences, 'Notification preferences retrieved successfully'));
     } catch (error) {
       request.log.error({ err: error }, '[userUserController] getNotificationPreferences error');
       return reply.status(500).send(errorResponse('Failed to get notification preferences', 500, error.message));
@@ -81,8 +90,16 @@ export class UserController {
       }
 
       const updatedPreferences = await userService.updateNotificationPreferences(userId, preferences);
+
+      // Ensure preferences is a plain object for serialization
+      const plainPreferences = {
+        promo_notification: updatedPreferences.promo_notification,
+        job_notification: updatedPreferences.job_notification,
+        program_notification: updatedPreferences.program_notification,
+      };
+
       request.log.info('[userUserController] updateNotificationPreferences success');
-      return reply.send(successResponse(updatedPreferences, 'Notification preferences updated successfully'));
+      return reply.send(successResponse(plainPreferences, 'Notification preferences updated successfully'));
     } catch (error) {
       request.log.error({ err: error }, '[userUserController] updateNotificationPreferences error');
       return reply.status(500).send(errorResponse('Failed to update notification preferences', 500, error.message));

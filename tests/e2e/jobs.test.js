@@ -33,7 +33,7 @@ describe('Jobs API E2E Tests', () => {
     it('should return jobs with meta pagination', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs',
+        url: '/jobs',
       });
 
       expect(response.statusCode).toBe(200);
@@ -53,7 +53,7 @@ describe('Jobs API E2E Tests', () => {
     it('should filter jobs by search query', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?search=Engineer',
+        url: '/jobs?search=Engineer',
       });
 
       expect(response.statusCode).toBe(200);
@@ -73,7 +73,7 @@ describe('Jobs API E2E Tests', () => {
     it('should filter jobs by location', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?location=Jakarta',
+        url: '/jobs?location=Jakarta',
       });
 
       expect(response.statusCode).toBe(200);
@@ -88,7 +88,7 @@ describe('Jobs API E2E Tests', () => {
     it('should filter jobs by industry', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?industry=Technology',
+        url: '/jobs?industry=Technology',
       });
 
       expect(response.statusCode).toBe(200);
@@ -103,7 +103,7 @@ describe('Jobs API E2E Tests', () => {
     it('should filter jobs by jobType', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?jobType=FULL_TIME',
+        url: '/jobs?jobType=FULL_TIME',
       });
 
       expect(response.statusCode).toBe(200);
@@ -121,12 +121,12 @@ describe('Jobs API E2E Tests', () => {
 
       const page1 = await app.inject({
         method: 'GET',
-        url: '/api/jobs?page=1&limit=5',
+        url: '/jobs?page=1&limit=5',
       });
 
       const page2 = await app.inject({
         method: 'GET',
-        url: '/api/jobs?page=2&limit=5',
+        url: '/jobs?page=2&limit=5',
       });
 
       expect(page1.statusCode).toBe(200);
@@ -149,7 +149,7 @@ describe('Jobs API E2E Tests', () => {
     it('should filter by companySlug', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?companySlug=green-tech-corp',
+        url: '/jobs?companySlug=green-tech-corp',
       });
 
       expect(response.statusCode).toBe(200);
@@ -164,7 +164,7 @@ describe('Jobs API E2E Tests', () => {
     it('should filter by jobSlug', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?jobSlug=software-engineer',
+        url: '/jobs?jobSlug=software-engineer',
       });
 
       expect(response.statusCode).toBe(200);
@@ -178,7 +178,7 @@ describe('Jobs API E2E Tests', () => {
     it('should return empty array when no jobs match', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?search=NonExistentJob12345',
+        url: '/jobs?search=NonExistentJob12345',
       });
 
       expect(response.statusCode).toBe(200);
@@ -192,7 +192,7 @@ describe('Jobs API E2E Tests', () => {
     it('should combine multiple filters (AND logic)', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?location=Jakarta&industry=Technology',
+        url: '/jobs?location=Jakarta&industry=Technology',
       });
 
       expect(response.statusCode).toBe(200);
@@ -228,7 +228,7 @@ describe('Jobs API E2E Tests', () => {
     it('should return 404 for non-existent job ID', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/99999',
+        url: '/jobs/99999',
       });
 
       expect(response.statusCode).toBe(200);
@@ -260,7 +260,7 @@ describe('Jobs API E2E Tests', () => {
     it('should return companies list with job counts', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/company',
+        url: '/jobs/company',
       });
 
       expect(response.statusCode).toBe(200);
@@ -281,7 +281,7 @@ describe('Jobs API E2E Tests', () => {
     it('should filter companies by slug', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/company?slug=green-tech-corp',
+        url: '/jobs/company?slug=green-tech-corp',
       });
 
       expect(response.statusCode).toBe(200);
@@ -295,7 +295,7 @@ describe('Jobs API E2E Tests', () => {
     it('should filter companies by industry', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/company?industry=Technology',
+        url: '/jobs/company?industry=Technology',
       });
 
       expect(response.statusCode).toBe(200);
@@ -310,7 +310,7 @@ describe('Jobs API E2E Tests', () => {
     it('should paginate companies', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/company?page=1&limit=2',
+        url: '/jobs/company?page=1&limit=2',
       });
 
       expect(response.statusCode).toBe(200);
@@ -326,7 +326,7 @@ describe('Jobs API E2E Tests', () => {
     it('should return job categories', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/categories',
+        url: '/jobs/categories',
       });
 
       expect(response.statusCode).toBe(200);
@@ -341,7 +341,7 @@ describe('Jobs API E2E Tests', () => {
     it('should return featured jobs', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/featured',
+        url: '/jobs/featured',
       });
 
       expect(response.statusCode).toBe(200);
@@ -355,7 +355,7 @@ describe('Jobs API E2E Tests', () => {
     it('should respect limit parameter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/featured?limit=3',
+        url: '/jobs/featured?limit=3',
       });
 
       expect(response.statusCode).toBe(200);
@@ -372,7 +372,7 @@ describe('Jobs API E2E Tests', () => {
     it.skip('should search jobs with query parameter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/search?q=Engineer',
+        url: '/jobs/search?q=Engineer',
       });
 
       expect(response.statusCode).toBe(200);
@@ -385,7 +385,7 @@ describe('Jobs API E2E Tests', () => {
     it.skip('should support location filter in search', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/search?q=job&location=Jakarta',
+        url: '/jobs/search?q=job&location=Jakarta',
       });
 
       expect(response.statusCode).toBe(200);
@@ -399,7 +399,7 @@ describe('Jobs API E2E Tests', () => {
     it('should match API docs response format for jobs list', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs',
+        url: '/jobs',
       });
 
       const body = JSON.parse(response.payload);
@@ -459,7 +459,7 @@ describe('Jobs API E2E Tests', () => {
     it('should match API docs response format for companies', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs/company',
+        url: '/jobs/company',
       });
 
       const body = JSON.parse(response.payload);
@@ -483,7 +483,7 @@ describe('Jobs API E2E Tests', () => {
     it('should handle search without query param via main endpoint', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs',
+        url: '/jobs',
       });
 
       expect(response.statusCode).toBe(200);
@@ -494,7 +494,7 @@ describe('Jobs API E2E Tests', () => {
     it('should handle special characters in search', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?search=' + encodeURIComponent('test query'),
+        url: '/jobs?search=' + encodeURIComponent('test query'),
       });
 
       expect(response.statusCode).toBe(200);
@@ -505,7 +505,7 @@ describe('Jobs API E2E Tests', () => {
     it('should handle large page numbers gracefully', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?page=9999',
+        url: '/jobs?page=9999',
       });
 
       expect(response.statusCode).toBe(200);
@@ -517,7 +517,7 @@ describe('Jobs API E2E Tests', () => {
     it('should handle invalid limit gracefully', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/jobs?limit=abc',
+        url: '/jobs?limit=abc',
       });
 
       // Should either return 400 or handle gracefully

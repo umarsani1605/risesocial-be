@@ -7,8 +7,6 @@ export function successResponse(data, message = 'Success', meta = {}) {
     data,
   };
 
-  getLogger().info({ response }, 'successResponse');
-
   if (Object.keys(meta).length > 0) {
     response.meta = meta;
   }

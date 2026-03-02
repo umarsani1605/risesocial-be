@@ -39,7 +39,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/auth/register',
         payload: userData,
       });
 
@@ -74,14 +74,14 @@ describe('Authentication E2E Tests', () => {
 
       await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/auth/register',
         payload: userData,
       });
 
       // Act - try to register with same email
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/auth/register',
         payload: userData,
       });
 
@@ -103,7 +103,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/auth/register',
         payload: invalidData,
       });
 
@@ -126,7 +126,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/auth/register',
         payload: invalidData,
       });
 
@@ -143,7 +143,7 @@ describe('Authentication E2E Tests', () => {
       // Create a test user for login tests
       await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/auth/register',
         payload: {
           first_name: 'Test',
           last_name: 'User',
@@ -163,7 +163,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/auth/login',
         payload: loginData,
       });
 
@@ -194,7 +194,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/auth/login',
         payload: loginData,
       });
 
@@ -216,7 +216,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/auth/login',
         payload: loginData,
       });
 
@@ -239,7 +239,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/auth/login',
         payload: loginData,
       });
 
@@ -262,7 +262,7 @@ describe('Authentication E2E Tests', () => {
       // Register and login to get token
       const registerResponse = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/auth/register',
         payload: {
           first_name: 'Auth',
           last_name: 'User',
@@ -280,7 +280,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/session',
+        url: '/auth/session',
         headers: {
           authorization: `Bearer ${authToken}`,
         },
@@ -301,7 +301,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/session',
+        url: '/auth/session',
       });
 
       // Assert
@@ -315,7 +315,7 @@ describe('Authentication E2E Tests', () => {
       // Act
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/session',
+        url: '/auth/session',
         headers: {
           authorization: 'Bearer invalid-token',
         },

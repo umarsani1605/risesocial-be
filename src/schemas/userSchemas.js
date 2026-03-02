@@ -184,15 +184,24 @@ export const updateUserSettingsSchema = {
   security: [{ bearerAuth: [] }],
   body: {
     type: 'object',
+    required: ['settings'],
     properties: {
-      theme: { type: 'string', enum: ['light', 'dark', 'system'] },
-      language: { type: 'string' },
-      timezone: { type: 'string' },
+      settings: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['key', 'value'],
+          properties: {
+            key: { type: 'string', description: 'Setting key' },
+            value: { description: 'Setting value (can be any type)' },
+          },
+        },
+      },
     },
     additionalProperties: false,
   },
   response: {
-    200: createSuccessResponseSchema({ type: 'object' }, 'Settings updated'),
+    200: createSuccessResponseSchema({ type: 'array' }, 'Settings updated'),
     400: createErrorResponseSchema(400, 'Bad Request'),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
@@ -205,7 +214,17 @@ export const getNotificationPreferencesSchema = {
   tags: ['User Self-Management'],
   security: [{ bearerAuth: [] }],
   response: {
-    200: createSuccessResponseSchema({ type: 'object' }, 'Preferences retrieved'),
+    200: createSuccessResponseSchema(
+      {
+        type: 'object',
+        properties: {
+          promo_notification: { type: 'boolean', description: 'Promotional notifications' },
+          job_notification: { type: 'boolean', description: 'Job notifications' },
+          program_notification: { type: 'boolean', description: 'Program notifications' },
+        },
+      },
+      'Preferences retrieved',
+    ),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
@@ -218,15 +237,32 @@ export const updateNotificationPreferencesSchema = {
   security: [{ bearerAuth: [] }],
   body: {
     type: 'object',
+    required: ['preferences'],
     properties: {
-      email_notifications: { type: 'boolean' },
-      push_notifications: { type: 'boolean' },
-      marketing_emails: { type: 'boolean' },
+      preferences: {
+        type: 'object',
+        properties: {
+          promo_notification: { type: 'boolean', description: 'Promotional notifications' },
+          job_notification: { type: 'boolean', description: 'Job notifications' },
+          program_notification: { type: 'boolean', description: 'Program notifications' },
+        },
+        additionalProperties: false,
+      },
     },
     additionalProperties: false,
   },
   response: {
-    200: createSuccessResponseSchema({ type: 'object' }, 'Preferences updated'),
+    200: createSuccessResponseSchema(
+      {
+        type: 'object',
+        properties: {
+          promo_notification: { type: 'boolean', description: 'Promotional notifications' },
+          job_notification: { type: 'boolean', description: 'Job notifications' },
+          program_notification: { type: 'boolean', description: 'Program notifications' },
+        },
+      },
+      'Preferences updated',
+    ),
     400: createErrorResponseSchema(400, 'Bad Request'),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
@@ -241,9 +277,11 @@ export const updateUserAccountSchema = {
   body: {
     type: 'object',
     properties: {
-      first_name: { type: 'string', minLength: 1, maxLength: 100 },
-      last_name: { type: 'string', minLength: 1, maxLength: 100 },
-      phone: { type: 'string', maxLength: 20 },
+      first_name: { type: 'string', minLength: 1, maxLength: 100, description: 'First name' },
+      last_name: { type: 'string', minLength: 1, maxLength: 100, description: 'Last name' },
+      email: { type: 'string', format: 'email', description: 'Email address' },
+      phone: { type: 'string', maxLength: 20, description: 'Phone number' },
+      avatar: { type: 'string', description: 'Avatar URL' },
     },
     additionalProperties: false,
   },
@@ -262,10 +300,10 @@ export const updateUserPasswordSchema = {
   security: [{ bearerAuth: [] }],
   body: {
     type: 'object',
-    required: ['current_password', 'new_password'],
+    required: ['password', 'repeatPassword'],
     properties: {
-      current_password: { type: 'string', minLength: 1 },
-      new_password: { type: 'string', minLength: 6 },
+      password: { type: 'string', minLength: 6, description: 'New password (min 6 characters)' },
+      repeatPassword: { type: 'string', minLength: 6, description: 'Repeat new password' },
     },
     additionalProperties: false,
   },

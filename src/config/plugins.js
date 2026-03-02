@@ -20,8 +20,8 @@ export async function registerPlugins(fastify) {
   await fastify.register(cors, {
     origin: (origin, cb) => {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const backendUrl = `http://localhost:${process.env.PORT || 8000}`;
-      const allowedOrigins = [frontendUrl, backendUrl];
+      const port = process.env.PORT || 8000;
+      const allowedOrigins = [frontendUrl, `http://localhost:${port}`, `http://127.0.0.1:${port}`, `http://0.0.0.0:${port}`];
 
       if (!origin || allowedOrigins.includes(origin)) {
         cb(null, true);

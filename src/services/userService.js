@@ -207,7 +207,7 @@ export class UserService {
 
       const result = await userSettingsRepository.upsertUserSetting(userId, 'notification_preferences', validatedPreferences);
       this.logger.info('[userService] updateNotificationPreferences success');
-      return result;
+      return result.value;
     } catch (error) {
       this.logger.error({ err: error }, '[userService] updateNotificationPreferences error');
       throw error;
@@ -227,8 +227,11 @@ export class UserService {
         };
       }
 
+      // Convert Prisma JSON to plain object by serializing and deserializing
+      const preferences = JSON.parse(JSON.stringify(setting.value));
+
       this.logger.info('[userService] getNotificationPreferences success');
-      return setting.value;
+      return preferences;
     } catch (error) {
       this.logger.error({ err: error }, '[userService] getNotificationPreferences error');
       throw error;
@@ -253,7 +256,9 @@ export class UserService {
       if (accountData.email) {
         const existingUser = await userRepository.findByEmail(accountData.email);
         if (existingUser && existingUser.id !== userId) {
-          throw new Error('Email is already registered');
+          const error = new Error('Email is already registered');
+          error.statusCode = 400;
+          throw error;
         }
       }
 

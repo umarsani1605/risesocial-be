@@ -61,6 +61,5 @@ export const swaggerUiConfig = {
     docExpansion: 'list',
     deepLinking: true,
   },
-  staticCSP: true,
   transformSpecificationClone: true,
 };

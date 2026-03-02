@@ -53,13 +53,13 @@ export async function createTestApp() {
     service: 'rise-social-backend-test',
   }));
 
-  // Register routes with /api prefix
-  await fastify.register(authRoutes, { prefix: '/api/auth' });
-  await fastify.register(userUserRoutes, { prefix: '/api/users' });
-  await fastify.register(adminUserRoutes, { prefix: '/api/admin/users' });
-  await fastify.register(userAcademyRoutes, { prefix: '/api/academies' });
-  await fastify.register(adminAcademyRoutes, { prefix: '/api/admin/academies' });
-  await fastify.register(jobsRoutes, { prefix: '/api/jobs' });
+  // Register routes (same as production - no /api prefix)
+  await fastify.register(authRoutes, { prefix: '/auth' });
+  await fastify.register(userUserRoutes, { prefix: '/users' });
+  await fastify.register(adminUserRoutes, { prefix: '/admin/users' });
+  await fastify.register(userAcademyRoutes, { prefix: '/academies' });
+  await fastify.register(adminAcademyRoutes, { prefix: '/admin/academies' });
+  await fastify.register(jobsRoutes, { prefix: '/jobs' });
 
   await fastify.ready();
 
@@ -98,7 +98,7 @@ export function generateAuthToken(payload) {
           firstName: payload.firstName || 'Test',
           lastName: payload.lastName || 'User',
         },
-        { expiresIn: '1h' }
+        { expiresIn: '1h' },
       );
 
       fastify.close();

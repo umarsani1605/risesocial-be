@@ -191,6 +191,14 @@ export const uploadUserAvatar = async (request, reply) => {
   try {
     request.log.info('[fileUploadMiddleware] uploadUserAvatar start');
 
+    // Check if request is multipart/form-data
+    const contentType = request.headers['content-type'] || '';
+    if (!contentType.includes('multipart/form-data')) {
+      // Not multipart, skip file processing (JSON request)
+      request.log.info('[fileUploadMiddleware] uploadUserAvatar - JSON request, skipping file processing');
+      return;
+    }
+
     const formData = {};
     const parts = request.parts();
 

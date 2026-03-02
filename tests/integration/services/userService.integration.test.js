@@ -5,7 +5,7 @@ import { userService } from '../../../src/services/userService.js';
 /**
  * Integration Tests for UserService
  * Tests with real database connections
- * 
+ *
  * Requirements: 5.1, 5.2, 5.3, 5.4
  */
 
@@ -25,9 +25,9 @@ describe('UserService Integration Tests', () => {
     it('should create user and persist to database', async () => {
       // Arrange
       const userData = {
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john.doe@test.com',
+        first_name: 'Integration',
+        last_name: 'Test1',
+        email: 'integration.test1@test.com',
         password: 'password123',
       };
 
@@ -36,26 +36,26 @@ describe('UserService Integration Tests', () => {
 
       // Assert - verify user was created
       expect(createdUser).toBeDefined();
-      expect(createdUser.email).toBe('john.doe@test.com');
+      expect(createdUser.email).toBe('integration.test1@test.com');
       expect(createdUser).not.toHaveProperty('password');
 
       // Verify data is actually in database
       const userInDb = await prisma.user.findUnique({
-        where: { email: 'john.doe@test.com' },
+        where: { email: 'integration.test1@test.com' },
       });
 
       expect(userInDb).toBeDefined();
-      expect(userInDb.first_name).toBe('John');
-      expect(userInDb.last_name).toBe('Doe');
-      expect(userInDb.email).toBe('john.doe@test.com');
+      expect(userInDb.first_name).toBe('Integration');
+      expect(userInDb.last_name).toBe('Test1');
+      expect(userInDb.email).toBe('integration.test1@test.com');
     });
 
     it('should create user with default settings', async () => {
       // Arrange
       const userData = {
-        first_name: 'Jane',
-        last_name: 'Smith',
-        email: 'jane.smith@test.com',
+        first_name: 'Integration',
+        last_name: 'Test2',
+        email: 'integration.test2@test.com',
         password: 'password123',
       };
 
@@ -68,8 +68,8 @@ describe('UserService Integration Tests', () => {
       });
 
       expect(settings.length).toBeGreaterThan(0);
-      
-      const notificationSettings = settings.find(s => s.key === 'notification_preferences');
+
+      const notificationSettings = settings.find((s) => s.key === 'notification_preferences');
       expect(notificationSettings).toBeDefined();
       expect(notificationSettings.value).toHaveProperty('promo_notification');
     });
@@ -91,8 +91,8 @@ describe('UserService Integration Tests', () => {
         userService.createUser({
           ...userData,
           first_name: 'Another',
-        })
-      ).rejects.toThrow('Email is already registered');
+        }),
+      ).rejects.toThrow('Email already exists');
     });
   });
 
