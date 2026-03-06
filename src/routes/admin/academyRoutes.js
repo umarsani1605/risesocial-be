@@ -29,7 +29,7 @@ import {
   createSessionSchema,
   updateSessionSchema,
   deleteSessionSchema,
-} from '../../schemas/academySchemas.js';
+} from '../../schemas/shared/academySchemas.js';
 
 export default async function adminAcademyRoutes(fastify) {
   fastify.get('/', {

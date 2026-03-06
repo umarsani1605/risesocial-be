@@ -7,7 +7,7 @@ import {
   getRegistrationByIdSchema,
   updateRegistrationStatusSchema,
   deleteRegistrationSchema,
-} from '../../schemas/rylsRegistrationSchemas.js';
+} from '../../schemas/admin/rylsRegistrationSchemas.js';
 
 export default async function adminRylsRegistrationRoutes(fastify) {
   const adminRegistrationTag = { tags: ['Admin RYLS Registration'] };

@@ -9,7 +9,7 @@ import {
   updateNotificationPreferencesSchema,
   updateUserAccountSchema,
   updateUserPasswordSchema,
-} from '../../schemas/userSchemas.js';
+} from '../../schemas/shared/userSchemas.js';
 
 export default async function userUserRoutes(fastify) {
   fastify.get('/profile', {

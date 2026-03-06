@@ -361,3 +361,137 @@ export function getMockSearchResult(jobs = [], meta = {}) {
     },
   };
 }
+
+/**
+ * Seed jobs with mixed status (active and inactive) for admin testing
+ * @returns {Array} Array of created jobs with mixed statuses
+ */
+export async function seedJobsWithMixedStatus() {
+  const prisma = getTestPrisma();
+  const jobs = [];
+
+  // Ensure we have at least one company and location
+  if (createdCompanies.length === 0) {
+    await seedCompanies();
+  }
+  if (createdLocations.length === 0) {
+    await seedLocations();
+  }
+
+  const company = createdCompanies[0];
+  const location = createdLocations[0];
+
+  // Create 3 active jobs
+  for (let i = 0; i < 3; i++) {
+    const slug = `active-job-${Date.now()}-${i}`;
+    const jobData = {
+      title: `Active Job ${i + 1}`,
+      slug,
+      description: 'Active test job for admin testing',
+      employment_type: 'FULL_TIME',
+      seniority_level: 'MID_LEVEL',
+      status: 'active',
+      posted_date: new Date(),
+      company_id: company.id,
+      location_id: location.id,
+    };
+
+    const created = await prisma.job.create({
+      data: jobData,
+    });
+
+    jobs.push(created);
+  }
+
+  // Create 2 inactive jobs
+  for (let i = 0; i < 2; i++) {
+    const slug = `inactive-job-${Date.now()}-${i}`;
+    const jobData = {
+      title: `Inactive Job ${i + 1}`,
+      slug,
+      description: 'Inactive test job for admin testing',
+      employment_type: 'FULL_TIME',
+      seniority_level: 'MID_LEVEL',
+      status: 'inactive',
+      posted_date: new Date(),
+      company_id: company.id,
+      location_id: location.id,
+    };
+
+    const created = await prisma.job.create({
+      data: jobData,
+    });
+
+    jobs.push(created);
+  }
+
+  return jobs;
+}
+
+/**
+ * Seed featured jobs for testing featured filter
+ * @returns {Array} Array of created featured jobs
+ */
+export async function seedFeaturedJobs() {
+  const prisma = getTestPrisma();
+  const jobs = [];
+
+  // Ensure we have at least one company and location
+  if (createdCompanies.length === 0) {
+    await seedCompanies();
+  }
+  if (createdLocations.length === 0) {
+    await seedLocations();
+  }
+
+  const company = createdCompanies[0];
+  const location = createdLocations[0];
+
+  // Create 3 featured jobs
+  for (let i = 0; i < 3; i++) {
+    const slug = `featured-job-${Date.now()}-${i}`;
+    const jobData = {
+      title: `Featured Job ${i + 1}`,
+      slug,
+      description: 'Featured test job',
+      employment_type: 'FULL_TIME',
+      seniority_level: 'MID_LEVEL',
+      status: 'active',
+      featured: true,
+      posted_date: new Date(),
+      company_id: company.id,
+      location_id: location.id,
+    };
+
+    const created = await prisma.job.create({
+      data: jobData,
+    });
+
+    jobs.push(created);
+  }
+
+  // Create 2 non-featured jobs
+  for (let i = 0; i < 2; i++) {
+    const slug = `non-featured-job-${Date.now()}-${i}`;
+    const jobData = {
+      title: `Non-Featured Job ${i + 1}`,
+      slug,
+      description: 'Non-featured test job',
+      employment_type: 'FULL_TIME',
+      seniority_level: 'MID_LEVEL',
+      status: 'active',
+      featured: false,
+      posted_date: new Date(),
+      company_id: company.id,
+      location_id: location.id,
+    };
+
+    const created = await prisma.job.create({
+      data: jobData,
+    });
+
+    jobs.push(created);
+  }
+
+  return jobs;
+}

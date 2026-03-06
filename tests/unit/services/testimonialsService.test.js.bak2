@@ -1,0 +1,1886 @@
+/**
+ * TestimonialsService Unit Tests
+ * Tests business logic with mocked repository
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getMockTestimonial, getMockPaginatedResult, getMockResultWithoutPagination } from '../../helpers/testimonialsFixtures.js';
+
+// Mock repository
+const mockTestimonialsRepository = {
+  findMany: vi.fn(),
+  findManyForAdmin: vi.fn(),
+  findById: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
+// Mock user repository
+vi.mock('../../../src/repositories/user/testimonialsRepository.js', () => ({
+  userTestimonialsRepository: mockTestimonialsRepository,
+}));
+
+// Mock admin repository
+const mockAdminTestimonialsRepository = {
+  findMany: vi.fn(),
+  findById: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+  getStatistics: vi.fn(),
+};
+
+vi.mock('../../../src/repositories/admin/testimonialsRepository.js', () => ({
+  adminTestimonialsRepository: mockAdminTestimonialsRepository,
+}));
+
+// Mock logger
+vi.mock('../../../src/utils/loggerContext.js', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
+
+// Import after mocking
+const { userTestimonialsService } = await import('../../../src/services/user/testimonialsService.js');
+const { adminTestimonialsService } = await import('../../../src/services/admin/testimonialsService.js');
+
+describe('TestimonialsService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getTestimonials()', () => {
+    // Task 12.2 - Test getTestimonials() with filters
+    it('should return testimonials with country filter', async () => {
+      const mockTestimonials = [getMockTestimonial({ country: 'Indonesia' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({ country: 'Indonesia' });
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith(
+        { country: 'Indonesia', status: 'ACTIVE' },
+        undefined,
+        undefined,
+        'createdAt',
+        'desc',
+      );
+      expect(result.testimonials).toEqual(mockTestimonials);
+      expect(result.pagination).toBeUndefined();
+    });
+
+    it('should return testimonials with minRating filter', async () => {
+      const mockTestimonials = [getMockTestimonial({ rating: 5 })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({ minRating: 4 });
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith({ minRating: 4, status: 'ACTIVE' }, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should return testimonials with featured filter', async () => {
+      const mockTestimonials = [getMockTestimonial({ featured: true })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({ featured: true });
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith(
+        { featured: true, status: 'ACTIVE' },
+        undefined,
+        undefined,
+        'createdAt',
+        'desc',
+      );
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should return testimonials with search filter', async () => {
+      const mockTestimonials = [getMockTestimonial({ name: 'John Doe' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({ search: 'John' });
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith(
+        { search: 'John', status: 'ACTIVE' },
+        undefined,
+        undefined,
+        'createdAt',
+        'desc',
+      );
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should return testimonials with multiple filters', async () => {
+      const mockTestimonials = [getMockTestimonial({ country: 'Indonesia', rating: 5, featured: true })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({
+        country: 'Indonesia',
+        minRating: 4,
+        featured: true,
+      });
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith(
+        { country: 'Indonesia', minRating: 4, featured: true, status: 'ACTIVE' },
+        undefined,
+        undefined,
+        'createdAt',
+        'desc',
+      );
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should enforce ACTIVE status filter for public endpoint', async () => {
+      const mockTestimonials = [getMockTestimonial({ status: 'ACTIVE' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      await userTestimonialsService.getTestimonials({});
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith({ status: 'ACTIVE' }, undefined, undefined, 'createdAt', 'desc');
+    });
+
+    it('should override any status filter with ACTIVE for public endpoint', async () => {
+      const mockTestimonials = [getMockTestimonial({ status: 'ACTIVE' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      await userTestimonialsService.getTestimonials({ status: 'INACTIVE' });
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith({ status: 'ACTIVE' }, undefined, undefined, 'createdAt', 'desc');
+    });
+
+    it('should pass custom sortBy and sortOrder to repository', async () => {
+      const mockTestimonials = [getMockTestimonial()];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      await userTestimonialsService.getTestimonials({}, undefined, undefined, 'name', 'asc');
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith({ status: 'ACTIVE' }, undefined, undefined, 'name', 'asc');
+    });
+
+    it('should handle repository errors gracefully', async () => {
+      mockTestimonialsRepository.findMany.mockRejectedValue(new Error('Database error'));
+
+      await expect(userTestimonialsService.getTestimonials({})).rejects.toThrow('Failed to get testimonials: Database error');
+    });
+
+    // Task 12.3 - Test getTestimonials() with pagination
+    it('should return paginated testimonials when page/limit provided', async () => {
+      const mockTestimonials = [getMockTestimonial(), getMockTestimonial({ id: 2, name: 'Jane Doe' })];
+      const mockPagination = {
+        page: 1,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
+        hasNext: true,
+        hasPrev: false,
+      };
+      const mockResult = getMockPaginatedResult(mockTestimonials, mockPagination);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({}, 1, 10);
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith({ status: 'ACTIVE' }, 1, 10, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+      expect(result.pagination).toEqual(mockPagination);
+    });
+
+    it('should pass page and limit correctly to repository', async () => {
+      const mockTestimonials = [getMockTestimonial()];
+      const mockPagination = {
+        page: 2,
+        limit: 5,
+        total: 15,
+        totalPages: 3,
+        hasNext: true,
+        hasPrev: true,
+      };
+      const mockResult = getMockPaginatedResult(mockTestimonials, mockPagination);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({}, 2, 5);
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith({ status: 'ACTIVE' }, 2, 5, 'createdAt', 'desc');
+      expect(result.pagination.page).toBe(2);
+      expect(result.pagination.limit).toBe(5);
+    });
+
+    it('should return pagination metadata with correct values', async () => {
+      const mockTestimonials = [getMockTestimonial()];
+      const mockPagination = {
+        page: 3,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
+        hasNext: false,
+        hasPrev: true,
+      };
+      const mockResult = getMockPaginatedResult(mockTestimonials, mockPagination);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({}, 3, 10);
+
+      expect(result.pagination).toBeDefined();
+      expect(result.pagination.page).toBe(3);
+      expect(result.pagination.limit).toBe(10);
+      expect(result.pagination.total).toBe(25);
+      expect(result.pagination.totalPages).toBe(3);
+      expect(result.pagination.hasNext).toBe(false);
+      expect(result.pagination.hasPrev).toBe(true);
+    });
+
+    // Task 12.4 - Test getTestimonials() without pagination (fetch all)
+    it('should return all testimonials when no page/limit provided', async () => {
+      const mockTestimonials = [
+        getMockTestimonial({ id: 1, name: 'John Doe' }),
+        getMockTestimonial({ id: 2, name: 'Jane Smith' }),
+        getMockTestimonial({ id: 3, name: 'Bob Johnson' }),
+      ];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({});
+
+      expect(mockTestimonialsRepository.findMany).toHaveBeenCalledWith({ status: 'ACTIVE' }, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+      expect(result.pagination).toBeUndefined();
+    });
+
+    it('should return all testimonials without pagination metadata', async () => {
+      const mockTestimonials = [getMockTestimonial()];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await userTestimonialsService.getTestimonials({}, undefined, undefined);
+
+      expect(result).toHaveProperty('testimonials');
+      expect(result).not.toHaveProperty('pagination');
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+  });
+
+  describe('getTestimonialsForAdmin()', () => {
+    // Task 12.5 - Test getTestimonialsForAdmin() with filters
+    it('should return testimonials with country filter', async () => {
+      const mockTestimonials = [getMockTestimonial({ country: 'Indonesia' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({ country: 'Indonesia' });
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({ country: 'Indonesia' }, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+      expect(result.pagination).toBeUndefined();
+    });
+
+    it('should return testimonials with minRating filter', async () => {
+      const mockTestimonials = [getMockTestimonial({ rating: 5 })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({ minRating: 4 });
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({ minRating: 4 }, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should return testimonials with featured filter', async () => {
+      const mockTestimonials = [getMockTestimonial({ featured: true })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({ featured: true });
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({ featured: true }, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should return testimonials with search filter', async () => {
+      const mockTestimonials = [getMockTestimonial({ name: 'John Doe' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({ search: 'John' });
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({ search: 'John' }, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should allow filtering by any status (ACTIVE)', async () => {
+      const mockTestimonials = [getMockTestimonial({ status: 'ACTIVE' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({ status: 'ACTIVE' });
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({ status: 'ACTIVE' }, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should allow filtering by any status (INACTIVE)', async () => {
+      const mockTestimonials = [getMockTestimonial({ status: 'INACTIVE' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({ status: 'INACTIVE' });
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({ status: 'INACTIVE' }, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should allow filtering by any status (PENDING)', async () => {
+      const mockTestimonials = [getMockTestimonial({ status: 'PENDING' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({ status: 'PENDING' });
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({ status: 'PENDING' }, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should return testimonials with multiple filters', async () => {
+      const mockTestimonials = [getMockTestimonial({ country: 'Indonesia', rating: 5, featured: true, status: 'ACTIVE' })];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({
+        country: 'Indonesia',
+        minRating: 4,
+        featured: true,
+        status: 'ACTIVE',
+      });
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith(
+        { country: 'Indonesia', minRating: 4, featured: true, status: 'ACTIVE' },
+        undefined,
+        undefined,
+        'createdAt',
+        'desc',
+      );
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+
+    it('should NOT enforce ACTIVE status filter for admin endpoint', async () => {
+      const mockTestimonials = [
+        getMockTestimonial({ status: 'ACTIVE' }),
+        getMockTestimonial({ id: 2, status: 'INACTIVE' }),
+        getMockTestimonial({ id: 3, status: 'PENDING' }),
+      ];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      await adminTestimonialsService.getTestimonials({});
+
+      // Should pass empty filters, NOT enforce status: 'ACTIVE'
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({}, undefined, undefined, 'createdAt', 'desc');
+    });
+
+    it('should pass custom sortBy and sortOrder to repository', async () => {
+      const mockTestimonials = [getMockTestimonial()];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      await adminTestimonialsService.getTestimonials({}, undefined, undefined, 'name', 'asc');
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({}, undefined, undefined, 'name', 'asc');
+    });
+
+    it('should handle repository errors gracefully', async () => {
+      mockAdminTestimonialsRepository.findMany.mockRejectedValue(new Error('Database error'));
+
+      await expect(adminTestimonialsService.getTestimonials({})).rejects.toThrow('Failed to get testimonials for admin: Database error');
+    });
+
+    // Task 12.6 - Test getTestimonialsForAdmin() with and without pagination
+    it('should return paginated testimonials when page/limit provided', async () => {
+      const mockTestimonials = [getMockTestimonial(), getMockTestimonial({ id: 2, name: 'Jane Doe' })];
+      const mockPagination = {
+        page: 1,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
+        hasNext: true,
+        hasPrev: false,
+      };
+      const mockResult = getMockPaginatedResult(mockTestimonials, mockPagination);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({}, 1, 10);
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({}, 1, 10, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+      expect(result.pagination).toEqual(mockPagination);
+    });
+
+    it('should pass page and limit correctly to repository', async () => {
+      const mockTestimonials = [getMockTestimonial()];
+      const mockPagination = {
+        page: 2,
+        limit: 5,
+        total: 15,
+        totalPages: 3,
+        hasNext: true,
+        hasPrev: true,
+      };
+      const mockResult = getMockPaginatedResult(mockTestimonials, mockPagination);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({}, 2, 5);
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({}, 2, 5, 'createdAt', 'desc');
+      expect(result.pagination.page).toBe(2);
+      expect(result.pagination.limit).toBe(5);
+    });
+
+    it('should return pagination metadata with correct values', async () => {
+      const mockTestimonials = [getMockTestimonial()];
+      const mockPagination = {
+        page: 3,
+        limit: 10,
+        total: 25,
+        totalPages: 3,
+        hasNext: false,
+        hasPrev: true,
+      };
+      const mockResult = getMockPaginatedResult(mockTestimonials, mockPagination);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({}, 3, 10);
+
+      expect(result.pagination).toBeDefined();
+      expect(result.pagination.page).toBe(3);
+      expect(result.pagination.limit).toBe(10);
+      expect(result.pagination.total).toBe(25);
+      expect(result.pagination.totalPages).toBe(3);
+      expect(result.pagination.hasNext).toBe(false);
+      expect(result.pagination.hasPrev).toBe(true);
+    });
+
+    it('should return all testimonials when no page/limit provided', async () => {
+      const mockTestimonials = [
+        getMockTestimonial({ id: 1, name: 'John Doe', status: 'ACTIVE' }),
+        getMockTestimonial({ id: 2, name: 'Jane Smith', status: 'INACTIVE' }),
+        getMockTestimonial({ id: 3, name: 'Bob Johnson', status: 'PENDING' }),
+      ];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({});
+
+      expect(mockAdminTestimonialsRepository.findMany).toHaveBeenCalledWith({}, undefined, undefined, 'createdAt', 'desc');
+      expect(result.testimonials).toEqual(mockTestimonials);
+      expect(result.pagination).toBeUndefined();
+    });
+
+    it('should return all testimonials without pagination metadata', async () => {
+      const mockTestimonials = [getMockTestimonial()];
+      const mockResult = getMockResultWithoutPagination(mockTestimonials);
+      mockAdminTestimonialsRepository.findMany.mockResolvedValue(mockResult);
+
+      const result = await adminTestimonialsService.getTestimonials({}, undefined, undefined);
+
+      expect(result).toHaveProperty('testimonials');
+      expect(result).not.toHaveProperty('pagination');
+      expect(result.testimonials).toEqual(mockTestimonials);
+    });
+  });
+
+  describe('getTestimonialById()', () => {
+    // Task 12.7 - Test getTestimonialById() success and error
+    it('should return testimonial when found', async () => {
+      const mockTestimonial = getMockTestimonial({ id: 1, name: 'John Doe' });
+      mockTestimonialsRepository.findById.mockResolvedValue(mockTestimonial);
+
+      const result = await userTestimonialsService.getTestimonialById(1);
+
+      expect(mockTestimonialsRepository.findById).toHaveBeenCalledWith(1);
+      expect(result).toEqual(mockTestimonial);
+    });
+
+    it('should return null when testimonial not found', async () => {
+      mockTestimonialsRepository.findById.mockResolvedValue(null);
+
+      const result = await userTestimonialsService.getTestimonialById(999);
+
+      expect(mockTestimonialsRepository.findById).toHaveBeenCalledWith(999);
+      expect(result).toBeNull();
+    });
+
+    it('should handle repository errors gracefully', async () => {
+      mockTestimonialsRepository.findById.mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(userTestimonialsService.getTestimonialById(1)).rejects.toThrow('Failed to get testimonial by ID: Database connection failed');
+    });
+  });
+
+  describe('createTestimonial()', () => {
+    // Task 12.8 - Test createTestimonial() with valid data
+    it('should create testimonial with valid data', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+        status: 'ACTIVE',
+        featured: true,
+        avatar_url: 'https://example.com/avatar.jpg',
+      };
+
+      const expectedData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+        status: 'ACTIVE',
+        featured: true,
+      };
+
+      const mockCreated = getMockTestimonial({
+        ...expectedData,
+        id: 1,
+        avatar_url: 'https://example.com/avatar.jpg',
+      });
+
+      mockTestimonialsRepository.create.mockResolvedValue(mockCreated);
+
+      const result = await adminTestimonialsService.createTestimonial(inputData);
+
+      expect(mockAdminTestimonialsRepository.create).toHaveBeenCalledWith(expectedData);
+      expect(result).toEqual(mockCreated);
+    });
+
+    it('should trim whitespace from text fields', async () => {
+      const inputData = {
+        name: '  John Doe  ',
+        country: '  Indonesia  ',
+        text: '  This is a great testimonial with sufficient length.  ',
+        rating: 5,
+      };
+
+      const expectedData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+        status: 'ACTIVE',
+        featured: false,
+      };
+
+      const mockCreated = getMockTestimonial(expectedData);
+      mockTestimonialsRepository.create.mockResolvedValue(mockCreated);
+
+      await adminTestimonialsService.createTestimonial(inputData);
+
+      expect(mockAdminTestimonialsRepository.create).toHaveBeenCalledWith(expectedData);
+    });
+
+    it('should set default values (status: ACTIVE, featured: false)', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+        // No status or featured provided
+      };
+
+      const expectedData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+        status: 'ACTIVE',
+        featured: false,
+      };
+
+      const mockCreated = getMockTestimonial(expectedData);
+      mockTestimonialsRepository.create.mockResolvedValue(mockCreated);
+
+      await adminTestimonialsService.createTestimonial(inputData);
+
+      expect(mockAdminTestimonialsRepository.create).toHaveBeenCalledWith(expectedData);
+    });
+
+    it('should convert rating to integer', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: '5', // String rating
+      };
+
+      const expectedData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5, // Should be converted to integer
+        status: 'ACTIVE',
+        featured: false,
+      };
+
+      const mockCreated = getMockTestimonial(expectedData);
+      mockTestimonialsRepository.create.mockResolvedValue(mockCreated);
+
+      await adminTestimonialsService.createTestimonial(inputData);
+
+      expect(mockAdminTestimonialsRepository.create).toHaveBeenCalledWith(expectedData);
+    });
+
+    it('should create testimonial with all fields provided', async () => {
+      const inputData = {
+        name: 'Jane Smith',
+        country: 'Singapore',
+        text: 'Amazing program that changed my life and perspective.',
+        rating: 4,
+        status: 'PENDING',
+        featured: true,
+      };
+
+      const expectedData = {
+        name: 'Jane Smith',
+        country: 'Singapore',
+        text: 'Amazing program that changed my life and perspective.',
+        rating: 4,
+        status: 'PENDING',
+        featured: true,
+      };
+
+      const mockCreated = getMockTestimonial({ ...expectedData, id: 2 });
+      mockAdminTestimonialsRepository.create.mockResolvedValue(mockCreated);
+
+      const result = await adminTestimonialsService.createTestimonial(inputData);
+
+      expect(mockAdminTestimonialsRepository.create).toHaveBeenCalledWith(expectedData);
+      expect(result).toEqual(mockCreated);
+    });
+
+    it('should trim whitespace and set defaults together', async () => {
+      const inputData = {
+        name: '  Alice Johnson  ',
+        country: '  Malaysia  ',
+        text: '  Excellent program with great content and support.  ',
+        rating: '3',
+      };
+
+      const expectedData = {
+        name: 'Alice Johnson',
+        country: 'Malaysia',
+        text: 'Excellent program with great content and support.',
+        rating: 3,
+        status: 'ACTIVE',
+        featured: false,
+      };
+
+      const mockCreated = getMockTestimonial(expectedData);
+      mockAdminTestimonialsRepository.create.mockResolvedValue(mockCreated);
+
+      await adminTestimonialsService.createTestimonial(inputData);
+
+      expect(mockAdminTestimonialsRepository.create).toHaveBeenCalledWith(expectedData);
+    });
+
+    // Task 12.9 - Test createTestimonial() with invalid data
+    it('should throw error when name is missing', async () => {
+      const inputData = {
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when name is not a string', async () => {
+      const inputData = {
+        name: 123,
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when name is too short (less than 2 chars)', async () => {
+      const inputData = {
+        name: 'A',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when name is too long (more than 255 chars)', async () => {
+      const inputData = {
+        name: 'A'.repeat(256),
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when country is missing', async () => {
+      const inputData = {
+        name: 'John Doe',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when country is not a string', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 123,
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when country is too short (less than 2 chars)', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'A',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when country is too long (more than 100 chars)', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'A'.repeat(101),
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when text is missing', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when text is not a string', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 123,
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when text is too short (less than 10 chars)', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'Too short',
+        rating: 5,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when rating is missing', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when rating is less than 1', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 0,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when rating is greater than 5', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 6,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when rating is not a number', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 'invalid',
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when status is invalid', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+        status: 'INVALID_STATUS',
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error when featured is not a boolean', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+        featured: 'yes',
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should throw error with multiple validation errors', async () => {
+      const inputData = {
+        name: 'A',
+        country: 'B',
+        text: 'Short',
+        rating: 10,
+      };
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow();
+    });
+
+    it('should handle repository errors gracefully', async () => {
+      const inputData = {
+        name: 'John Doe',
+        country: 'Indonesia',
+        text: 'This is a great testimonial with sufficient length.',
+        rating: 5,
+      };
+
+      mockAdminTestimonialsRepository.create.mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(adminTestimonialsService.createTestimonial(inputData)).rejects.toThrow('Failed to create testimonial: Database connection failed');
+    });
+  });
+
+  describe('updateTestimonial()', () => {
+    // Task 12.10 - Test updateTestimonial() with valid data
+    it('should update testimonial with all fields', async () => {
+      const updateData = {
+        name: 'Updated Name',
+        country: 'Updated Country',
+        text: 'This is an updated testimonial with sufficient length.',
+        rating: 4,
+        status: 'INACTIVE',
+        featured: true,
+      };
+
+      const expectedData = {
+        name: 'Updated Name',
+        country: 'Updated Country',
+        text: 'This is an updated testimonial with sufficient length.',
+        rating: 4,
+        status: 'INACTIVE',
+        featured: true,
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        ...expectedData,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      const result = await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+      expect(result).toEqual(mockUpdated);
+    });
+
+    it('should trim whitespace from text fields', async () => {
+      const updateData = {
+        name: '  Updated Name  ',
+        country: '  Updated Country  ',
+        text: '  This is an updated testimonial with sufficient length.  ',
+        rating: 4,
+      };
+
+      const expectedData = {
+        name: 'Updated Name',
+        country: 'Updated Country',
+        text: 'This is an updated testimonial with sufficient length.',
+        rating: 4,
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        ...expectedData,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+    });
+
+    it('should convert rating to integer', async () => {
+      const updateData = {
+        rating: '5', // String rating
+      };
+
+      const expectedData = {
+        rating: 5, // Should be converted to integer
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        rating: 5,
+      });
+
+      mockAdminTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+    });
+
+    it('should handle partial updates - only name', async () => {
+      const updateData = {
+        name: 'Only Name Updated',
+      };
+
+      const expectedData = {
+        name: 'Only Name Updated',
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        name: 'Only Name Updated',
+      });
+
+      mockAdminTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      const result = await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+      expect(result).toEqual(mockUpdated);
+    });
+
+    it('should handle partial updates - only country', async () => {
+      const updateData = {
+        country: 'Only Country Updated',
+      };
+
+      const expectedData = {
+        country: 'Only Country Updated',
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        country: 'Only Country Updated',
+      });
+
+      mockAdminTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+    });
+
+    it('should handle partial updates - only text', async () => {
+      const updateData = {
+        text: 'Only text field is being updated with sufficient length.',
+      };
+
+      const expectedData = {
+        text: 'Only text field is being updated with sufficient length.',
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        text: 'Only text field is being updated with sufficient length.',
+      });
+
+      mockAdminTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+    });
+
+    it('should handle partial updates - only rating', async () => {
+      const updateData = {
+        rating: 3,
+      };
+
+      const expectedData = {
+        rating: 3,
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        rating: 3,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+    });
+
+    it('should handle partial updates - only status', async () => {
+      const updateData = {
+        status: 'PENDING',
+      };
+
+      const expectedData = {
+        status: 'PENDING',
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        status: 'PENDING',
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+    });
+
+    it('should handle partial updates - only featured', async () => {
+      const updateData = {
+        featured: true,
+      };
+
+      const expectedData = {
+        featured: true,
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        featured: true,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+    });
+
+    it('should handle partial updates - multiple fields', async () => {
+      const updateData = {
+        name: 'Partial Update',
+        rating: 5,
+        featured: true,
+      };
+
+      const expectedData = {
+        name: 'Partial Update',
+        rating: 5,
+        featured: true,
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        name: 'Partial Update',
+        rating: 5,
+        featured: true,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+    });
+
+    it('should trim whitespace and convert rating together', async () => {
+      const updateData = {
+        name: '  Trimmed Name  ',
+        text: '  Trimmed text with sufficient length for validation.  ',
+        rating: '4',
+      };
+
+      const expectedData = {
+        name: 'Trimmed Name',
+        text: 'Trimmed text with sufficient length for validation.',
+        rating: 4,
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        ...expectedData,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+    });
+
+    // Task 12.11 - Test updateTestimonial() with invalid data
+    it('should throw error when name is not a string', async () => {
+      const updateData = {
+        name: 123,
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when name is too short (less than 2 chars)', async () => {
+      const updateData = {
+        name: 'A',
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when name is too long (more than 255 chars)', async () => {
+      const updateData = {
+        name: 'A'.repeat(256),
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when country is not a string', async () => {
+      const updateData = {
+        country: 123,
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when country is too short (less than 2 chars)', async () => {
+      const updateData = {
+        country: 'A',
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when country is too long (more than 100 chars)', async () => {
+      const updateData = {
+        country: 'A'.repeat(101),
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when text is not a string', async () => {
+      const updateData = {
+        text: 123,
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when text is too short (less than 10 chars)', async () => {
+      const updateData = {
+        text: 'Too short',
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when rating is less than 1', async () => {
+      const updateData = {
+        rating: 0,
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when rating is greater than 5', async () => {
+      const updateData = {
+        rating: 6,
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when rating is not a number', async () => {
+      const updateData = {
+        rating: 'invalid',
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when status is invalid', async () => {
+      const updateData = {
+        status: 'INVALID_STATUS',
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error when featured is not a boolean', async () => {
+      const updateData = {
+        featured: 'yes',
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should throw error with multiple validation errors', async () => {
+      const updateData = {
+        name: 'A',
+        country: 'B',
+        text: 'Short',
+        rating: 10,
+      };
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow();
+    });
+
+    it('should allow empty update data (no fields provided)', async () => {
+      const updateData = {};
+
+      const mockUpdated = getMockTestimonial({ id: 1 });
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      const result = await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, {});
+      expect(result).toEqual(mockUpdated);
+    });
+
+    it('should NOT require name on update (partial update)', async () => {
+      const updateData = {
+        country: 'Updated Country',
+        text: 'Updated text with sufficient length for validation.',
+      };
+
+      const expectedData = {
+        country: 'Updated Country',
+        text: 'Updated text with sufficient length for validation.',
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        ...expectedData,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      const result = await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+      expect(result).toEqual(mockUpdated);
+    });
+
+    it('should NOT require country on update (partial update)', async () => {
+      const updateData = {
+        name: 'Updated Name',
+        text: 'Updated text with sufficient length for validation.',
+      };
+
+      const expectedData = {
+        name: 'Updated Name',
+        text: 'Updated text with sufficient length for validation.',
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        ...expectedData,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      const result = await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+      expect(result).toEqual(mockUpdated);
+    });
+
+    it('should NOT require text on update (partial update)', async () => {
+      const updateData = {
+        name: 'Updated Name',
+        country: 'Updated Country',
+      };
+
+      const expectedData = {
+        name: 'Updated Name',
+        country: 'Updated Country',
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        ...expectedData,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      const result = await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+      expect(result).toEqual(mockUpdated);
+    });
+
+    it('should NOT require rating on update (partial update)', async () => {
+      const updateData = {
+        name: 'Updated Name',
+        country: 'Updated Country',
+        text: 'Updated text with sufficient length for validation.',
+      };
+
+      const expectedData = {
+        name: 'Updated Name',
+        country: 'Updated Country',
+        text: 'Updated text with sufficient length for validation.',
+      };
+
+      const mockUpdated = getMockTestimonial({
+        id: 1,
+        ...expectedData,
+      });
+
+      mockTestimonialsRepository.update.mockResolvedValue(mockUpdated);
+
+      const result = await adminTestimonialsService.updateTestimonial(1, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(1, expectedData);
+      expect(result).toEqual(mockUpdated);
+    });
+
+    // Task 12.12 - Test updateTestimonial() not found
+    it('should return null when testimonial not found', async () => {
+      const updateData = {
+        name: 'Updated Name',
+        text: 'Updated text with sufficient length for validation.',
+      };
+
+      const expectedData = {
+        name: 'Updated Name',
+        text: 'Updated text with sufficient length for validation.',
+      };
+
+      mockTestimonialsRepository.update.mockResolvedValue(null);
+
+      const result = await adminTestimonialsService.updateTestimonial(999, updateData);
+
+      expect(mockAdminTestimonialsRepository.update).toHaveBeenCalledWith(999, expectedData);
+      expect(result).toBeNull();
+    });
+
+    it('should handle repository errors gracefully', async () => {
+      const updateData = {
+        name: 'Updated Name',
+      };
+
+      mockAdminTestimonialsRepository.update.mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(adminTestimonialsService.updateTestimonial(1, updateData)).rejects.toThrow(
+        'Failed to update testimonial: Database connection failed',
+      );
+    });
+  });
+
+  describe('deleteTestimonial()', () => {
+    // Task 12.13 - Test deleteTestimonial() success and not found
+    it('should delete testimonial successfully', async () => {
+      mockAdminTestimonialsRepository.delete.mockResolvedValue(true);
+
+      const result = await adminTestimonialsService.deleteTestimonial(1);
+
+      expect(mockAdminTestimonialsRepository.delete).toHaveBeenCalledWith(1);
+      expect(result).toBe(true);
+    });
+
+    it('should return false when testimonial not found', async () => {
+      mockAdminTestimonialsRepository.delete.mockResolvedValue(false);
+
+      const result = await adminTestimonialsService.deleteTestimonial(999);
+
+      expect(mockAdminTestimonialsRepository.delete).toHaveBeenCalledWith(999);
+      expect(result).toBe(false);
+    });
+
+    it('should handle repository errors gracefully', async () => {
+      mockAdminTestimonialsRepository.delete.mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(adminTestimonialsService.deleteTestimonial(1)).rejects.toThrow('Failed to delete testimonial: Database connection failed');
+    });
+  });
+
+  describe('validateTestimonialData()', () => {
+    // Task 12.14 - Test validateTestimonialData() for all rules
+    describe('name validation', () => {
+      it('should require name on create', () => {
+        const data = {
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Name is required and must be a string');
+      });
+
+      it('should validate name is a string', () => {
+        const data = {
+          name: 123,
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Name is required and must be a string');
+      });
+
+      it('should validate name minimum length (2 chars)', () => {
+        const data = {
+          name: 'A',
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Name must be at least 2 characters long');
+      });
+
+      it('should validate name maximum length (255 chars)', () => {
+        const data = {
+          name: 'A'.repeat(256),
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Name must be less than 255 characters');
+      });
+
+      it('should allow missing name on update', () => {
+        const data = {
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, true);
+
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+    });
+
+    describe('country validation', () => {
+      it('should require country on create', () => {
+        const data = {
+          name: 'John Doe',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Country is required and must be a string');
+      });
+
+      it('should validate country is a string', () => {
+        const data = {
+          name: 'John Doe',
+          country: 123,
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Country is required and must be a string');
+      });
+
+      it('should validate country minimum length (2 chars)', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'A',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Country must be at least 2 characters long');
+      });
+
+      it('should validate country maximum length (100 chars)', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'A'.repeat(101),
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Country must be less than 100 characters');
+      });
+
+      it('should allow missing country on update', () => {
+        const data = {
+          name: 'John Doe',
+          text: 'This is a great testimonial with sufficient length.',
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, true);
+
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+    });
+
+    describe('text validation', () => {
+      it('should require text on create', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Text is required and must be a string');
+      });
+
+      it('should validate text is a string', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 123,
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Text is required and must be a string');
+      });
+
+      it('should validate text minimum length (10 chars)', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 'Too short',
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Text must be at least 10 characters long');
+      });
+
+      it('should validate text maximum length (1000 chars)', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 'A'.repeat(1001),
+          rating: 5,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors.some((err) => err.includes('Text must be'))).toBe(true);
+      });
+
+      it('should allow missing text on update', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, true);
+
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+    });
+
+    describe('rating validation', () => {
+      it('should validate rating is between 1 and 5', () => {
+        const validRatings = [1, 2, 3, 4, 5];
+
+        validRatings.forEach((rating) => {
+          const data = {
+            name: 'John Doe',
+            country: 'Indonesia',
+            text: 'This is a great testimonial with sufficient length.',
+            rating,
+          };
+
+          const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+          expect(result.isValid).toBe(true);
+          expect(result.errors).toHaveLength(0);
+        });
+      });
+
+      it('should reject rating less than 1', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 0,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Rating must be a number between 1 and 5');
+      });
+
+      it('should reject rating greater than 5', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 6,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Rating must be a number between 1 and 5');
+      });
+
+      it('should reject non-numeric rating', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 'invalid',
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Rating must be a number between 1 and 5');
+      });
+    });
+
+    describe('status validation', () => {
+      it('should accept valid status values (ACTIVE, INACTIVE, PENDING)', () => {
+        const validStatuses = ['ACTIVE', 'INACTIVE', 'PENDING'];
+
+        validStatuses.forEach((status) => {
+          const data = {
+            name: 'John Doe',
+            country: 'Indonesia',
+            text: 'This is a great testimonial with sufficient length.',
+            rating: 5,
+            status,
+          };
+
+          const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+          expect(result.isValid).toBe(true);
+          expect(result.errors).toHaveLength(0);
+        });
+      });
+
+      it('should reject invalid status values', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+          status: 'INVALID_STATUS',
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Status must be one of: ACTIVE, INACTIVE, PENDING');
+      });
+    });
+
+    describe('featured validation', () => {
+      it('should validate featured is a boolean', () => {
+        const validFeaturedValues = [true, false];
+
+        validFeaturedValues.forEach((featured) => {
+          const data = {
+            name: 'John Doe',
+            country: 'Indonesia',
+            text: 'This is a great testimonial with sufficient length.',
+            rating: 5,
+            featured,
+          };
+
+          const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+          expect(result.isValid).toBe(true);
+          expect(result.errors).toHaveLength(0);
+        });
+      });
+
+      it('should reject non-boolean featured values', () => {
+        const invalidFeaturedValues = ['yes', 'no', 1, 0, 'true', 'false'];
+
+        invalidFeaturedValues.forEach((featured) => {
+          const data = {
+            name: 'John Doe',
+            country: 'Indonesia',
+            text: 'This is a great testimonial with sufficient length.',
+            rating: 5,
+            featured,
+          };
+
+          const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+          expect(result.isValid).toBe(false);
+          expect(result.errors).toContain('Featured must be a boolean');
+        });
+      });
+    });
+
+    describe('avatar_url validation', () => {
+      it('should allow null avatar_url', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+          avatar_url: null,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should validate avatar_url maximum length (500 chars)', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+          avatar_url: 'https://example.com/' + 'A'.repeat(500),
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors.some((err) => err.includes('Avatar URL'))).toBe(true);
+      });
+    });
+
+    describe('validation result', () => {
+      it('should return isValid: true with no errors for valid data', () => {
+        const data = {
+          name: 'John Doe',
+          country: 'Indonesia',
+          text: 'This is a great testimonial with sufficient length.',
+          rating: 5,
+          status: 'ACTIVE',
+          featured: true,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should return isValid: false with errors array for invalid data', () => {
+        const data = {
+          name: 'A',
+          country: 'B',
+          text: 'Short',
+          rating: 10,
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toBeInstanceOf(Array);
+        expect(result.errors.length).toBeGreaterThan(0);
+      });
+
+      it('should return all validation errors in errors array', () => {
+        const data = {
+          name: 'A',
+          country: 'B',
+          text: 'Short',
+          rating: 10,
+          status: 'INVALID',
+          featured: 'yes',
+        };
+
+        const result = adminTestimonialsService.validateTestimonialData(data, false);
+
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toBeInstanceOf(Array);
+        expect(result.errors.length).toBeGreaterThan(3);
+        expect(result.errors.some((err) => err.includes('Name'))).toBe(true);
+        expect(result.errors.some((err) => err.includes('Country'))).toBe(true);
+        expect(result.errors.some((err) => err.includes('Text'))).toBe(true);
+        expect(result.errors.some((err) => err.includes('Rating'))).toBe(true);
+        expect(result.errors.some((err) => err.includes('Status'))).toBe(true);
+        expect(result.errors.some((err) => err.includes('Featured'))).toBe(true);
+      });
+    });
+  });
+});

@@ -2,24 +2,17 @@ import { userJobsController } from '../../controllers/user/jobsController.js';
 import { optionalAuthMiddleware } from '../../middleware/auth.js';
 import {
   getUserJobsSchema,
-  getFeaturedJobsSchema,
   getJobCategoriesSchema,
   getUserCompaniesSchema,
-  getUserSearchJobsSchema,
   getUserJobByIdSchema,
   getJobRecommendationsSchema,
-} from '../../schemas/jobsSchemas.js';
+} from '../../schemas/shared/jobsSchemas.js';
 
 export async function jobsRoutes(fastify) {
   fastify.get('/', {
     schema: getUserJobsSchema,
     preHandler: optionalAuthMiddleware,
     handler: userJobsController.getJobs,
-  });
-
-  fastify.get('/featured', {
-    schema: getFeaturedJobsSchema,
-    handler: userJobsController.getFeaturedJobs,
   });
 
   fastify.get('/categories', {
@@ -31,11 +24,6 @@ export async function jobsRoutes(fastify) {
     schema: getUserCompaniesSchema,
     preHandler: optionalAuthMiddleware,
     handler: userJobsController.getCompanies,
-  });
-
-  fastify.get('/search', {
-    schema: getUserSearchJobsSchema,
-    handler: userJobsController.searchJobs,
   });
 
   fastify.get('/:id', {

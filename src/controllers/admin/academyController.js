@@ -1,4 +1,4 @@
-import { academyService } from '../../services/academyService.js';
+import { academyService } from '../../services/shared/academyService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AdminAcademyController {
@@ -323,7 +323,7 @@ export class AdminAcademyController {
       if (error.statusCode === 404) {
         request.log.info(
           { academyId: request.params.id, instructorId: request.params.instructorId },
-          '[adminAcademyController] updateInstructor not_found'
+          '[adminAcademyController] updateInstructor not_found',
         );
         return reply.status(404).send(errorResponse(error.message, 404));
       }
@@ -347,7 +347,7 @@ export class AdminAcademyController {
       if (error.statusCode === 404) {
         request.log.info(
           { academyId: request.params.id, instructorId: request.params.instructorId },
-          '[adminAcademyController] deleteInstructor not_found'
+          '[adminAcademyController] deleteInstructor not_found',
         );
         return reply.status(404).send(errorResponse(error.message, 404));
       }
@@ -469,7 +469,7 @@ export class AdminAcademyController {
       if (error.statusCode === 404) {
         request.log.info(
           { academyId: request.params.id, testimonialId: request.params.testimonialId },
-          '[adminAcademyController] updateTestimonial not_found'
+          '[adminAcademyController] updateTestimonial not_found',
         );
         return reply.status(404).send(errorResponse(error.message, 404));
       }
@@ -493,7 +493,7 @@ export class AdminAcademyController {
       if (error.statusCode === 404) {
         request.log.info(
           { academyId: request.params.id, testimonialId: request.params.testimonialId },
-          '[adminAcademyController] deleteTestimonial not_found'
+          '[adminAcademyController] deleteTestimonial not_found',
         );
         return reply.status(404).send(errorResponse(error.message, 404));
       }

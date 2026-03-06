@@ -1,4 +1,4 @@
-import { instructorService } from '../../services/instructorService.js';
+import { instructorService } from '../../services/shared/instructorService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AdminInstructorController {
@@ -78,8 +78,8 @@ export class AdminInstructorController {
             total: instructors.length,
             academy_id: Number(academyId),
           },
-          'Available instructors berhasil diambil'
-        )
+          'Available instructors berhasil diambil',
+        ),
       );
     } catch (error) {
       request.log.error({ err: error }, '[adminInstructorController] getAvailableInstructorsForAcademy error');

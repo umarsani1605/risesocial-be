@@ -1,4 +1,4 @@
-import { fileUploadService } from '../../services/fileUploadService.js';
+import { fileUploadService } from '../../services/shared/fileUploadService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 import fs from 'fs-extra';
 import path from 'path';
@@ -105,7 +105,7 @@ export class FileUploadController {
       return reply.status(200).send(
         successResponse(deleteResult, 'File deleted successfully', {
           fileId: Number(id),
-        })
+        }),
       );
     } catch (error) {
       request.log.error({ err: error }, 'Error deleting file');
@@ -140,7 +140,7 @@ export class FileUploadController {
         successResponse(result, `${uploadType} files retrieved successfully`, {
           uploadType,
           ...result.pagination,
-        })
+        }),
       );
     } catch (error) {
       request.log.error({ err: error }, 'Error getting files by type');
@@ -155,7 +155,7 @@ export class FileUploadController {
       return reply.status(200).send(
         successResponse(stats, 'Upload statistics retrieved successfully', {
           generatedAt: new Date().toISOString(),
-        })
+        }),
       );
     } catch (error) {
       request.log.error({ err: error }, 'Error getting upload stats');
@@ -199,7 +199,7 @@ export class FileUploadController {
       return reply.status(200).send(
         successResponse(cleanupResult, 'Orphaned files cleanup completed', {
           executedAt: new Date().toISOString(),
-        })
+        }),
       );
     } catch (error) {
       request.log.error({ err: error }, 'Error cleaning up orphaned files');

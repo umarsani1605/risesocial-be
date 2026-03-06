@@ -1,4 +1,4 @@
-import { rylsRegistrationService } from '../../services/rylsRegistrationService.js';
+import { rylsRegistrationService } from '../../services/user/rylsRegistrationService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class UserRylsRegistrationController {

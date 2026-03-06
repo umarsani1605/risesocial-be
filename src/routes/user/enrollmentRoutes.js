@@ -5,7 +5,7 @@ import {
   getEnrollmentByUserAndAcademySchema,
   getUserEnrollmentsSchema,
   updateProgressSchema,
-} from '../../schemas/enrollmentSchemas.js';
+} from '../../schemas/user/enrollmentSchemas.js';
 
 export default async function userEnrollmentRoutes(fastify) {
   fastify.get('/:id', {

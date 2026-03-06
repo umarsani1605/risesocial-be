@@ -1,0 +1,1762 @@
+/**
+ * TestimonialsRepository Property-Based Tests
+ * Tests pagination calculations using fast-check for property-based testing
+ *
+ * **Validates: Requirements 1.2, 5.3, 6.1**
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as fc from 'fast-check';
+
+// Mock Prisma client
+const mockPrismaClient = {
+  testimonial: {
+    findMany: vi.fn(),
+    count: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+};
+
+vi.mock('../../../src/config/database.js', () => ({
+  default: mockPrismaClient,
+}));
+
+// Mock logger
+vi.mock('../../../src/utils/loggerContext.js', () => ({
+  getLogger: () => ({
+    info: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
+
+// Import after mocking
+const { userTestimonialsRepository } = await import('../../../src/repositories/user/testimonialsRepository.js');
+const { adminTestimonialsRepository } = await import('../../../src/repositories/admin/testimonialsRepository.js');
+
+describe('TestimonialsRepository - Pagination Property-Based Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('Pagination Calculation Properties', () => {
+    it('property: skip calculation is always (page - 1) * limit', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), async (page, limit) => {
+          const expectedSkip = (page - 1) * limit;
+          const mockTestimonials = [];
+          const mockTotal = 0;
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(mockTotal);
+
+          await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              skip: expectedSkip,
+              take: limit,
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: take calculation is always equal to limit', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), async (page, limit) => {
+          const mockTestimonials = [];
+          const mockTotal = 0;
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(mockTotal);
+
+          await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              take: limit,
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: totalPages is always CEILING(total / limit)', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), fc.nat({ max: 1000 }), async (page, limit, total) => {
+          const expectedTotalPages = Math.ceil(total / limit);
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.totalPages).toBe(expectedTotalPages);
+        }),
+      );
+    });
+
+    it('property: hasNext is true when page < totalPages', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), fc.nat({ max: 1000 }), async (page, limit, total) => {
+          const totalPages = Math.ceil(total / limit);
+          const expectedHasNext = page < totalPages;
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.hasNext).toBe(expectedHasNext);
+        }),
+      );
+    });
+
+    it('property: hasPrev is true when page > 1', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), fc.nat({ max: 1000 }), async (page, limit, total) => {
+          const expectedHasPrev = page > 1;
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.hasPrev).toBe(expectedHasPrev);
+        }),
+      );
+    });
+
+    it('property: pagination metadata contains correct page and limit', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), async (page, limit) => {
+          const mockTestimonials = [];
+          const mockTotal = 0;
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(mockTotal);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.page).toBe(page);
+          expect(result.pagination.limit).toBe(limit);
+        }),
+      );
+    });
+
+    it('property: pagination metadata contains correct total', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), fc.nat({ max: 1000 }), async (page, limit, total) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.total).toBe(total);
+        }),
+      );
+    });
+  });
+
+  describe('Edge Cases for Pagination', () => {
+    it('property: page 1 always has hasPrev = false', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.nat({ max: 1000 }), async (limit, total) => {
+          const page = 1;
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.hasPrev).toBe(false);
+        }),
+      );
+    });
+
+    it('property: last page always has hasNext = false', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.integer({ min: 1, max: 100 }),
+          fc.integer({ min: 1, max: 1000 }).filter((t) => t > 0),
+          async (limit, total) => {
+            const totalPages = Math.ceil(total / limit);
+            const page = totalPages;
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+            mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+            const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+            expect(result.pagination.hasNext).toBe(false);
+          },
+        ),
+      );
+    });
+
+    it('property: when total is 0, totalPages is 0 and hasNext is false', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), async (page, limit) => {
+          const total = 0;
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.totalPages).toBe(0);
+          expect(result.pagination.hasNext).toBe(false);
+        }),
+      );
+    });
+
+    it('property: when total equals limit, totalPages is 1', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), async (page, limit) => {
+          const total = limit;
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.totalPages).toBe(1);
+        }),
+      );
+    });
+
+    it('property: when total is less than limit, totalPages is 1', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 2, max: 100 }), async (limit) => {
+          const total = limit - 1;
+          const page = 1;
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.totalPages).toBe(1);
+        }),
+      );
+    });
+  });
+
+  describe('No Pagination Properties', () => {
+    it('property: when page is undefined, no pagination object is returned', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), async (limit) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          const result = await userTestimonialsRepository.findMany({}, undefined, limit);
+
+          expect(result.pagination).toBeUndefined();
+          expect(result.testimonials).toBeDefined();
+        }),
+      );
+    });
+
+    it('property: when limit is undefined, no pagination object is returned', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), async (page) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          const result = await userTestimonialsRepository.findMany({}, page, undefined);
+
+          expect(result.pagination).toBeUndefined();
+          expect(result.testimonials).toBeDefined();
+        }),
+      );
+    });
+
+    it('property: when both page and limit are undefined, no pagination object is returned', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          const result = await userTestimonialsRepository.findMany({}, undefined, undefined);
+
+          expect(result.pagination).toBeUndefined();
+          expect(result.testimonials).toBeDefined();
+        }),
+      );
+    });
+
+    it('property: when no pagination, findMany is called without skip and take', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.not.objectContaining({
+              skip: expect.anything(),
+              take: expect.anything(),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: when no pagination, count is not called', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.count).not.toHaveBeenCalled();
+        }),
+      );
+    });
+  });
+
+  describe('Admin Pagination Properties', () => {
+    it('property: findManyForAdmin has same pagination calculations as findMany', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), fc.nat({ max: 1000 }), async (page, limit, total) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findManyForAdmin({}, page, limit);
+
+          const expectedTotalPages = Math.ceil(total / limit);
+          const expectedHasNext = page < expectedTotalPages;
+          const expectedHasPrev = page > 1;
+
+          expect(result.pagination.page).toBe(page);
+          expect(result.pagination.limit).toBe(limit);
+          expect(result.pagination.total).toBe(total);
+          expect(result.pagination.totalPages).toBe(expectedTotalPages);
+          expect(result.pagination.hasNext).toBe(expectedHasNext);
+          expect(result.pagination.hasPrev).toBe(expectedHasPrev);
+        }),
+      );
+    });
+
+    it('property: findManyForAdmin without pagination returns no pagination object', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          const result = await userTestimonialsRepository.findManyForAdmin({}, undefined, undefined);
+
+          expect(result.pagination).toBeUndefined();
+          expect(result.testimonials).toBeDefined();
+        }),
+      );
+    });
+  });
+
+  describe('Pagination Consistency Properties', () => {
+    it('property: pagination calculations are deterministic', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), fc.nat({ max: 1000 }), async (page, limit, total) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result1 = await userTestimonialsRepository.findMany({}, page, limit);
+          const result2 = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result1.pagination).toEqual(result2.pagination);
+        }),
+      );
+    });
+
+    it('property: totalPages * limit >= total (covers all items)', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 100 }), fc.integer({ min: 1, max: 100 }), fc.nat({ max: 1000 }), async (page, limit, total) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+          const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(result.pagination.totalPages * limit).toBeGreaterThanOrEqual(total);
+        }),
+      );
+    });
+
+    it('property: (totalPages - 1) * limit < total (no unnecessary pages)', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.integer({ min: 1, max: 100 }),
+          fc.integer({ min: 1, max: 100 }),
+          fc.integer({ min: 1, max: 1000 }),
+          async (page, limit, total) => {
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+            mockPrismaClient.testimonial.count.mockResolvedValue(total);
+
+            const result = await userTestimonialsRepository.findMany({}, page, limit);
+
+            if (result.pagination.totalPages > 0) {
+              expect((result.pagination.totalPages - 1) * limit).toBeLessThan(total);
+            }
+          },
+        ),
+      );
+    });
+  });
+
+  describe('Boundary Validation Properties', () => {
+    it('property: page 1 with limit 1 always has skip = 0', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const page = 1;
+          const limit = 1;
+          const mockTestimonials = [];
+          const mockTotal = 0;
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(mockTotal);
+
+          await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              skip: 0,
+              take: 1,
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: large page numbers calculate skip correctly', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 100, max: 1000 }), fc.integer({ min: 1, max: 100 }), async (page, limit) => {
+          const expectedSkip = (page - 1) * limit;
+          const mockTestimonials = [];
+          const mockTotal = page * limit;
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+          mockPrismaClient.testimonial.count.mockResolvedValue(mockTotal);
+
+          await userTestimonialsRepository.findMany({}, page, limit);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              skip: expectedSkip,
+            }),
+          );
+        }),
+      );
+    });
+  });
+});
+
+describe('TestimonialsRepository - Filtering Property-Based Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('Status Filter Properties', () => {
+    it('property: status filter always includes status in where clause', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('ACTIVE', 'INACTIVE', 'PENDING'), async (status) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ status }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                status: status,
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: when no status filter provided, defaults to ACTIVE for findMany', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                status: 'ACTIVE',
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: findManyForAdmin allows any status or no status filter', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.option(fc.constantFrom('ACTIVE', 'INACTIVE', 'PENDING'), { nil: undefined }), async (status) => {
+          vi.clearAllMocks();
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          const filters = status ? { status } : {};
+          await userTestimonialsRepository.findManyForAdmin(filters, undefined, undefined);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          if (status) {
+            expect(call.where.status).toBe(status);
+          } else {
+            expect(call.where.status).toBeUndefined();
+          }
+        }),
+      );
+    });
+  });
+
+  describe('Country Filter Properties', () => {
+    it('property: country filter always uses case-insensitive contains', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.string({ minLength: 1, maxLength: 50 }), async (country) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ country }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                country: {
+                  contains: country,
+                  mode: 'insensitive',
+                },
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: country filter with special characters is handled correctly', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.array(fc.constantFrom('a', 'b', '-', ' ', "'", '.'), { minLength: 1, maxLength: 20 }).map((arr) => arr.join('')),
+          async (country) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ country }, undefined, undefined);
+
+            expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+              expect.objectContaining({
+                where: expect.objectContaining({
+                  country: {
+                    contains: country,
+                    mode: 'insensitive',
+                  },
+                }),
+              }),
+            );
+          },
+        ),
+      );
+    });
+
+    it('property: empty country filter is not included in where clause', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.where.country).toBeUndefined();
+        }),
+      );
+    });
+  });
+
+  describe('MinRating Filter Properties', () => {
+    it('property: minRating filter always uses gte operator', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 5 }), async (minRating) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ minRating }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                rating: {
+                  gte: minRating,
+                },
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: minRating filter converts string to integer', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 5 }), async (minRating) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ minRating: minRating.toString() }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                rating: {
+                  gte: minRating,
+                },
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: minRating of 1 should match all ratings', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(1), async (minRating) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ minRating }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                rating: {
+                  gte: 1,
+                },
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: minRating of 5 should be most restrictive', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(5), async (minRating) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ minRating }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                rating: {
+                  gte: 5,
+                },
+              }),
+            }),
+          );
+        }),
+      );
+    });
+  });
+
+  describe('Featured Filter Properties', () => {
+    it('property: featured filter with boolean true includes featured=true', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(true), async (featured) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ featured }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                featured: true,
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: featured filter with boolean false includes featured=false', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(false), async (featured) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ featured }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                featured: false,
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: featured filter with string "true" converts to boolean true', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant('true'), async (featured) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ featured }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                featured: true,
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: featured filter with string "false" converts to boolean false', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant('false'), async (featured) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ featured }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                featured: false,
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: undefined featured filter is not included in where clause', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.where.featured).toBeUndefined();
+        }),
+      );
+    });
+  });
+
+  describe('Search Filter Properties', () => {
+    it('property: search filter always creates OR clause with name, text, country', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.string({ minLength: 1, maxLength: 50 }), async (search) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ search }, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              where: expect.objectContaining({
+                OR: [
+                  { name: { contains: search, mode: 'insensitive' } },
+                  { text: { contains: search, mode: 'insensitive' } },
+                  { country: { contains: search, mode: 'insensitive' } },
+                ],
+              }),
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: search filter is case-insensitive', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.string({ minLength: 1, maxLength: 50 }), async (search) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ search }, undefined, undefined);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.where.OR).toBeDefined();
+          call.where.OR.forEach((condition) => {
+            const field = Object.keys(condition)[0];
+            expect(condition[field].mode).toBe('insensitive');
+          });
+        }),
+      );
+    });
+
+    it('property: search with special characters is handled correctly', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.array(fc.constantFrom('a', 'b', ' ', '-', "'", '.', '@', '#'), { minLength: 1, maxLength: 20 }).map((arr) => arr.join('')),
+          async (search) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ search }, undefined, undefined);
+
+            expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+              expect.objectContaining({
+                where: expect.objectContaining({
+                  OR: expect.arrayContaining([
+                    expect.objectContaining({ name: { contains: search, mode: 'insensitive' } }),
+                    expect.objectContaining({ text: { contains: search, mode: 'insensitive' } }),
+                    expect.objectContaining({ country: { contains: search, mode: 'insensitive' } }),
+                  ]),
+                }),
+              }),
+            );
+          },
+        ),
+      );
+    });
+
+    it('property: empty search filter is not included in where clause', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.where.OR).toBeUndefined();
+        }),
+      );
+    });
+  });
+
+  describe('Combined Filter Properties', () => {
+    it('property: multiple filters are combined with AND logic', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.constantFrom('ACTIVE', 'INACTIVE', 'PENDING'),
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.boolean(),
+          async (status, country, minRating, featured) => {
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ status, country, minRating, featured }, undefined, undefined);
+
+            expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+              expect.objectContaining({
+                where: expect.objectContaining({
+                  status: status,
+                  country: { contains: country, mode: 'insensitive' },
+                  rating: { gte: minRating },
+                  featured: featured,
+                }),
+              }),
+            );
+          },
+        ),
+      );
+    });
+
+    it('property: search filter combines with other filters using AND', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 1, max: 5 }),
+          async (search, country, minRating) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ search, country, minRating }, undefined, undefined);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.OR).toBeDefined();
+            expect(call.where.country).toEqual({ contains: country, mode: 'insensitive' });
+            expect(call.where.rating).toEqual({ gte: minRating });
+          },
+        ),
+      );
+    });
+
+    it('property: all filters can be combined together', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.constantFrom('ACTIVE', 'INACTIVE', 'PENDING'),
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.boolean(),
+          fc.string({ minLength: 1, maxLength: 20 }),
+          async (status, country, minRating, featured, search) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ status, country, minRating, featured, search }, undefined, undefined);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.status).toBe(status);
+            expect(call.where.country).toEqual({ contains: country, mode: 'insensitive' });
+            expect(call.where.rating).toEqual({ gte: minRating });
+            expect(call.where.featured).toBe(featured);
+            expect(call.where.OR).toBeDefined();
+            expect(call.where.OR).toHaveLength(3);
+          },
+        ),
+      );
+    });
+  });
+
+  describe('Filter Edge Cases', () => {
+    it('property: filters work correctly with pagination', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.integer({ min: 1, max: 10 }),
+          fc.integer({ min: 1, max: 50 }),
+          async (country, minRating, page, limit) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+            const mockTotal = 100;
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+            mockPrismaClient.testimonial.count.mockResolvedValue(mockTotal);
+
+            await userTestimonialsRepository.findMany({ country, minRating }, page, limit);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.country).toEqual({ contains: country, mode: 'insensitive' });
+            expect(call.where.rating).toEqual({ gte: minRating });
+            expect(call.skip).toBe((page - 1) * limit);
+            expect(call.take).toBe(limit);
+          },
+        ),
+      );
+    });
+
+    it('property: filters work correctly without pagination', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.boolean(),
+          async (country, minRating, featured) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ country, minRating, featured }, undefined, undefined);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.country).toEqual({ contains: country, mode: 'insensitive' });
+            expect(call.where.rating).toEqual({ gte: minRating });
+            expect(call.where.featured).toBe(featured);
+            expect(call.skip).toBeUndefined();
+            expect(call.take).toBeUndefined();
+          },
+        ),
+      );
+    });
+
+    it('property: empty filters object only includes default status for findMany', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.where).toEqual({ status: 'ACTIVE' });
+        }),
+      );
+    });
+
+    it('property: findManyForAdmin with empty filters has no default status', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findManyForAdmin({}, undefined, undefined);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.where).toEqual({});
+        }),
+      );
+    });
+  });
+
+  describe('Filter Consistency Properties', () => {
+    it('property: same filters produce same where clause', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.boolean(),
+          async (country, minRating, featured) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ country, minRating, featured }, undefined, undefined);
+            const call1 = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+
+            vi.clearAllMocks();
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ country, minRating, featured }, undefined, undefined);
+            const call2 = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+
+            expect(call1.where).toEqual(call2.where);
+          },
+        ),
+      );
+    });
+
+    it('property: filter order does not affect where clause', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.boolean(),
+          async (country, minRating, featured) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            // Apply filters in one order
+            await userTestimonialsRepository.findMany({ country, minRating, featured }, undefined, undefined);
+            const call1 = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+
+            vi.clearAllMocks();
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            // Apply filters in different order (same values)
+            await userTestimonialsRepository.findMany({ featured, country, minRating }, undefined, undefined);
+            const call2 = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+
+            expect(call1.where).toEqual(call2.where);
+          },
+        ),
+      );
+    });
+  });
+});
+
+describe('TestimonialsRepository - Sorting Property-Based Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('SortBy Parameter Properties', () => {
+    it('property: sortBy createdAt maps to created_at field', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('asc', 'desc'), async (sortOrder) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, 'createdAt', sortOrder);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              orderBy: { created_at: sortOrder },
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: sortBy name maps to name field', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('asc', 'desc'), async (sortOrder) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, 'name', sortOrder);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              orderBy: { name: sortOrder },
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: sortBy rating maps to rating field', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('asc', 'desc'), async (sortOrder) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, 'rating', sortOrder);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              orderBy: { rating: sortOrder },
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: sortBy country maps to country field', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('asc', 'desc'), async (sortOrder) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, 'country', sortOrder);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              orderBy: { country: sortOrder },
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: sortBy featured maps to featured field', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('asc', 'desc'), async (sortOrder) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, 'featured', sortOrder);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              orderBy: { featured: sortOrder },
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: invalid sortBy defaults to created_at desc', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }).filter((s) => !['createdAt', 'name', 'rating', 'country', 'featured'].includes(s)),
+          fc.constantFrom('asc', 'desc'),
+          async (invalidSortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({}, undefined, undefined, invalidSortBy, sortOrder);
+
+            expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+              expect.objectContaining({
+                orderBy: { created_at: 'desc' },
+              }),
+            );
+          },
+        ),
+      );
+    });
+
+    it('property: all valid sortBy values work with both asc and desc', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.constantFrom('createdAt', 'name', 'rating', 'country', 'featured'),
+          fc.constantFrom('asc', 'desc'),
+          async (sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.orderBy).toBeDefined();
+            expect(Object.values(call.orderBy)[0]).toBe(sortOrder);
+          },
+        ),
+      );
+    });
+  });
+
+  describe('SortOrder Parameter Properties', () => {
+    it('property: sortOrder asc is always passed correctly', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('createdAt', 'name', 'rating', 'country', 'featured'), async (sortBy) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy, 'asc');
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(Object.values(call.orderBy)[0]).toBe('asc');
+        }),
+      );
+    });
+
+    it('property: sortOrder desc is always passed correctly', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('createdAt', 'name', 'rating', 'country', 'featured'), async (sortBy) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy, 'desc');
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(Object.values(call.orderBy)[0]).toBe('desc');
+        }),
+      );
+    });
+  });
+
+  describe('Default Sorting Properties', () => {
+    it('property: default sorting is created_at desc when no params provided', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              orderBy: { created_at: 'desc' },
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: default sortOrder is desc when only sortBy provided', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('createdAt', 'name', 'rating', 'country', 'featured'), async (sortBy) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(Object.values(call.orderBy)[0]).toBe('desc');
+        }),
+      );
+    });
+  });
+
+  describe('Sorting with Filters Properties', () => {
+    it('property: sorting works correctly with status filter', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.constantFrom('ACTIVE', 'INACTIVE', 'PENDING'),
+          fc.constantFrom('createdAt', 'name', 'rating', 'country'),
+          fc.constantFrom('asc', 'desc'),
+          async (status, sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ status }, undefined, undefined, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.status).toBe(status);
+            expect(call.orderBy).toBeDefined();
+          },
+        ),
+      );
+    });
+
+    it('property: sorting works correctly with country filter', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.constantFrom('createdAt', 'name', 'rating', 'country'),
+          fc.constantFrom('asc', 'desc'),
+          async (country, sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ country }, undefined, undefined, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.country).toEqual({ contains: country, mode: 'insensitive' });
+            expect(call.orderBy).toBeDefined();
+          },
+        ),
+      );
+    });
+
+    it('property: sorting works correctly with minRating filter', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.integer({ min: 1, max: 5 }),
+          fc.constantFrom('createdAt', 'name', 'rating', 'country'),
+          fc.constantFrom('asc', 'desc'),
+          async (minRating, sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ minRating }, undefined, undefined, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.rating).toEqual({ gte: minRating });
+            expect(call.orderBy).toBeDefined();
+          },
+        ),
+      );
+    });
+
+    it('property: sorting works correctly with featured filter', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.boolean(),
+          fc.constantFrom('createdAt', 'name', 'rating', 'country'),
+          fc.constantFrom('asc', 'desc'),
+          async (featured, sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ featured }, undefined, undefined, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.featured).toBe(featured);
+            expect(call.orderBy).toBeDefined();
+          },
+        ),
+      );
+    });
+
+    it('property: sorting works correctly with search filter', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.constantFrom('createdAt', 'name', 'rating', 'country'),
+          fc.constantFrom('asc', 'desc'),
+          async (search, sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ search }, undefined, undefined, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.OR).toBeDefined();
+            expect(call.orderBy).toBeDefined();
+          },
+        ),
+      );
+    });
+
+    it('property: sorting works correctly with multiple filters', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.boolean(),
+          fc.constantFrom('createdAt', 'name', 'rating', 'country'),
+          fc.constantFrom('asc', 'desc'),
+          async (country, minRating, featured, sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ country, minRating, featured }, undefined, undefined, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.country).toEqual({ contains: country, mode: 'insensitive' });
+            expect(call.where.rating).toEqual({ gte: minRating });
+            expect(call.where.featured).toBe(featured);
+            expect(call.orderBy).toBeDefined();
+          },
+        ),
+      );
+    });
+  });
+
+  describe('Sorting with Pagination Properties', () => {
+    it('property: sorting works correctly with pagination', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.integer({ min: 1, max: 10 }),
+          fc.integer({ min: 1, max: 50 }),
+          fc.constantFrom('createdAt', 'name', 'rating', 'country'),
+          fc.constantFrom('asc', 'desc'),
+          async (page, limit, sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+            const mockTotal = 100;
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+            mockPrismaClient.testimonial.count.mockResolvedValue(mockTotal);
+
+            await userTestimonialsRepository.findMany({}, page, limit, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.skip).toBe((page - 1) * limit);
+            expect(call.take).toBe(limit);
+            expect(call.orderBy).toBeDefined();
+          },
+        ),
+      );
+    });
+
+    it('property: sorting works correctly without pagination', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('createdAt', 'name', 'rating', 'country'), fc.constantFrom('asc', 'desc'), async (sortBy, sortOrder) => {
+          vi.clearAllMocks();
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy, sortOrder);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.skip).toBeUndefined();
+          expect(call.take).toBeUndefined();
+          expect(call.orderBy).toBeDefined();
+        }),
+      );
+    });
+
+    it('property: sorting with pagination and filters combines all parameters', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.integer({ min: 1, max: 5 }),
+          fc.integer({ min: 1, max: 10 }),
+          fc.integer({ min: 1, max: 50 }),
+          fc.constantFrom('createdAt', 'name', 'rating', 'country'),
+          fc.constantFrom('asc', 'desc'),
+          async (country, minRating, page, limit, sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+            const mockTotal = 100;
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+            mockPrismaClient.testimonial.count.mockResolvedValue(mockTotal);
+
+            await userTestimonialsRepository.findMany({ country, minRating }, page, limit, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.where.country).toEqual({ contains: country, mode: 'insensitive' });
+            expect(call.where.rating).toEqual({ gte: minRating });
+            expect(call.skip).toBe((page - 1) * limit);
+            expect(call.take).toBe(limit);
+            expect(call.orderBy).toBeDefined();
+          },
+        ),
+      );
+    });
+  });
+
+  describe('Admin Sorting Properties', () => {
+    it('property: findManyForAdmin supports status sorting', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('asc', 'desc'), async (sortOrder) => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findManyForAdmin({}, undefined, undefined, 'status', sortOrder);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              orderBy: { status: sortOrder },
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: findManyForAdmin supports all sortBy options from findMany', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.constantFrom('createdAt', 'name', 'rating', 'country', 'featured'),
+          fc.constantFrom('asc', 'desc'),
+          async (sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findManyForAdmin({}, undefined, undefined, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            expect(call.orderBy).toBeDefined();
+            expect(Object.values(call.orderBy)[0]).toBe(sortOrder);
+          },
+        ),
+      );
+    });
+
+    it('property: findManyForAdmin has same default sorting as findMany', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constant(null), async () => {
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findManyForAdmin({}, undefined, undefined);
+
+          expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+              orderBy: { created_at: 'desc' },
+            }),
+          );
+        }),
+      );
+    });
+
+    it('property: findManyForAdmin invalid sortBy defaults to created_at desc', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }).filter((s) => !['createdAt', 'name', 'rating', 'country', 'featured', 'status'].includes(s)),
+          fc.constantFrom('asc', 'desc'),
+          async (invalidSortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findManyForAdmin({}, undefined, undefined, invalidSortBy, sortOrder);
+
+            expect(mockPrismaClient.testimonial.findMany).toHaveBeenCalledWith(
+              expect.objectContaining({
+                orderBy: { created_at: 'desc' },
+              }),
+            );
+          },
+        ),
+      );
+    });
+  });
+
+  describe('Sorting Consistency Properties', () => {
+    it('property: same sorting parameters produce same orderBy clause', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('createdAt', 'name', 'rating', 'country'), fc.constantFrom('asc', 'desc'), async (sortBy, sortOrder) => {
+          vi.clearAllMocks();
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy, sortOrder);
+          const call1 = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+
+          vi.clearAllMocks();
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy, sortOrder);
+          const call2 = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+
+          expect(call1.orderBy).toEqual(call2.orderBy);
+        }),
+      );
+    });
+
+    it('property: sorting is deterministic across multiple calls', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('createdAt', 'name', 'rating', 'country'), fc.constantFrom('asc', 'desc'), async (sortBy, sortOrder) => {
+          vi.clearAllMocks();
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          // First call
+          await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy, sortOrder);
+          const orderBy1 = mockPrismaClient.testimonial.findMany.mock.calls[0][0].orderBy;
+
+          vi.clearAllMocks();
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          // Second call
+          await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy, sortOrder);
+          const orderBy2 = mockPrismaClient.testimonial.findMany.mock.calls[0][0].orderBy;
+
+          expect(orderBy1).toEqual(orderBy2);
+        }),
+      );
+    });
+  });
+
+  describe('Sorting Edge Cases', () => {
+    it('property: sorting with empty filters still applies orderBy', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.constantFrom('createdAt', 'name', 'rating', 'country'), fc.constantFrom('asc', 'desc'), async (sortBy, sortOrder) => {
+          vi.clearAllMocks();
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({}, undefined, undefined, sortBy, sortOrder);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.orderBy).toBeDefined();
+          expect(Object.keys(call.orderBy).length).toBe(1);
+        }),
+      );
+    });
+
+    it('property: sorting parameters are independent of filter parameters', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 20 }),
+          fc.constantFrom('createdAt', 'name', 'rating', 'country'),
+          fc.constantFrom('asc', 'desc'),
+          async (country, sortBy, sortOrder) => {
+            vi.clearAllMocks();
+            const mockTestimonials = [];
+
+            mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+            await userTestimonialsRepository.findMany({ country }, undefined, undefined, sortBy, sortOrder);
+
+            const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+            // Verify both where and orderBy are present and independent
+            expect(call.where).toBeDefined();
+            expect(call.orderBy).toBeDefined();
+            expect(call.where.country).toEqual({ contains: country, mode: 'insensitive' });
+          },
+        ),
+      );
+    });
+
+    it('property: sorting by rating field does not conflict with minRating filter', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.integer({ min: 1, max: 5 }), fc.constantFrom('asc', 'desc'), async (minRating, sortOrder) => {
+          vi.clearAllMocks();
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ minRating }, undefined, undefined, 'rating', sortOrder);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.where.rating).toEqual({ gte: minRating });
+          expect(call.orderBy.rating).toBe(sortOrder);
+        }),
+      );
+    });
+
+    it('property: sorting by country field does not conflict with country filter', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.string({ minLength: 1, maxLength: 20 }), fc.constantFrom('asc', 'desc'), async (country, sortOrder) => {
+          vi.clearAllMocks();
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ country }, undefined, undefined, 'country', sortOrder);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.where.country).toEqual({ contains: country, mode: 'insensitive' });
+          expect(call.orderBy.country).toBe(sortOrder);
+        }),
+      );
+    });
+
+    it('property: sorting by featured field does not conflict with featured filter', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.boolean(), fc.constantFrom('asc', 'desc'), async (featured, sortOrder) => {
+          vi.clearAllMocks();
+          const mockTestimonials = [];
+
+          mockPrismaClient.testimonial.findMany.mockResolvedValue(mockTestimonials);
+
+          await userTestimonialsRepository.findMany({ featured }, undefined, undefined, 'featured', sortOrder);
+
+          const call = mockPrismaClient.testimonial.findMany.mock.calls[0][0];
+          expect(call.where.featured).toBe(featured);
+          expect(call.orderBy.featured).toBe(sortOrder);
+        }),
+      );
+    });
+  });
+});

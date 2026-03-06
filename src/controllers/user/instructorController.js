@@ -1,4 +1,4 @@
-import { instructorService } from '../../services/instructorService.js';
+import { instructorService } from '../../services/shared/instructorService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class UserInstructorController {
@@ -67,8 +67,8 @@ export class UserInstructorController {
             total: instructors.length,
             search_query: name,
           },
-          'Pencarian instructor berhasil'
-        )
+          'Pencarian instructor berhasil',
+        ),
       );
     } catch (error) {
       request.log.error({ err: error }, '[userInstructorController] searchInstructorByName error');
@@ -92,8 +92,8 @@ export class UserInstructorController {
             total: instructors.length,
             job_title_filter: job_title,
           },
-          'Instructor berdasarkan job title berhasil diambil'
-        )
+          'Instructor berdasarkan job title berhasil diambil',
+        ),
       );
     } catch (error) {
       request.log.error({ err: error }, '[userInstructorController] getInstructorsByJobTitle error');
@@ -117,8 +117,8 @@ export class UserInstructorController {
             total: instructors.length,
             limit,
           },
-          'Instructor terpopuler berhasil diambil'
-        )
+          'Instructor terpopuler berhasil diambil',
+        ),
       );
     } catch (error) {
       request.log.error({ err: error }, '[userInstructorController] getPopularInstructors error');
@@ -142,8 +142,8 @@ export class UserInstructorController {
             total: instructors.length,
             academy_id: Number(academyId),
           },
-          'Instructor academy berhasil diambil'
-        )
+          'Instructor academy berhasil diambil',
+        ),
       );
     } catch (error) {
       request.log.error({ err: error }, '[userInstructorController] getInstructorsByAcademyId error');
@@ -167,8 +167,8 @@ export class UserInstructorController {
             total: academies.length,
             instructor_id: Number(instructorId),
           },
-          'Academy instructor berhasil diambil'
-        )
+          'Academy instructor berhasil diambil',
+        ),
       );
     } catch (error) {
       request.log.error({ err: error }, '[userInstructorController] getAcademiesByInstructorId error');

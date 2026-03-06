@@ -1,6 +1,6 @@
 import { authController } from '../controllers/auth/authController.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { loginSchema, registerSchema, getCurrentUserSchema, logoutSchema } from '../schemas/userSchemas.js';
+import { loginSchema, registerSchema, getCurrentUserSchema, logoutSchema } from '../schemas/shared/userSchemas.js';
 
 async function authRoutes(fastify, options) {
   const authTag = { tags: ['Auth'] };
@@ -13,7 +13,7 @@ async function authRoutes(fastify, options) {
       schema: { ...getCurrentUserSchema, ...authTag },
       preHandler: authMiddleware,
     },
-    authController.getCurrentUser
+    authController.getCurrentUser,
   );
   fastify.post(
     '/logout',
@@ -21,7 +21,7 @@ async function authRoutes(fastify, options) {
       schema: { ...logoutSchema, ...authTag },
       preHandler: authMiddleware,
     },
-    authController.logout
+    authController.logout,
   );
 }
 

@@ -1,4 +1,4 @@
-import { rylsPaymentService } from '../../services/rylsPaymentService.js';
+import { rylsPaymentService } from '../../services/user/rylsPaymentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class RylsPaymentController {
@@ -79,67 +79,6 @@ export class RylsPaymentController {
     } catch (error) {
       request.log.error({ err: error }, '[rylsPaymentController] getPaymentStatus error');
       return reply.status(500).send(errorResponse('Failed to get payment status', 500, error.message));
-    }
-  }
-
-  async getPaymentStatistics(request, reply) {
-    request.log.info('[rylsPaymentController] getPaymentStatistics start');
-    request.log.debug({ query: request.query }, '[rylsPaymentController] rawQuery');
-
-    try {
-      const filters = request.query || {};
-      const statistics = await this.paymentService.getPaymentStatistics(filters);
-
-      request.log.info('[rylsPaymentController] getPaymentStatistics success');
-      return reply.status(200).send(successResponse(statistics, 'Payment statistics retrieved successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[rylsPaymentController] getPaymentStatistics error');
-      return reply.status(500).send(errorResponse('Failed to get payment statistics', 500, error.message));
-    }
-  }
-
-  async cancelPayment(request, reply) {
-    request.log.info('[rylsPaymentController] cancelPayment start');
-    request.log.debug({ params: request.params }, '[rylsPaymentController] rawParams');
-
-    try {
-      const { orderId } = request.params;
-      const cancellationResult = await this.paymentService.cancelPayment(orderId);
-
-      request.log.info('[rylsPaymentController] cancelPayment success');
-      return reply.status(200).send(successResponse(cancellationResult, 'Payment cancelled successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[rylsPaymentController] cancelPayment error');
-
-      if (error.message.includes('Payment not found')) {
-        return reply.status(404).send(errorResponse('Payment not found', 404, error.message));
-      }
-
-      if (error.message.includes('Cannot cancel payment')) {
-        return reply.status(400).send(errorResponse('Cannot cancel payment', 400, error.message));
-      }
-
-      return reply.status(500).send(errorResponse('Failed to cancel payment', 500, error.message));
-    }
-  }
-
-  async healthCheck(request, reply) {
-    request.log.info('[rylsPaymentController] healthCheck start');
-
-    try {
-      const healthData = {
-        status: 'healthy',
-        services: {
-          database: 'connected',
-          midtrans: 'configured',
-        },
-      };
-
-      request.log.info('[rylsPaymentController] healthCheck success');
-      return reply.status(200).send(successResponse(healthData, 'Payment system is healthy'));
-    } catch (error) {
-      request.log.error({ err: error }, '[rylsPaymentController] healthCheck error');
-      return errorResponse(reply, 'Payment system unhealthy', 500, error.message);
     }
   }
 }

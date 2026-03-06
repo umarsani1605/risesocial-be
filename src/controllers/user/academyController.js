@@ -1,4 +1,4 @@
-import { academyService } from '../../services/academyService.js';
+import { academyService } from '../../services/shared/academyService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class UserAcademyController {

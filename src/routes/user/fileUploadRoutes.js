@@ -7,7 +7,7 @@ import {
   getFileInfoSchema,
   getFilesByTypeSchema,
   healthCheckSchema,
-} from '../../schemas/fileUploadSchemas.js';
+} from '../../schemas/shared/fileUploadSchemas.js';
 
 export default async function userFileUploadRoutes(fastify) {
   fastify.post('/headshot', {

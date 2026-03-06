@@ -1,4 +1,4 @@
-import { enrollmentService } from '../../services/enrollmentService.js';
+import { enrollmentService } from '../../services/user/enrollmentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AdminEnrollmentController {

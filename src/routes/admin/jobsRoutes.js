@@ -7,11 +7,52 @@ export async function jobsRoutes(fastify) {
   fastify.addHook('preHandler', authMiddleware);
 
   fastify.get(
+    '/',
+    {
+      schema: {
+        ...jobsTag,
+        summary: 'Get all jobs for admin',
+        description: 'Retrieve all jobs with optional status filter',
+        querystring: {
+          type: 'object',
+          properties: {
+            status: {
+              type: 'string',
+              enum: ['active', 'inactive', 'all'],
+              default: 'all',
+              description: 'Filter by job status',
+            },
+            page: { type: 'integer', minimum: 1, description: 'Page number' },
+            limit: { type: 'integer', minimum: 1, maximum: 100, description: 'Items per page' },
+          },
+        },
+      },
+    },
+    adminJobsController.getJobs,
+  );
+
+  fastify.get(
     '/statistics',
     {
       schema: { ...jobsTag, description: 'Get all jobs statistics' },
     },
-    adminJobsController.getAllJobsStatistics
+    adminJobsController.getAllJobsStatistics,
+  );
+
+  fastify.get(
+    '/:id',
+    {
+      schema: {
+        ...jobsTag,
+        description: 'Get job by ID',
+        params: {
+          type: 'object',
+          properties: { id: { type: 'integer' } },
+          required: ['id'],
+        },
+      },
+    },
+    adminJobsController.getJobById,
   );
 
   fastify.get(
@@ -27,7 +68,7 @@ export async function jobsRoutes(fastify) {
         },
       },
     },
-    adminJobsController.getJobStatistics
+    adminJobsController.getJobStatistics,
   );
 
   fastify.post(
@@ -35,7 +76,7 @@ export async function jobsRoutes(fastify) {
     {
       schema: { ...jobsTag, description: 'Sync jobs from LinkedIn' },
     },
-    adminJobsController.syncLinkedInJobs
+    adminJobsController.syncLinkedInJobs,
   );
 
   fastify.post(
@@ -58,7 +99,7 @@ export async function jobsRoutes(fastify) {
         },
       },
     },
-    adminJobsController.createJob
+    adminJobsController.createJob,
   );
 
   fastify.put(
@@ -85,7 +126,7 @@ export async function jobsRoutes(fastify) {
         },
       },
     },
-    adminJobsController.updateJob
+    adminJobsController.updateJob,
   );
 
   fastify.delete(
@@ -101,7 +142,7 @@ export async function jobsRoutes(fastify) {
         },
       },
     },
-    adminJobsController.deleteJob
+    adminJobsController.deleteJob,
   );
 }
 

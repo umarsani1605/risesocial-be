@@ -1,4 +1,4 @@
-import { jobsService } from '../../services/jobsService.js';
+import { jobsService } from '../../services/shared/jobsService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 class JobsController {
@@ -11,8 +11,9 @@ class JobsController {
     request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
     try {
       const {
-        page = 1,
-        limit = 10,
+        page,
+        limit,
+        featured,
         search = '',
         query = '',
         location = '',
@@ -31,8 +32,6 @@ class JobsController {
       } = request.query;
 
       const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
         query: search || query,
         location,
         jobType,
@@ -49,15 +48,26 @@ class JobsController {
         sortOrder,
       };
 
+      // Only add pagination if both page and limit are provided
+      if (page !== undefined && limit !== undefined) {
+        options.page = parseInt(page);
+        options.limit = parseInt(limit);
+      }
+
+      if (featured !== undefined) {
+        options.featured = featured === 'true' || featured === true;
+      }
+
       const result = await this.jobsService.searchJobs(options);
 
       request.log.info('[userJobsController] getJobs success');
-      return reply.send({
-        success: true,
-        message: 'Jobs retrieved successfully',
-        data: result.data,
-        meta: result.meta,
-      });
+
+      // Return with or without meta based on whether pagination was requested
+      if (result.meta) {
+        return reply.send(successResponse(result.data, 'Jobs retrieved successfully', result.meta));
+      } else {
+        return reply.send(successResponse(result.data, 'Jobs retrieved successfully'));
+      }
     } catch (error) {
       request.log.error({ err: error }, '[userJobsController] getJobs error');
       return reply.send(errorResponse(error.message, 500));
@@ -86,20 +96,6 @@ class JobsController {
     }
   };
 
-  getFeaturedJobs = async (request, reply) => {
-    try {
-      request.log.info('[userJobsController] getFeaturedJobs start');
-      request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
-      const { limit = 6 } = request.query;
-      const jobs = await this.jobsService.getFeaturedJobs(Number(limit));
-      request.log.info('[userJobsController] getFeaturedJobs success');
-      return reply.send(successResponse(jobs, 'Featured jobs retrieved successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[userJobsController] getFeaturedJobs error');
-      return reply.send(errorResponse(error.message, 500));
-    }
-  };
-
   getJobCategories = async (request, reply) => {
     try {
       request.log.info('[userJobsController] getJobCategories start');
@@ -108,31 +104,6 @@ class JobsController {
       return reply.send(successResponse(categories, 'Job categories retrieved successfully'));
     } catch (error) {
       request.log.error({ err: error }, '[userJobsController] getJobCategories error');
-      return reply.send(errorResponse(error.message, 500));
-    }
-  };
-
-  searchJobs = async (request, reply) => {
-    try {
-      request.log.info('[userJobsController] searchJobs start');
-      request.log.debug({ query: request.query }, '[userJobsController] rawQuery');
-      const { q, location, jobType, experienceLevel, skills, page = 1, limit = 10 } = request.query;
-
-      const options = {
-        page: Number(page),
-        limit: Number(limit),
-        query: q,
-        location,
-        jobType,
-        experienceLevel,
-        skills: skills ? skills.split(',').map((skill) => skill.trim()) : undefined,
-      };
-
-      const result = await this.jobsService.searchJobs(options);
-      request.log.info('[userJobsController] searchJobs success');
-      return reply.send(successResponse(result, 'Jobs search completed successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[userJobsController] searchJobs error');
       return reply.send(errorResponse(error.message, 500));
     }
   };

@@ -3,7 +3,7 @@ import {
   getRegistrationBySubmissionIdSchema,
   checkEmailExistsSchema,
   userRegistrationHealthCheckSchema,
-} from '../../schemas/rylsRegistrationSchemas.js';
+} from '../../schemas/admin/rylsRegistrationSchemas.js';
 
 export default async function userRylsRegistrationRoutes(fastify) {
   fastify.get('/submission/:submissionId', {

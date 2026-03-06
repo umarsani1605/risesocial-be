@@ -18,7 +18,7 @@ export function errorResponse(message, statusCode = 500, details = null) {
   const response = {
     success: false,
     message,
-    statusCode,
+    data: null,
   };
 
   if (details && process.env.NODE_ENV === 'development') {

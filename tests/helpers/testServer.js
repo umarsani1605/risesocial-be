@@ -15,6 +15,8 @@ import adminUserRoutes from '../../src/routes/admin/userRoutes.js';
 import userAcademyRoutes from '../../src/routes/user/academyRoutes.js';
 import adminAcademyRoutes from '../../src/routes/admin/academyRoutes.js';
 import jobsRoutes from '../../src/routes/user/jobsRoutes.js';
+import adminTestimonialsRoutes from '../../src/routes/admin/testimonialsRoutes.js';
+import userTestimonialsRoutes from '../../src/routes/user/testimonialsRoutes.js';
 
 /**
  * Create a configured Fastify test instance
@@ -60,6 +62,8 @@ export async function createTestApp() {
   await fastify.register(userAcademyRoutes, { prefix: '/academies' });
   await fastify.register(adminAcademyRoutes, { prefix: '/admin/academies' });
   await fastify.register(jobsRoutes, { prefix: '/jobs' });
+  await fastify.register(userTestimonialsRoutes, { prefix: '/testimonials' });
+  await fastify.register(adminTestimonialsRoutes, { prefix: '/admin/testimonials' });
 
   await fastify.ready();
 

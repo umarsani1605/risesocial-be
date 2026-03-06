@@ -1,4 +1,4 @@
-import { jobsService } from '../../services/jobsService.js';
+import { jobsService } from '../../services/shared/jobsService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 class JobsController {
@@ -6,26 +6,76 @@ class JobsController {
     this.jobsService = jobsService;
   }
 
-  createJob = async (req, reply) => {
+  getJobs = async (request, reply) => {
     try {
-      request.log.info('[adminJobsController] createJob start');
-      request.log.debug({ body: request.body }, '[adminJobsController] rawBody');
+      request.log.info('[adminJobsController] getJobs start');
+      request.log.debug({ query: request.query }, '[adminJobsController] rawQuery');
 
-      const jobData = {
-        ...request.body,
-        postedBy: request.user.id,
+      const { status = 'all', ...otherParams } = request.query;
+
+      const options = {
+        status,
+        ...otherParams,
       };
 
-      const job = await this.jobsService.createJob(jobData);
-      request.log.info('[adminJobsController] createJob success');
-      return reply.send(successResponse(job, 'Job created successfully'));
+      if (options.page !== undefined) {
+        options.page = parseInt(options.page);
+      }
+      if (options.limit !== undefined) {
+        options.limit = parseInt(options.limit);
+      }
+
+      const result = await this.jobsService.getJobsForAdmin(options);
+
+      request.log.info('[adminJobsController] getJobs success');
+      return reply.send(successResponse(result.data, 'Jobs retrieved successfully', result.meta));
     } catch (error) {
-      request.log.error({ err: error }, '[adminJobsController] createJob error');
+      request.log.error({ err: error }, '[adminJobsController] getJobs error');
       return reply.send(errorResponse(error.message, 500));
     }
   };
 
-  updateJob = async (req, reply) => {
+  getJobById = async (request, reply) => {
+    try {
+      request.log.info('[adminJobsController] getJobById start');
+      request.log.debug({ params: request.params }, '[adminJobsController] rawParams');
+
+      const { id } = request.params;
+      const jobId = Number(id);
+
+      const job = await this.jobsService.getJobById(jobId);
+
+      if (!job) {
+        request.log.info({ id: jobId }, '[adminJobsController] getJobById not_found');
+        return reply.send(errorResponse('Job not found', 404));
+      }
+
+      request.log.info('[adminJobsController] getJobById success');
+      return reply.send(successResponse(job, 'Job retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminJobsController] getJobById error');
+      return reply.send(errorResponse(error.message, 500));
+    }
+  };
+
+  createJob = async (request, reply) => {
+    try {
+      request.log.info('[adminJobsController] createJob start');
+      request.log.debug({ body: request.body }, '[adminJobsController] rawBody');
+
+      const userId = request.user.id;
+      const job = await this.jobsService.createJob(request.body, userId);
+
+      request.log.info('[adminJobsController] createJob success');
+      return reply.status(201).send(successResponse(job, 'Job created successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminJobsController] createJob error');
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
+    }
+  };
+
+  updateJob = async (request, reply) => {
     try {
       request.log.info('[adminJobsController] updateJob start');
       request.log.debug({ params: request.params, body: request.body }, '[adminJobsController] raw');
@@ -37,36 +87,34 @@ class JobsController {
 
       if (!job) {
         request.log.info({ id: jobId }, '[adminJobsController] updateJob not_found');
-        return reply.send(errorResponse('Job not found', 404));
+        return reply.status(404).send(errorResponse('Job not found', 404));
       }
 
       request.log.info('[adminJobsController] updateJob success');
       return reply.send(successResponse(job, 'Job updated successfully'));
     } catch (error) {
       request.log.error({ err: error }, '[adminJobsController] updateJob error');
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.message === 'Job not found' ? 404 : 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
-  deleteJob = async (req, reply) => {
+  deleteJob = async (request, reply) => {
     try {
       request.log.info('[adminJobsController] deleteJob start');
       request.log.debug({ params: request.params }, '[adminJobsController] rawParams');
+
       const { id } = request.params;
       const jobId = Number(id);
 
-      const success = await this.jobsService.deleteJob(jobId);
-
-      if (!success) {
-        request.log.info({ id: jobId }, '[adminJobsController] deleteJob not_found');
-        return reply.send(errorResponse('Job not found', 404));
-      }
+      await this.jobsService.deleteJob(jobId);
 
       request.log.info('[adminJobsController] deleteJob success');
       return reply.send(successResponse(null, 'Job deleted successfully'));
     } catch (error) {
       request.log.error({ err: error }, '[adminJobsController] deleteJob error');
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.message === 'Job not found' ? 404 : 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 

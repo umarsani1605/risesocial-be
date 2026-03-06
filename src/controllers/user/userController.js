@@ -1,4 +1,4 @@
-import { userService } from '../../services/userService.js';
+import { userService } from '../../services/shared/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class UserController {

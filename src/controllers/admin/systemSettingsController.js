@@ -1,4 +1,4 @@
-import { systemSettingsService } from '../../services/systemSettingsService.js';
+import { systemSettingsService } from '../../services/admin/systemSettingsService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AdminSystemSettingsController {

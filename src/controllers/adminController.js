@@ -1,4 +1,4 @@
-import { adminService } from '../services/adminService.js';
+import { adminService } from '../services/admin/adminService.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 import { getLogger } from '../utils/loggerContext.js';
 

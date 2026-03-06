@@ -8,7 +8,7 @@ import {
   updateStatusSchema,
   deleteEnrollmentSchema,
   getEnrollmentStatsSchema,
-} from '../../schemas/enrollmentSchemas.js';
+} from '../../schemas/user/enrollmentSchemas.js';
 
 export default async function adminEnrollmentRoutes(fastify) {
   fastify.addHook('preHandler', authMiddleware);
