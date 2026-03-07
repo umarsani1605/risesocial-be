@@ -1,254 +1,291 @@
-import crypto from 'crypto';
-import { snap, getServerKey } from '../../integrations/midtransClient.js';
+import { midtransService } from '../shared/MidtransService.js';
+import { transactionRepository } from '../../repositories/shared/transactionRepository.js';
+import { midtransTransactionRepository } from '../../repositories/shared/midtransTransactionRepository.js';
+import { transactionItemRepository } from '../../repositories/shared/transactionItemRepository.js';
 import { rylsPaymentRepository } from '../../repositories/user/rylsPaymentRepository.js';
 import { rylsRegistrationRepository } from '../../repositories/user/rylsRegistrationRepository.js';
-import {
-  generateOrderId,
-  getPaymentAmountIdr,
-  getItemTemplate,
-  mapTransactionStatus,
-  mapFraudStatus,
-  WEBHOOK_CONFIG,
-} from '../../constants/payments.js';
+import { generateTransactionCode, TRANSACTION_CODE_CONFIG, PAYMENT_PROVIDER, PRODUCT_TYPE, PAYMENT_STATUS } from '../../constants/paymentHelpers.js';
+import { getPaymentAmountIdr, getItemTemplate } from '../../constants/payments.js';
 import { getLogger } from '../../utils/loggerContext.js';
+import prisma from '../../config/database.js';
 
+/**
+ * RylsPaymentService - RYLS business logic with 3-layer architecture
+ * Orchestrates generic services and repositories
+ */
 export class RylsPaymentService {
-  constructor() {
-    this.paymentRepository = rylsPaymentRepository;
-    this.registrationRepository = rylsRegistrationRepository;
-  }
-
   get logger() {
     return getLogger();
   }
 
+  /**
+   * Create RYLS payment transaction (Midtrans or PayPal)
+   * @param {Object} data - Payment data
+   * @param {string} data.type - MIDTRANS or PAYPAL
+   * @param {Object} data.data - Registration data
+   * @returns {Promise<Object>}
+   */
   async createTransaction(data) {
-    this.logger.info('[rylsPaymentService] createTransaction start');
-
-    const type = data.type;
-    const registrationData = data.data;
-
-    this.logger.debug({ type, registrationData }, '[rylsPaymentService] rawInput');
+    this.logger.info('[RylsPaymentService] createTransaction start');
+    this.logger.debug({ type: data.type }, '[RylsPaymentService] payment type');
 
     try {
-      const sequenceNumber = await this.paymentRepository.getNextSequenceNumber();
-      const orderId = generateOrderId(sequenceNumber);
+      const { type, data: registrationData } = data;
+
+      if (type === 'MIDTRANS') {
+        return await this.createMidtransTransaction(registrationData);
+      } else if (type === 'PAYPAL') {
+        return await this.createPayPalTransaction(registrationData);
+      } else {
+        throw new Error(`Invalid payment type: ${type}`);
+      }
+    } catch (error) {
+      this.logger.error({ err: error }, '[RylsPaymentService] createTransaction error');
+      throw new Error(`Failed to create payment: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create Midtrans payment transaction (3-layer)
+   * @private
+   */
+  async createMidtransTransaction(registrationData) {
+    this.logger.info('[RylsPaymentService] createMidtransTransaction start');
+
+    try {
+      // Step 1: Generate transaction code
+      const sequence = await rylsPaymentRepository.getNextSequenceNumber();
+      const transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.RYLS_PREFIX, sequence);
+
+      this.logger.info({ transactionCode }, '[RylsPaymentService] transaction code generated');
+
+      // Step 2: Get amount and item details
       const amountIdr = await getPaymentAmountIdr(registrationData.scholarshipType);
       const itemTemplate = getItemTemplate(registrationData.scholarshipType);
 
-      this.logger.info({ orderId, amountIdr }, '[rylsPaymentService] order prepared');
+      this.logger.debug({ amountIdr, itemTemplate }, '[RylsPaymentService] payment details');
 
-      let rylsPayment;
-      let snapTransaction;
-      const serverKey = getServerKey();
+      // Step 3: Prepare customer details for Midtrans
+      const customerDetails = {
+        first_name: registrationData.fullName?.split(' ')[0] || 'Customer',
+        last_name: registrationData.fullName?.split(' ').slice(1).join(' ') || '',
+        email: registrationData.email,
+        phone: registrationData.whatsapp || '',
+        billing_address: {
+          first_name: registrationData.fullName?.split(' ')[0] || 'Customer',
+          last_name: registrationData.fullName?.split(' ').slice(1).join(' ') || '',
+          email: registrationData.email,
+          phone: registrationData.whatsapp || '',
+          address: registrationData.residence || '',
+          city: registrationData.residence || '',
+          postal_code: '',
+          country_code: 'IDN',
+        },
+      };
 
-      if (type == 'MIDTRANS') {
-        const transactionParams = {
-          transaction_details: {
-            order_id: orderId,
-            gross_amount: amountIdr,
+      // Step 4: Create Snap transaction via MidtransService
+      const snapResult = await midtransService.createSnapTransaction({
+        orderId: transactionCode,
+        grossAmount: amountIdr,
+        customerDetails,
+        itemDetails: [
+          {
+            id: itemTemplate.id,
+            name: itemTemplate.name,
+            price: amountIdr,
+            quantity: 1,
+            category: itemTemplate.category,
           },
-          customer_details: {
-            first_name: registrationData.fullName?.split(' ')[0] || 'Customer',
-            last_name: registrationData.fullName?.split(' ').slice(1).join(' ') || '',
-            email: registrationData.email,
-            phone: registrationData.whatsapp || '',
-            billing_address: {
-              first_name: registrationData.fullName?.split(' ')[0] || 'Customer',
-              last_name: registrationData.fullName?.split(' ').slice(1).join(' ') || '',
-              email: registrationData.email,
-              phone: registrationData.whatsapp || '',
-              address: registrationData.residence,
-            },
+        ],
+      });
+
+      this.logger.info('[RylsPaymentService] Snap transaction created');
+
+      // Step 5: Save to database (3 layers in transaction)
+      const result = await prisma.$transaction(async (tx) => {
+        // Layer 1: Create transaction
+        const transaction = await tx.transaction.create({
+          data: {
+            transaction_code: transactionCode,
+            amount: amountIdr,
+            currency: 'IDR',
+            status: PAYMENT_STATUS.PENDING,
+            provider: PAYMENT_PROVIDER.MIDTRANS,
+            payment_token: snapResult.token,
+            payment_url: snapResult.redirectUrl,
+            customer_name: registrationData.fullName,
+            customer_email: registrationData.email,
+            customer_phone: registrationData.whatsapp,
+            customer_address: registrationData.residence,
+            product_type: PRODUCT_TYPE.RYLS_SCHOLARSHIP,
+            product_type_id: registrationData.registrationId || 0,
           },
-          item_details: [
-            {
-              id: itemTemplate.id,
-              price: amountIdr,
-              quantity: 1,
-              name: itemTemplate.name,
-              category: itemTemplate.category,
-            },
-          ],
-          credit_card: { secure: true },
-        };
+        });
 
-        this.logger.debug({ transactionParams }, '[rylsPaymentService] midtrans params');
+        // Layer 1b: Create transaction items
+        await tx.transactionItem.create({
+          data: {
+            transaction_id: transaction.id,
+            product_code: itemTemplate.id,
+            product_name: itemTemplate.name,
+            product_category: itemTemplate.category,
+            quantity: 1,
+            unit_price: amountIdr,
+            total_price: amountIdr,
+          },
+        });
 
-        snapTransaction = await snap.createTransaction(transactionParams);
+        // Layer 2: Create Midtrans transaction
+        await tx.midtransTransaction.create({
+          data: {
+            transaction_id: transaction.id,
+            snap_token: snapResult.token,
+            redirect_url: snapResult.redirectUrl,
+            midtrans_order_id: transactionCode,
+            create_response: snapResult,
+          },
+        });
 
-        this.logger.info('[rylsPaymentService] midtrans transaction created');
-        this.logger.debug({ snapTransaction }, '[rylsPaymentService] midtrans response');
+        // Layer 3: Create RYLS payment
+        const rylsPayment = await tx.rylsPayment.create({
+          data: {
+            transaction_id: transaction.id,
+            registration_id: registrationData.registrationId,
+            scholarship_type: registrationData.scholarshipType,
+            payment_method: 'midtrans',
+            status: PAYMENT_STATUS.PENDING,
+          },
+        });
 
-        const midtransPaymentData = {
-          order_id: orderId,
-          snap_token: snapTransaction.token,
-          redirect_url: snapTransaction.redirect_url,
-          gross_amount_idr: amountIdr,
-          currency: 'IDR',
-          transaction_status: 'pending',
-        };
+        return { transaction, rylsPayment };
+      });
 
-        const savedMidtransPayment = await this.paymentRepository.createMidtransPayment(midtransPaymentData);
-        this.logger.debug({ savedMidtransPaymentId: savedMidtransPayment.id }, '[rylsPaymentService] midtrans saved');
+      this.logger.info('[RylsPaymentService] all 3 layers saved');
 
-        const rylsPaymentData = {
-          type: 'MIDTRANS',
-          status: 'PENDING',
-          amount: amountIdr,
-          midtrans_id: savedMidtransPayment.id,
-        };
-
-        rylsPayment = await this.paymentRepository.createRylsPayment(rylsPaymentData);
-        this.logger.debug({ rylsPaymentId: rylsPayment.id }, '[rylsPaymentService] ryls payment saved');
-      }
-
-      if (type == 'PAYPAL') {
-        const rylsPaymentData = {
-          type: 'PAYPAL',
-          status: 'PAID',
-          amount: amountIdr,
-          payment_proof_id: registrationData.paymentProof,
-          paid_at: new Date(),
-        };
-
-        rylsPayment = await this.paymentRepository.createRylsPayment(rylsPaymentData);
-        this.logger.debug({ rylsPaymentId: rylsPayment.id }, '[rylsPaymentService] ryls payment saved');
-      }
-
-      this.logger.info('[rylsPaymentService] createTransaction success');
       return {
-        payment_id: rylsPayment.id,
-        order_id: orderId,
+        payment_id: result.rylsPayment.id,
+        transaction_code: transactionCode,
         amount: amountIdr,
         currency: 'IDR',
-        token: snapTransaction?.token || null,
-        redirect_url: snapTransaction?.redirect_url || null,
+        token: snapResult.token,
+        redirect_url: snapResult.redirectUrl,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentService] createTransaction error');
-      throw new Error(`Failed to create payment transaction: ${error.message}`);
+      this.logger.error({ err: error }, '[RylsPaymentService] createMidtransTransaction error');
+      throw error;
     }
   }
 
-  async handleWebhookNotification(notificationData) {
-    this.logger.info('[rylsPaymentService] handleWebhookNotification start');
-    this.logger.debug({ notificationData }, '[rylsPaymentService] webhook payload');
+  /**
+   * Create PayPal manual payment transaction
+   * @private
+   */
+  async createPayPalTransaction(registrationData) {
+    this.logger.info('[RylsPaymentService] createPayPalTransaction start');
 
     try {
-      const { order_id, transaction_status, fraud_status, transaction_id, payment_type } = notificationData;
+      const sequence = await rylsPaymentRepository.getNextSequenceNumber();
+      const transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.RYLS_PREFIX, sequence);
+      const amountIdr = await getPaymentAmountIdr(registrationData.scholarshipType);
+      const itemTemplate = getItemTemplate(registrationData.scholarshipType);
 
-      const isValidSignature = this.verifyNotificationSignature(notificationData);
-      if (!isValidSignature) {
-        throw new Error('Invalid notification signature');
-      }
+      const result = await prisma.$transaction(async (tx) => {
+        // Layer 1: Create transaction
+        const transaction = await tx.transaction.create({
+          data: {
+            transaction_code: transactionCode,
+            amount: amountIdr,
+            currency: 'IDR',
+            status: PAYMENT_STATUS.PAID,
+            provider: PAYMENT_PROVIDER.PAYPAL_MANUAL,
+            customer_name: registrationData.fullName,
+            customer_email: registrationData.email,
+            customer_phone: registrationData.whatsapp,
+            product_type: PRODUCT_TYPE.RYLS_SCHOLARSHIP,
+            product_type_id: registrationData.registrationId || 0,
+            paid_at: new Date(),
+          },
+        });
 
-      this.logger.info('[rylsPaymentService] signature verified');
+        // Layer 1b: Create transaction items
+        await tx.transactionItem.create({
+          data: {
+            transaction_id: transaction.id,
+            product_code: itemTemplate.id,
+            product_name: itemTemplate.name,
+            product_category: itemTemplate.category,
+            quantity: 1,
+            unit_price: amountIdr,
+            total_price: amountIdr,
+          },
+        });
 
-      const payment = await this.paymentRepository.findByOrderId(order_id);
-      if (!payment) {
-        throw new Error(`Payment not found for order_id: ${order_id}`);
-      }
+        // Layer 3: Create RYLS payment
+        const rylsPayment = await tx.rylsPayment.create({
+          data: {
+            transaction_id: transaction.id,
+            registration_id: registrationData.registrationId,
+            scholarship_type: registrationData.scholarshipType,
+            payment_method: 'paypal',
+            payment_proof_id: registrationData.paymentProof,
+            status: PAYMENT_STATUS.PAID,
+          },
+        });
 
-      this.logger.debug(
-        { paymentId: payment.id, current: payment.transaction_status, next: transaction_status },
-        '[rylsPaymentService] status update',
-      );
+        return { transaction, rylsPayment };
+      });
 
-      const updateData = {
-        transaction_status,
-        transaction_id,
-        payment_type,
-        fraud_status: fraud_status || null,
-        last_notification: notificationData,
-        notified_at: new Date(),
-      };
-
-      if (['settlement', 'capture'].includes(transaction_status)) {
-        updateData.paid_at = new Date();
-        this.logger.info('[rylsPaymentService] payment marked as paid');
-      }
-
-      const updatedPayment = await this.paymentRepository.updateByOrderId(order_id, updateData);
-
-      const newRegistrationStatus = mapTransactionStatus(transaction_status);
-      if (newRegistrationStatus !== 'UNKNOWN') {
-        await this.registrationRepository.updateStatus(payment.registration_id, newRegistrationStatus);
-        this.logger.info({ newRegistrationStatus }, '[rylsPaymentService] registration status updated');
-      }
-
-      if (payment_type === 'credit_card' && fraud_status) {
-        const fraudDecision = mapFraudStatus(fraud_status);
-        this.logger.info({ fraud_status, fraudDecision }, '[rylsPaymentService] fraud status');
-      }
-
-      this.logger.info('[rylsPaymentService] handleWebhookNotification success');
+      this.logger.info('[RylsPaymentService] PayPal payment created');
 
       return {
-        success: true,
-        orderId: order_id,
-        transactionStatus: transaction_status,
-        registrationStatus: newRegistrationStatus,
-        paymentId: updatedPayment.id,
+        payment_id: result.rylsPayment.id,
+        transaction_code: transactionCode,
+        amount: amountIdr,
+        currency: 'IDR',
+        token: null,
+        redirect_url: null,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentService] handleWebhookNotification error');
-      throw new Error(`Failed to process webhook notification: ${error.message}`);
+      this.logger.error({ err: error }, '[RylsPaymentService] createPayPalTransaction error');
+      throw error;
     }
   }
 
-  verifyNotificationSignature(notificationData) {
-    this.logger.info('[rylsPaymentService] verifyNotificationSignature start');
-
-    try {
-      const { order_id, status_code, gross_amount, signature_key } = notificationData;
-      const serverKey = getServerKey();
-
-      const signatureString = `${order_id}${status_code}${gross_amount}${serverKey}`;
-      const calculatedSignature = crypto.createHash(WEBHOOK_CONFIG.SIGNATURE_ALGORITHM).update(signatureString).digest('hex');
-
-      const isValid = calculatedSignature === signature_key;
-
-      this.logger.info({ isValid }, '[rylsPaymentService] signature verification');
-      if (!isValid) {
-        this.logger.debug({ expected: calculatedSignature, received: signature_key }, '[rylsPaymentService] signature mismatch');
-      }
-
-      return isValid;
-    } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentService] verifyNotificationSignature error');
-      return false;
-    }
-  }
-
+  /**
+   * Get payment status by registration ID
+   * @param {number} registrationId - Registration ID
+   * @returns {Promise<Object>}
+   */
   async getPaymentStatus(registrationId) {
-    this.logger.info({ registrationId }, '[rylsPaymentService] getPaymentStatus start');
+    this.logger.info({ registrationId }, '[RylsPaymentService] getPaymentStatus');
 
     try {
-      const payments = await this.paymentRepository.findByRegistrationId(registrationId, { limit: 1 });
+      const payments = await rylsPaymentRepository.findByRegistrationId(registrationId);
 
       if (payments.length === 0) {
-        this.logger.info('[rylsPaymentService] no payment found');
-        return { hasPayment: false, status: null, orderId: null, amount: null };
+        return {
+          hasPayment: false,
+          status: null,
+          transactionCode: null,
+          amount: null,
+        };
       }
 
       const latestPayment = payments[0];
-      this.logger.debug({ status: latestPayment.transaction_status, orderId: latestPayment.order_id }, '[rylsPaymentService] latest payment');
 
-      this.logger.info('[rylsPaymentService] getPaymentStatus success');
       return {
         hasPayment: true,
-        status: latestPayment.transaction_status,
-        orderId: latestPayment.order_id,
-        amount: latestPayment.gross_amount_idr,
-        currency: latestPayment.currency,
-        paymentType: latestPayment.payment_type,
-        paidAt: latestPayment.paid_at,
-        createdAt: latestPayment.created_at,
+        status: latestPayment.transaction.status,
+        transactionCode: latestPayment.transaction.transaction_code,
+        amount: latestPayment.transaction.amount,
+        currency: latestPayment.transaction.currency,
+        paymentMethod: latestPayment.transaction.payment_method,
+        paidAt: latestPayment.transaction.paid_at,
+        createdAt: latestPayment.transaction.created_at,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentService] getPaymentStatus error');
-      throw new Error(`Failed to get payment status: ${error.message}`);
+      this.logger.error({ err: error }, '[RylsPaymentService] getPaymentStatus error');
+      throw error;
     }
   }
 }

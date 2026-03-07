@@ -34,6 +34,7 @@ model User {
   job_applications  JobApplication[]
   saved_jobs        UserSavedJob[]
   user_settings     UserSetting[]
+  transactions      Transaction[]       @relation("UserTransactions")
 
   @@index([email])
   @@index([username])
@@ -516,51 +517,118 @@ model RylsSelfFundedSubmission {
   @@map("ryls_self_funded_submissions")
 }
 
-/// Midtrans payment transactions
-model MidtransPayment {
-  id                 Int                       @id @default(autoincrement())
-  order_id           String                    @unique @db.VarChar(100)
-  snap_token         String                    @db.VarChar(255)
-  redirect_url       String?                   @db.VarChar(500)
-  transaction_id     String?                   @db.VarChar(100)
-  payment_type       String?                   @db.VarChar(50)
-  gross_amount_idr   Int
-  currency           String                    @default("IDR") @db.VarChar(10)
-  transaction_status MidtransTransactionStatus @default(pending)
-  fraud_status       MidtransFraudStatus?
-  payment_details    Json?
-  last_notification  Json?
-  notified_at        DateTime?
-  paid_at            DateTime?
-  created_at         DateTime                  @default(now())
-  updated_at         DateTime                  @updatedAt
-  ryls_payment       RylsPayment?              @relation("PaymentToMidtrans")
-
-  @@index([transaction_status])
-  @@index([order_id])
-  @@map("midtrans_payments")
-}
-
 /// RYLS payment information
 model RylsPayment {
   id               Int               @id @default(autoincrement())
+  transaction_id   Int               @unique
   registration_id  Int?
-  paid_at          DateTime?
+  scholarship_type String            @db.VarChar(50)
+  payment_method   String            @db.VarChar(50)
+  payment_proof_id Int?              @unique
+  status           String            @default("pending") @db.VarChar(50)
   created_at       DateTime          @default(now())
   updated_at       DateTime          @updatedAt
-  midtrans_id      Int?              @unique
-  payment_proof_id Int?              @unique
-  amount           Int
-  status           String            @default("PENDING") @db.VarChar(20)
-  type             String            @db.VarChar(50)
-  midtrans         MidtransPayment?  @relation("PaymentToMidtrans", fields: [midtrans_id], references: [id])
-  payment_proof    FileUpload?       @relation("PaymentToFileUpload", fields: [payment_proof_id], references: [id])
+  transaction      Transaction       @relation("TransactionToRylsPayment", fields: [transaction_id], references: [id], onDelete: Cascade)
   registration     RylsRegistration? @relation(fields: [registration_id], references: [id])
+  payment_proof    FileUpload?       @relation("PaymentToFileUpload", fields: [payment_proof_id], references: [id])
 
+  @@index([registration_id])
   @@index([status])
-  @@index([type])
-  @@index([created_at(sort: Desc)])
   @@map("ryls_payments")
+}
+
+/// PAYMENT SYSTEM - 3-LAYER ARCHITECTURE
+
+/// Layer 1: Generic Transaction (Provider-Agnostic)
+model Transaction {
+  id                    Int                  @id @default(autoincrement())
+  transaction_code      String               @unique @db.VarChar(100)
+  provider_reference    String?              @db.VarChar(100)
+  amount                Int
+  currency              String               @default("IDR") @db.VarChar(10)
+  status                String               @default("pending") @db.VarChar(50)
+  provider              String               @db.VarChar(50)
+  payment_method        String?              @db.VarChar(50)
+  payment_token         String?              @db.VarChar(500)
+  payment_url           String?              @db.VarChar(500)
+  customer_name         String               @db.VarChar(255)
+  customer_email        String               @db.VarChar(255)
+  customer_phone        String?              @db.VarChar(50)
+  customer_address      String?              @db.VarChar(500)
+  customer_city         String?              @db.VarChar(100)
+  customer_postal_code  String?              @db.VarChar(20)
+  customer_country_code String?              @db.VarChar(10)
+  user_id               Int?
+  product_type          String               @db.VarChar(100)
+  product_type_id       Int
+  metadata              Json?
+  paid_at               DateTime?
+  expired_at            DateTime?
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
+  user                  User?                @relation("UserTransactions", fields: [user_id], references: [id])
+  items                 TransactionItem[]
+  midtrans_data         MidtransTransaction?
+  ryls_payment          RylsPayment?         @relation("TransactionToRylsPayment")
+
+  @@index([transaction_code])
+  @@index([status])
+  @@index([provider])
+  @@index([product_type, product_type_id])
+  @@index([user_id])
+  @@index([payment_method])
+  @@index([created_at(sort: Desc)])
+  @@map("transactions")
+}
+
+/// Transaction line items
+model TransactionItem {
+  id               Int         @id @default(autoincrement())
+  transaction_id   Int
+  product_code     String      @db.VarChar(100)
+  product_name     String      @db.VarChar(255)
+  product_category String?     @db.VarChar(100)
+  quantity         Int         @default(1)
+  unit_price       Int
+  total_price      Int
+  metadata         Json?
+  created_at       DateTime    @default(now())
+  transaction      Transaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+
+  @@index([transaction_id])
+  @@map("transaction_items")
+}
+
+/// Layer 2: Provider-Specific Data (Midtrans)
+model MidtransTransaction {
+  id                      Int         @id @default(autoincrement())
+  transaction_id          Int         @unique
+  snap_token              String      @db.VarChar(500)
+  redirect_url            String?     @db.VarChar(500)
+  midtrans_order_id       String      @db.VarChar(100)
+  midtrans_transaction_id String?     @db.VarChar(100)
+  transaction_status      String?     @db.VarChar(50)
+  fraud_status            String?     @db.VarChar(50)
+  payment_type            String?     @db.VarChar(50)
+  bank                    String?     @db.VarChar(50)
+  va_numbers              Json?
+  masked_card             String?     @db.VarChar(50)
+  status_code             String?     @db.VarChar(10)
+  status_message          String?     @db.VarChar(255)
+  approval_code           String?     @db.VarChar(50)
+  create_response         Json?
+  last_notification       Json?
+  status_response         Json?
+  settlement_time         DateTime?
+  notified_at             DateTime?
+  created_at              DateTime    @default(now())
+  updated_at              DateTime    @updatedAt
+  transaction             Transaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+
+  @@index([midtrans_order_id])
+  @@index([transaction_status])
+  @@index([midtrans_transaction_id])
+  @@map("midtrans_transactions")
 }
 
 enum UserRole {
@@ -622,21 +690,4 @@ enum RylsDiscoverSource {
 enum RylsScholarshipType {
   FULLY_FUNDED
   SELF_FUNDED
-}
-
-enum MidtransTransactionStatus {
-  pending
-  capture
-  settlement
-  deny
-  cancel
-  expire
-  refund
-  chargeback
-}
-
-enum MidtransFraudStatus {
-  accept
-  challenge
-  deny
 }

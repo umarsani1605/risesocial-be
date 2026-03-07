@@ -1,5 +1,5 @@
 import { rylsRegistrationRepository } from '../../repositories/user/rylsRegistrationRepository.js';
-import { fileUploadService } from './fileUploadService.js';
+import { fileUploadService } from '../shared/fileUploadService.js';
 import { getLogger } from '../../utils/loggerContext.js';
 
 export class RylsRegistrationService {

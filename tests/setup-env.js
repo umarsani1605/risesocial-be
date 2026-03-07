@@ -32,4 +32,9 @@ function verifyTestDatabaseConfig() {
   console.log(`   Environment: ${nodeEnv}`);
 }
 
+// Clear global Prisma Client cache to force new connection with test DATABASE_URL
+if (global.__prisma) {
+  delete global.__prisma;
+}
+
 verifyTestDatabaseConfig();

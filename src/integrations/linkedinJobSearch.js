@@ -1,4 +1,4 @@
-import { systemSettingsService } from '../services/systemSettingsService.js';
+import { systemSettingsService } from '../services/admin/systemSettingsService.js';
 import { getLogger } from '../utils/loggerContext.js';
 
 const API_KEY = process.env.RAPIDAPI_KEY;

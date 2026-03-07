@@ -26,3 +26,6 @@ uploads/images/*
 !uploads/documents/
 uploads/documents/*
 !uploads/documents/.gitkeep
+
+backups/*
+backups/

@@ -17,6 +17,7 @@ import adminAcademyRoutes from '../../src/routes/admin/academyRoutes.js';
 import jobsRoutes from '../../src/routes/user/jobsRoutes.js';
 import adminTestimonialsRoutes from '../../src/routes/admin/testimonialsRoutes.js';
 import userTestimonialsRoutes from '../../src/routes/user/testimonialsRoutes.js';
+import webhookRoutes from '../../src/routes/shared/webhookRoutes.js';
 
 /**
  * Create a configured Fastify test instance
@@ -64,6 +65,7 @@ export async function createTestApp() {
   await fastify.register(jobsRoutes, { prefix: '/jobs' });
   await fastify.register(userTestimonialsRoutes, { prefix: '/testimonials' });
   await fastify.register(adminTestimonialsRoutes, { prefix: '/admin/testimonials' });
+  await fastify.register(webhookRoutes, { prefix: '/api/webhooks' });
 
   await fastify.ready();
 
@@ -163,7 +165,11 @@ export async function authenticatedRequest(app, options, token) {
   });
 }
 
+// Alias for compatibility with E2E tests
+export const build = createTestApp;
+
 export default {
+  build,
   createTestApp,
   generateAuthToken,
   generateAdminToken,

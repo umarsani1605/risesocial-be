@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { seedUsers } from './userSeed.js';
-import { seedAcademies } from './academySeed.js';
+import { seedAcademies } from './bootcampSeed.js';
 import { seedJobs } from './jobsSeed.js';
 import { seedTestimonials } from './testimonialsSeed.js';
 import { seedPrograms } from './programsSeed.js';

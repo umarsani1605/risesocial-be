@@ -10,7 +10,7 @@ import {
   removeInstructorFromAcademySchema,
   getInstructorStatsSchema,
   uploadInstructorAvatarSchema,
-} from '../../schemas/instructorSchemas.js';
+} from '../../schemas/shared/instructorSchemas.js';
 
 export default async function adminInstructorRoutes(fastify) {
   fastify.addHook('preHandler', authMiddleware);

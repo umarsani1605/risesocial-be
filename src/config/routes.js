@@ -3,6 +3,7 @@ import * as adminRoutes from '../routes/admin/index.js';
 import * as paymentRoutes from '../routes/payments/index.js';
 import authRoutes from '../routes/authRoutes.js';
 import adminMainRoutes from '../routes/adminRoutes.js';
+import webhookRoutes from '../routes/shared/webhookRoutes.js';
 
 export async function registerRoutes(fastify) {
   fastify.get(
@@ -23,10 +24,12 @@ export async function registerRoutes(fastify) {
         },
       },
     },
-    async () => ({ status: 'ok', service: 'rise-social-backend' })
+    async () => ({ status: 'ok', service: 'rise-social-backend' }),
   );
 
   fastify.register(authRoutes, { prefix: '/auth' });
+
+  fastify.register(webhookRoutes, { prefix: '/api/webhooks' });
 
   fastify.register(userRoutes.user, { prefix: '/users' });
   fastify.register(userRoutes.academy, { prefix: '/academies' });
