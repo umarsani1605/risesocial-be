@@ -1,34 +1,43 @@
 import { adminAcademyController } from '../../controllers/admin/academyController.js';
 import { authMiddleware } from '../../middleware/auth.js';
-import { uploadAcademyImage } from '../../middleware/fileUploadMiddleware.js';
+import { createUploadMiddleware } from '../../middleware/uploadMiddleware.js';
+
+const uploadAcademyImage = createUploadMiddleware('academy_image');
+const uploadInstructorAvatar = createUploadMiddleware('instructor_avatar');
 import {
   getAdminAcademiesSchema,
   getAdminAcademyBySlugSchema,
-  getAcademyStatisticsSchema,
   createAcademySchema,
   updateAcademySchema,
   deleteAcademySchema,
+  getAcademyPricingsSchema,
   createPricingSchema,
   updatePricingSchema,
   deletePricingSchema,
+  getAcademyFeaturesSchema,
   createFeatureSchema,
   updateFeatureSchema,
   deleteFeatureSchema,
+  getAcademyInstructorsSchema,
   createInstructorSchema,
   updateInstructorSchema,
   deleteInstructorSchema,
+  getAcademyThemesSchema,
+  createThemeSchema,
+  updateThemeSchema,
+  deleteThemeSchema,
+  getAcademyTopicsSchema,
   createTopicSchema,
   updateTopicSchema,
   deleteTopicSchema,
+  getAcademyTestimonialsSchema,
   createTestimonialSchema,
   updateTestimonialSchema,
   deleteTestimonialSchema,
+  getAcademyFaqsSchema,
   createFaqSchema,
   updateFaqSchema,
   deleteFaqSchema,
-  createSessionSchema,
-  updateSessionSchema,
-  deleteSessionSchema,
 } from '../../schemas/shared/academySchemas.js';
 
 export default async function adminAcademyRoutes(fastify) {
@@ -44,13 +53,13 @@ export default async function adminAcademyRoutes(fastify) {
 
   fastify.post('/', {
     schema: createAcademySchema,
-    preHandler: [uploadAcademyImage],
+    preValidation: [uploadAcademyImage],
     handler: adminAcademyController.createAcademy,
   });
 
   fastify.put('/:id', {
     schema: updateAcademySchema,
-    preHandler: [uploadAcademyImage],
+    preValidation: [uploadAcademyImage],
     handler: adminAcademyController.updateAcademy,
   });
 
@@ -59,12 +68,12 @@ export default async function adminAcademyRoutes(fastify) {
     handler: adminAcademyController.deleteAcademy,
   });
 
-  fastify.get('/statistics', {
-    schema: getAcademyStatisticsSchema,
-    handler: adminAcademyController.getStatistics,
+  // Pricing routes
+  fastify.get('/:id/pricing', {
+    schema: getAcademyPricingsSchema,
+    handler: adminAcademyController.getPricings,
   });
 
-  // Pricing routes
   fastify.post('/:id/pricing', {
     schema: createPricingSchema,
     handler: adminAcademyController.createPricing,
@@ -81,6 +90,11 @@ export default async function adminAcademyRoutes(fastify) {
   });
 
   // Feature routes
+  fastify.get('/:id/features', {
+    schema: getAcademyFeaturesSchema,
+    handler: adminAcademyController.getFeatures,
+  });
+
   fastify.post('/:id/features', {
     schema: createFeatureSchema,
     handler: adminAcademyController.createFeature,
@@ -97,15 +111,20 @@ export default async function adminAcademyRoutes(fastify) {
   });
 
   // Instructor routes
+  fastify.get('/:id/instructors', {
+    schema: getAcademyInstructorsSchema,
+    handler: adminAcademyController.getInstructors,
+  });
+
   fastify.post('/:id/instructors', {
     schema: createInstructorSchema,
-    preHandler: [uploadAcademyImage],
+    preValidation: [uploadInstructorAvatar],
     handler: adminAcademyController.createInstructor,
   });
 
   fastify.put('/:id/instructors/:instructorId', {
     schema: updateInstructorSchema,
-    preHandler: [uploadAcademyImage],
+    preValidation: [uploadInstructorAvatar],
     handler: adminAcademyController.updateInstructor,
   });
 
@@ -114,7 +133,33 @@ export default async function adminAcademyRoutes(fastify) {
     handler: adminAcademyController.deleteInstructor,
   });
 
-  // Topic routes
+  // Theme routes (Level 1 curriculum)
+  fastify.get('/:id/themes', {
+    schema: getAcademyThemesSchema,
+    handler: adminAcademyController.getThemes,
+  });
+
+  fastify.post('/:id/themes', {
+    schema: createThemeSchema,
+    handler: adminAcademyController.createTheme,
+  });
+
+  fastify.put('/:id/themes/:themeId', {
+    schema: updateThemeSchema,
+    handler: adminAcademyController.updateTheme,
+  });
+
+  fastify.delete('/:id/themes/:themeId', {
+    schema: deleteThemeSchema,
+    handler: adminAcademyController.deleteTheme,
+  });
+
+  // Topic routes (Level 2 curriculum, belongs to a theme)
+  fastify.get('/:id/topics', {
+    schema: getAcademyTopicsSchema,
+    handler: adminAcademyController.getTopics,
+  });
+
   fastify.post('/:id/topics', {
     schema: createTopicSchema,
     handler: adminAcademyController.createTopic,
@@ -131,15 +176,20 @@ export default async function adminAcademyRoutes(fastify) {
   });
 
   // Testimonial routes
+  fastify.get('/:id/testimonials', {
+    schema: getAcademyTestimonialsSchema,
+    handler: adminAcademyController.getTestimonials,
+  });
+
   fastify.post('/:id/testimonials', {
     schema: createTestimonialSchema,
-    preHandler: [uploadAcademyImage],
+    preValidation: [uploadAcademyImage],
     handler: adminAcademyController.createTestimonial,
   });
 
   fastify.put('/:id/testimonials/:testimonialId', {
     schema: updateTestimonialSchema,
-    preHandler: [uploadAcademyImage],
+    preValidation: [uploadAcademyImage],
     handler: adminAcademyController.updateTestimonial,
   });
 
@@ -149,6 +199,11 @@ export default async function adminAcademyRoutes(fastify) {
   });
 
   // FAQ routes
+  fastify.get('/:id/faqs', {
+    schema: getAcademyFaqsSchema,
+    handler: adminAcademyController.getFaqs,
+  });
+
   fastify.post('/:id/faqs', {
     schema: createFaqSchema,
     handler: adminAcademyController.createFaq,
@@ -162,21 +217,5 @@ export default async function adminAcademyRoutes(fastify) {
   fastify.delete('/:id/faqs/:faqId', {
     schema: deleteFaqSchema,
     handler: adminAcademyController.deleteFaq,
-  });
-
-  // Session routes
-  fastify.post('/:academy_id/topics/:topic_id/sessions', {
-    schema: createSessionSchema,
-    handler: adminAcademyController.createSession,
-  });
-
-  fastify.put('/:academy_id/topics/:topic_id/sessions/:session_id', {
-    schema: updateSessionSchema,
-    handler: adminAcademyController.updateSession,
-  });
-
-  fastify.delete('/:academy_id/topics/:topic_id/sessions/:session_id', {
-    schema: deleteSessionSchema,
-    handler: adminAcademyController.deleteSession,
   });
 }

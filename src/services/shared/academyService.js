@@ -1,11 +1,10 @@
 import { academyRepository } from '../../repositories/shared/academyRepository.js';
-import { fileUploadService } from './fileUploadService.js';
 import { getLogger } from '../../utils/loggerContext.js';
+import prisma from '../../config/database.js';
 
 export class AcademyService {
   constructor() {
     this.academyRepository = academyRepository;
-    this.fileUploadService = fileUploadService;
   }
 
   get logger() {
@@ -15,7 +14,7 @@ export class AcademyService {
   async getAllAcademies(options = {}) {
     this.logger.info('[academyService] getAllAcademies start');
     try {
-      const result = await this.academyRepository.findWithPagination(options);
+      const result = await this.academyRepository.findAll(options);
       this.logger.info('[academyService] getAllAcademies success');
       return result;
     } catch (error) {
@@ -28,115 +27,14 @@ export class AcademyService {
     this.logger.info('[academyService] getAcademyBySlug start');
     try {
       const academy = await this.academyRepository.findBySlug(slug);
-      if (!academy) throw new Error('Academy not found');
-      return academy;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAcademyBySlug error');
-      throw error;
-    }
-  }
-
-  async createAcademy(academyData) {
-    this.logger.info('[academyService] createAcademy start');
-    try {
-      await this.validateAcademyData(academyData);
-
-      if (!academyData.path_slug) {
-        academyData.path_slug = this.generateSlug(academyData.title);
-      } else {
-        const slugExists = await this.academyRepository.slugExists(academyData.path_slug);
-        if (slugExists) throw new Error('Slug is already taken');
-      }
-
-      const academyDataWithDefaults = {
-        ...academyData,
-        status: academyData.status || 'DRAFT',
-        rating: 0,
-        rating_count: 0,
-        certificate: academyData.certificate || false,
-        portfolio: academyData.portfolio || false,
-        meta_title: academyData.meta_title || academyData.title.trim(),
-        meta_description: academyData.meta_description || this.generateMetaDescription(academyData.description || ''),
-      };
-
-      if (academyData.imageFile) {
-        try {
-          const publicUrl = this.fileUploadService.generatePublicFileUrl(academyData.imageFile);
-          academyDataWithDefaults.image_url = publicUrl;
-        } catch (uploadError) {
-          throw new Error('Failed to upload academy image');
-        }
-        delete academyDataWithDefaults.imageFile;
-      }
-
-      const academy = await this.academyRepository.create(academyDataWithDefaults);
-      this.logger.info('[academyService] createAcademy success');
-      return academy;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] createAcademy error');
-      throw error;
-    }
-  }
-
-  async updateAcademy(id, updateData) {
-    this.logger.info('[academyService] updateAcademy start');
-    try {
-      const existingAcademy = await this.academyRepository.findById(id);
-      if (!existingAcademy) throw new Error('Academy not found');
-
-      if (updateData.path_slug && updateData.path_slug !== existingAcademy.path_slug) {
-        const slugExists = await this.academyRepository.slugExists(updateData.path_slug, id);
-        if (slugExists) throw new Error('Slug is already taken');
-      }
-
-      if (updateData.title && !updateData.path_slug) {
-        updateData.path_slug = this.generateSlug(updateData.title);
-        const slugExists = await this.academyRepository.slugExists(updateData.path_slug, id);
-        if (slugExists) {
-          updateData.path_slug = `${updateData.path_slug}-${Date.now()}`;
-        }
-      }
-
-      if (updateData.title && !updateData.meta_title) {
-        updateData.meta_title = updateData.title.trim();
-      }
-      if (updateData.description && !updateData.meta_description) {
-        updateData.meta_description = this.generateMetaDescription(updateData.description);
-      }
-
-      if (updateData.imageFile) {
-        try {
-          const publicUrl = this.fileUploadService.generatePublicFileUrl(updateData.imageFile);
-          updateData.image_url = publicUrl;
-        } catch (uploadError) {
-          throw new Error('Failed to upload academy image');
-        }
-        delete updateData.imageFile;
-      }
-
-      const academy = await this.academyRepository.update(id, updateData);
-      this.logger.info('[academyService] updateAcademy success');
-      return academy;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] updateAcademy error');
-      throw error;
-    }
-  }
-
-  async deleteAcademy(id) {
-    this.logger.info('[academyService] deleteAcademy start');
-    try {
-      const academy = await this.academyRepository.findById(id);
       if (!academy) {
-        const error = new Error('Academy tidak ditemukan');
+        const error = new Error('Academy not found');
         error.statusCode = 404;
         throw error;
       }
-
-      await this.academyRepository.delete(id);
-      this.logger.info('[academyService] deleteAcademy success');
+      return academy;
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] deleteAcademy error');
+      this.logger.error({ err: error }, '[academyService] getAcademyBySlug error');
       throw error;
     }
   }
@@ -153,435 +51,150 @@ export class AcademyService {
     }
   }
 
-  async getStatistics() {
-    this.logger.info('[academyService] getStatistics start');
+  // Get all methods for sub-tables (read-only)
+  async getAllPricing(academyId = null) {
+    this.logger.info({ academyId }, '[academyService] getAllPricing start');
     try {
-      const stats = await this.academyRepository.getAcademyStatistics();
-      this.logger.info('[academyService] getStatistics success');
-      return stats;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getStatistics error');
-      throw error;
-    }
-  }
-
-  async getAllFaqsByAcademyId(academyId) {
-    const faqs = await this.academyRepository.findFaqsByAcademyId(academyId);
-    return faqs;
-  }
-
-  async getAllFeaturesByAcademyId(academyId) {
-    const features = await this.academyRepository.findFeaturesByAcademyId(academyId);
-    return features;
-  }
-
-  async getAllPricingsByAcademyId(academyId) {
-    const pricings = await this.academyRepository.findPricingsByAcademyId(academyId);
-    return pricings;
-  }
-
-  async getAllTopicsByAcademyId(academyId, includeSessions = false) {
-    const topics = await this.academyRepository.findTopicsByAcademyId(academyId, includeSessions);
-    return topics;
-  }
-
-  async validateAcademyData(data, isUpdate = false) {
-    return;
-  }
-
-  generateSlug(title) {
-    return title
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  }
-
-  async generateUniqueSlug(title) {
-    let baseSlug = this.generateSlug(title);
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (await this.academyRepository.slugExists(slug)) {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-    }
-
-    return slug;
-  }
-
-  generateMetaTitle(title) {
-    return title.trim();
-  }
-
-  generateMetaDescription(description) {
-    const cleanDescription = description.trim();
-
-    return cleanDescription.length > 160 ? cleanDescription.substring(0, 157) + '...' : cleanDescription;
-  }
-
-  validateFaqData(data) {
-    return;
-  }
-
-  validateFeatureData(data) {
-    return;
-  }
-
-  validatePricingData(data) {
-    if (data.original_price !== undefined && data.original_price <= 0) {
-      throw new Error('Harga asli harus lebih dari 0');
-    }
-
-    if (data.discount_price !== undefined && data.original_price !== undefined) {
-      if (data.discount_price > data.original_price) {
-        throw new Error('Harga diskon tidak boleh lebih tinggi dari harga asli');
-      }
-    }
-
-    if (data.order !== undefined && data.order <= 0) {
-      throw new Error('Tier order harus lebih dari 0');
-    }
-  }
-
-  validateTopicData(data) {
-    if (data.title !== undefined && !data.title.trim()) {
-      throw new Error('Title topic tidak boleh kosong');
-    }
-
-    if (data.title && data.title.length > 255) {
-      throw new Error('Title topic maksimal 255 karakter');
-    }
-
-    if (data.topic_order !== undefined && data.topic_order <= 0) {
-      throw new Error('Topic order harus lebih dari 0');
-    }
-  }
-
-  validateSessionData(data) {
-    if (data.title !== undefined && !data.title.trim()) {
-      throw new Error('Title session tidak boleh kosong');
-    }
-
-    if (data.title && data.title.length > 255) {
-      throw new Error('Title session maksimal 255 karakter');
-    }
-
-    if (data.session_order !== undefined && data.session_order <= 0) {
-      throw new Error('Session order harus lebih dari 0');
-    }
-  }
-
-  validateSlug(slug) {
-    return;
-  }
-
-  async createPricing(academyId, data) {
-    this.logger.info('[academyService] createPricing start');
-    try {
-      if (data.discount_price !== undefined && data.original_price !== undefined && data.discount_price > data.original_price) {
-        throw new Error('Discount price cannot be greater than original price');
+      if (academyId) {
+        return await this.academyRepository.findPricingsByAcademyId(parseInt(academyId));
       }
 
-      const pricing = await this.academyRepository.createPricing(academyId, data);
-      this.logger.info('[academyService] createPricing success');
-      return pricing;
+      const academies = await this.academyRepository.model.findMany({
+        include: { pricing: { orderBy: { order: 'asc' } } },
+      });
+      return academies.flatMap((a) => a.pricing);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] createPricing error');
+      this.logger.error({ err: error }, '[academyService] getAllPricing error');
       throw error;
     }
   }
 
-  async updatePricing(academyId, pricingId, data) {
-    this.logger.info('[academyService] updatePricing start');
+  async getAllFeatures(academyId = null) {
+    this.logger.info({ academyId }, '[academyService] getAllFeatures start');
     try {
-      if (data.discount_price !== undefined && data.original_price !== undefined && data.discount_price > data.original_price) {
-        throw new Error('Discount price cannot be greater than original price');
+      if (academyId) {
+        return await this.academyRepository.findFeaturesByAcademyId(parseInt(academyId));
       }
 
-      const pricing = await this.academyRepository.updatePricing(academyId, pricingId, data);
-      this.logger.info('[academyService] updatePricing success');
-      return pricing;
+      const academies = await this.academyRepository.model.findMany({
+        include: { features: { orderBy: { order: 'asc' } } },
+      });
+      return academies.flatMap((a) => a.features);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] updatePricing error');
+      this.logger.error({ err: error }, '[academyService] getAllFeatures error');
       throw error;
     }
   }
 
-  async deletePricing(academyId, pricingId) {
-    this.logger.info('[academyService] deletePricing start');
+  async getAllInstructors(academyId = null) {
+    this.logger.info({ academyId }, '[academyService] getAllInstructors start');
     try {
-      const result = await this.academyRepository.deletePricing(academyId, pricingId);
-      this.logger.info('[academyService] deletePricing success');
-      return result;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] deletePricing error');
-      throw error;
-    }
-  }
-
-  async createFeature(academyId, data) {
-    this.logger.info('[academyService] createFeature start');
-    try {
-      const feature = await this.academyRepository.createFeature(academyId, data);
-      this.logger.info('[academyService] createFeature success');
-      return feature;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] createFeature error');
-      throw error;
-    }
-  }
-
-  async updateFeature(academyId, featureId, data) {
-    this.logger.info('[academyService] updateFeature start');
-    try {
-      const feature = await this.academyRepository.updateFeature(academyId, featureId, data);
-      this.logger.info('[academyService] updateFeature success');
-      return feature;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] updateFeature error');
-      throw error;
-    }
-  }
-
-  async deleteFeature(academyId, featureId) {
-    this.logger.info('[academyService] deleteFeature start');
-    try {
-      const result = await this.academyRepository.deleteFeature(academyId, featureId);
-      this.logger.info('[academyService] deleteFeature success');
-      return result;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] deleteFeature error');
-      throw error;
-    }
-  }
-
-  async createInstructor(academyId, data) {
-    this.logger.info('[academyService] createInstructor start');
-    try {
-      if (data.avatarFile) {
-        try {
-          const publicUrl = this.fileUploadService.generatePublicFileUrl(data.avatarFile);
-          data.avatar_url = publicUrl;
-        } catch (uploadError) {
-          throw new Error('Failed to upload instructor avatar');
-        }
-        delete data.avatarFile;
-      } else if (data.avatar_url === '') {
-        data.avatar_url = null;
+      if (academyId) {
+        return await this.academyRepository.findInstructorsByAcademyId(parseInt(academyId));
       }
 
-      const instructor = await this.academyRepository.createInstructor(academyId, data);
-      this.logger.info('[academyService] createInstructor success');
-      return instructor;
+      const academies = await this.academyRepository.model.findMany({
+        include: { instructors: { orderBy: { order: 'asc' } } },
+      });
+      return academies.flatMap((a) => a.instructors);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] createInstructor error');
+      this.logger.error({ err: error }, '[academyService] getAllInstructors error');
       throw error;
     }
   }
 
-  async updateInstructor(academyId, instructorId, data) {
-    this.logger.info('[academyService] updateInstructor start');
+  async getAllThemes(academyId = null, includeTopics = false) {
+    this.logger.info({ academyId, includeTopics }, '[academyService] getAllThemes start');
     try {
-      if (data.avatarFile) {
-        try {
-          const publicUrl = this.fileUploadService.generatePublicFileUrl(data.avatarFile);
-          data.avatar_url = publicUrl;
-        } catch (uploadError) {
-          throw new Error('Failed to upload instructor avatar');
-        }
-        delete data.avatarFile;
-      } else if (data.avatar_url === '') {
-        data.avatar_url = null;
+      const includeOption = includeTopics
+        ? {
+            topics: { orderBy: { order: 'asc' } },
+          }
+        : undefined;
+
+      if (academyId) {
+        const academy = await this.academyRepository.findById(parseInt(academyId), {
+          include: {
+            themes: {
+              orderBy: { order: 'asc' },
+              include: includeOption,
+            },
+          },
+        });
+        return academy?.themes || [];
       }
 
-      const instructor = await this.academyRepository.updateInstructor(academyId, instructorId, data);
-      this.logger.info('[academyService] updateInstructor success');
-      return instructor;
+      const academies = await this.academyRepository.model.findMany({
+        include: {
+          themes: {
+            orderBy: { order: 'asc' },
+            include: includeOption,
+          },
+        },
+      });
+      return academies.flatMap((a) => a.themes);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] updateInstructor error');
+      this.logger.error({ err: error }, '[academyService] getAllThemes error');
       throw error;
     }
   }
 
-  async deleteInstructor(academyId, instructorId) {
-    this.logger.info('[academyService] deleteInstructor start');
+  async getAllTopics(academyId = null, themeId = null) {
+    this.logger.info({ academyId, themeId }, '[academyService] getAllTopics start');
     try {
-      const result = await this.academyRepository.deleteInstructor(academyId, instructorId);
-      this.logger.info('[academyService] deleteInstructor success');
-      return result;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] deleteInstructor error');
-      throw error;
-    }
-  }
-
-  async createTopic(academyId, data) {
-    this.logger.info('[academyService] createTopic start');
-    try {
-      const topic = await this.academyRepository.createTopic(academyId, data);
-      this.logger.info('[academyService] createTopic success');
-      return topic;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] createTopic error');
-      throw error;
-    }
-  }
-
-  async updateTopic(academyId, topicId, data) {
-    this.logger.info('[academyService] updateTopic start');
-    try {
-      const topic = await this.academyRepository.updateTopic(academyId, topicId, data);
-      this.logger.info('[academyService] updateTopic success');
-      return topic;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] updateTopic error');
-      throw error;
-    }
-  }
-
-  async deleteTopic(academyId, topicId) {
-    this.logger.info('[academyService] deleteTopic start');
-    try {
-      const result = await this.academyRepository.deleteTopic(academyId, topicId);
-      this.logger.info('[academyService] deleteTopic success');
-      return result;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] deleteTopic error');
-      throw error;
-    }
-  }
-
-  async createTestimonial(academyId, data) {
-    this.logger.info('[academyService] createTestimonial start');
-    try {
-      if (data.avatarFile) {
-        try {
-          const publicUrl = this.fileUploadService.generatePublicFileUrl(data.avatarFile);
-          data.avatar_url = publicUrl;
-        } catch (uploadError) {
-          throw new Error('Failed to upload testimonial avatar');
-        }
-        delete data.avatarFile;
-      } else if (data.avatar_url === '') {
-        data.avatar_url = null;
+      if (themeId) {
+        return await prisma.academyTopic.findMany({
+          where: { theme_id: parseInt(themeId) },
+          orderBy: { order: 'asc' },
+        });
       }
 
-      const testimonial = await this.academyRepository.createTestimonial(academyId, data);
-      this.logger.info('[academyService] createTestimonial success');
-      return testimonial;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] createTestimonial error');
-      throw error;
-    }
-  }
-
-  async updateTestimonial(academyId, testimonialId, data) {
-    this.logger.info('[academyService] updateTestimonial start');
-    try {
-      if (data.avatarFile) {
-        try {
-          const publicUrl = this.fileUploadService.generatePublicFileUrl(data.avatarFile);
-          data.avatar_url = publicUrl;
-        } catch (uploadError) {
-          throw new Error('Failed to upload testimonial avatar');
-        }
-        delete data.avatarFile;
-      } else if (data.avatar_url === '') {
-        data.avatar_url = null;
+      if (academyId) {
+        return await prisma.academyTopic.findMany({
+          where: { academy_id: parseInt(academyId) },
+          orderBy: { order: 'asc' },
+        });
       }
 
-      const testimonial = await this.academyRepository.updateTestimonial(academyId, testimonialId, data);
-      this.logger.info('[academyService] updateTestimonial success');
-      return testimonial;
+      return await prisma.academyTopic.findMany({
+        orderBy: [{ academy_id: 'asc' }, { order: 'asc' }],
+      });
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] updateTestimonial error');
+      this.logger.error({ err: error }, '[academyService] getAllTopics error');
       throw error;
     }
   }
 
-  async deleteTestimonial(academyId, testimonialId) {
-    this.logger.info('[academyService] deleteTestimonial start');
+  async getAllTestimonials(academyId = null) {
+    this.logger.info({ academyId }, '[academyService] getAllTestimonials start');
     try {
-      const result = await this.academyRepository.deleteTestimonial(academyId, testimonialId);
-      this.logger.info('[academyService] deleteTestimonial success');
-      return result;
+      if (academyId) {
+        return await this.academyRepository.findTestimonialsByAcademyId(parseInt(academyId));
+      }
+
+      const academies = await this.academyRepository.model.findMany({
+        include: { testimonials: { orderBy: { order: 'asc' } } },
+      });
+      return academies.flatMap((a) => a.testimonials);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] deleteTestimonial error');
+      this.logger.error({ err: error }, '[academyService] getAllTestimonials error');
       throw error;
     }
   }
 
-  async createFaq(academyId, data) {
-    this.logger.info('[academyService] createFaq start');
+  async getAllFaqs(academyId = null) {
+    this.logger.info({ academyId }, '[academyService] getAllFaqs start');
     try {
-      const faq = await this.academyRepository.createFaq(academyId, data);
-      this.logger.info('[academyService] createFaq success');
-      return faq;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] createFaq error');
-      throw error;
-    }
-  }
+      if (academyId) {
+        return await this.academyRepository.findFaqsByAcademyId(parseInt(academyId));
+      }
 
-  async updateFaq(academyId, faqId, data) {
-    this.logger.info('[academyService] updateFaq start');
-    try {
-      const faq = await this.academyRepository.updateFaq(academyId, faqId, data);
-      this.logger.info('[academyService] updateFaq success');
-      return faq;
+      const academies = await this.academyRepository.model.findMany({
+        include: { faqs: { orderBy: { order: 'asc' } } },
+      });
+      return academies.flatMap((a) => a.faqs);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] updateFaq error');
-      throw error;
-    }
-  }
-
-  async deleteFaq(academyId, faqId) {
-    this.logger.info('[academyService] deleteFaq start');
-    try {
-      const result = await this.academyRepository.deleteFaq(academyId, faqId);
-      this.logger.info('[academyService] deleteFaq success');
-      return result;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] deleteFaq error');
-      throw error;
-    }
-  }
-
-  async createSession(academyId, topicId, data) {
-    this.logger.info('[academyService] createSession start');
-    try {
-      const session = await this.academyRepository.createSession(academyId, topicId, data);
-      this.logger.info('[academyService] createSession success');
-      return session;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] createSession error');
-      throw error;
-    }
-  }
-
-  async updateSession(academyId, topicId, sessionId, data) {
-    this.logger.info('[academyService] updateSession start');
-    try {
-      const session = await this.academyRepository.updateSession(academyId, topicId, sessionId, data);
-      this.logger.info('[academyService] updateSession success');
-      return session;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] updateSession error');
-      throw error;
-    }
-  }
-
-  async deleteSession(academyId, topicId, sessionId) {
-    this.logger.info('[academyService] deleteSession start');
-    try {
-      const result = await this.academyRepository.deleteSession(academyId, topicId, sessionId);
-      this.logger.info('[academyService] deleteSession success');
-      return result;
-    } catch (error) {
-      this.logger.error({ err: error }, '[academyService] deleteSession error');
+      this.logger.error({ err: error }, '[academyService] getAllFaqs error');
       throw error;
     }
   }

@@ -1,0 +1,69 @@
+/**
+ * Jobs API E2E Tests
+ * Tests HTTP endpoints with real database
+ */
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { createTestApp } from '../helpers/testServer.js';
+import { getTestPrisma, resetDatabase, closeConnection, isTestDatabase } from '../helpers/testDb.js';
+import { seedAllJobsData, seedMultipleJobs, getCreatedFixtures } from '../helpers/jobsFixtures.js';
+
+describe('Jobs API E2E Tests', () => {
+  let app;
+  let prisma;
+  let fixtures;
+
+  beforeAll(async () => {
+    expect(isTestDatabase()).toBe(true);
+    prisma = getTestPrisma();
+    app = await createTestApp();
+  });
+
+  describe('GET /academies', () => {
+    it('should return paginated academy list', async () => {
+      await seedMultipleAcademies(5);
+      const response = await app.inject({ method: 'GET', url: '/academies?page=1&limit=3' });
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload);
+      expect(body.success).toBe(true);
+      expect(body.data).toHaveLength(3);
+      expect(body.meta.total).toBe(5);
+    });
+
+    it('should filter by category', async () => {
+      await seedAcademy({ category: 'Test' });
+      await seedAcademy({ category: 'Other', slug: 'other' });
+      const response = await app.inject({ method: 'GET', url: '/academies?category=Test' });
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload);
+      expect(body.data.every((a) => a.category === 'Test')).toBe(true);
+    });
+  });
+
+  describe('GET /academies/:slug', () => {
+    it('should return academy with relations', async () => {
+      const academy = await seedAcademyWithRelations();
+      const response = await app.inject({ method: 'GET', url: `/academies/${academy.slug}` });
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload);
+      expect(body.data.id).toBe(academy.id);
+      expect(Array.isArray(body.data.pricing)).toBe(true);
+    });
+
+    it('should return 404 for non-existent', async () => {
+      const response = await app.inject({ method: 'GET', url: '/academies/fake' });
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('GET /academies/categories', () => {
+    it('should return unique categories', async () => {
+      await seedAcademy({ category: 'A' });
+      await seedAcademy({ category: 'B', slug: 'b' });
+      const response = await app.inject({ method: 'GET', url: '/academies/categories' });
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload);
+      expect(body.data).toHaveLength(2);
+    });
+  });
+});

@@ -342,6 +342,18 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
+  async findCompanyByName(name) {
+    this.logger.debug({ name }, '[jobsRepository] findCompanyByName');
+    return await prisma.company.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+    });
+  }
+
+  async createCompany(data) {
+    this.logger.debug({ name: data.name }, '[jobsRepository] createCompany');
+    return await prisma.company.create({ data });
+  }
+
   async createCompanyFromLinkedIn(linkedinJob) {
     this.logger.info({ organization: linkedinJob.organization }, '[jobsRepository] createCompanyFromLinkedIn');
 

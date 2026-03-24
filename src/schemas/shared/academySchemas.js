@@ -13,7 +13,7 @@ export const academyEntitySchema = {
   properties: {
     id: { type: 'integer' },
     title: { type: 'string' },
-    path_slug: { type: 'string' },
+    slug: { type: 'string' },
     description: { type: 'string' },
     duration: { type: 'string' },
     format: { type: 'string' },
@@ -24,8 +24,6 @@ export const academyEntitySchema = {
     certificate: { type: 'boolean' },
     portfolio: { type: 'boolean' },
     status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'] },
-    meta_title: { type: 'string' },
-    meta_description: { type: 'string' },
     ...timestampFieldsSchema.properties,
   },
 };
@@ -41,8 +39,6 @@ export const academyPricingSchema = {
     order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
     discount_percentage: { type: 'integer' },
-    formatted_original_price: { type: 'string' },
-    formatted_discount_price: { type: 'string' },
   },
 };
 
@@ -59,18 +55,20 @@ export const academyFeatureSchema = {
   },
 };
 
-export const academySessionSchema = {
+export const academyTopicSchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
-    topic_id: { type: 'integer' },
+    academy_id: { type: 'integer' },
+    theme_id: { type: 'integer' },
     title: { type: 'string' },
+    description: { type: 'string' },
     order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
   },
 };
 
-export const academyTopicSchema = {
+export const academyThemeSchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
@@ -79,9 +77,9 @@ export const academyTopicSchema = {
     description: { type: 'string' },
     order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
-    sessions: {
+    topics: {
       type: 'array',
-      items: academySessionSchema,
+      items: academyTopicSchema,
     },
   },
 };
@@ -138,9 +136,9 @@ export const academyDetailSchema = {
       type: 'array',
       items: academyFeatureSchema,
     },
-    topics: {
+    themes: {
       type: 'array',
-      items: academyTopicSchema,
+      items: academyThemeSchema,
     },
     instructors: {
       type: 'array',
@@ -154,17 +152,22 @@ export const academyDetailSchema = {
       type: 'array',
       items: academyFaqSchema,
     },
-
+    active_cohort: {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'integer' },
+        name: { type: 'string' },
+        status: { type: 'string' },
+      },
+    },
     isPopular: { type: 'boolean' },
     isPremium: { type: 'boolean' },
-    enrollmentCount: { type: 'integer' },
     formattedPricing: {
       type: 'array',
       items: academyPricingSchema,
     },
     instructorCount: { type: 'integer' },
     topicCount: { type: 'integer' },
-    sessionCount: { type: 'integer' },
     estimatedDuration: { type: 'string' },
     difficultyLevel: { type: 'string' },
     averageRating: { type: 'number' },
@@ -189,7 +192,7 @@ export const userAcademyWithRelationsSchema = {
   properties: {
     id: { type: 'integer' },
     title: { type: 'string' },
-    path_slug: { type: 'string' },
+    slug: { type: 'string' },
     description: { type: 'string' },
     duration: { type: 'string' },
     format: { type: 'string' },
@@ -200,8 +203,6 @@ export const userAcademyWithRelationsSchema = {
     certificate: { type: 'boolean' },
     portfolio: { type: 'boolean' },
     status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'] },
-    meta_title: { type: 'string' },
-    meta_description: { type: 'string' },
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
 
@@ -217,9 +218,9 @@ export const userAcademyWithRelationsSchema = {
       type: 'array',
       items: academyInstructorSchema,
     },
-    topics: {
+    themes: {
       type: 'array',
-      items: academyTopicSchema,
+      items: academyThemeSchema,
     },
     faqs: {
       type: 'array',
@@ -230,22 +231,14 @@ export const userAcademyWithRelationsSchema = {
       items: academyTestimonialSchema,
     },
 
-    _count: {
-      type: 'object',
-      properties: {
-        enrollments: { type: 'integer' },
-      },
-    },
     isPopular: { type: 'boolean' },
     isPremium: { type: 'boolean' },
-    enrollmentCount: { type: 'integer' },
     formattedPricing: {
       type: 'array',
       items: academyPricingSchema,
     },
     instructorCount: { type: 'integer' },
     topicCount: { type: 'integer' },
-    sessionCount: { type: 'integer' },
   },
 };
 
@@ -298,20 +291,18 @@ export const createAcademySchema = {
   security: [{ bearerAuth: [] }],
   body: {
     type: 'object',
-    required: ['title'],
+    required: ['title', 'description', 'duration', 'format', 'category', 'status'],
     properties: {
-      title: { type: 'string', minLength: 3, maxLength: 255 },
-      path_slug: { type: 'string', pattern: '^[a-z0-9-]+$', minLength: 3, maxLength: 100 },
-      description: { type: 'string', minLength: 10 },
-      duration: { type: 'string', maxLength: 100 },
-      format: { type: 'string', maxLength: 100 },
-      category: { type: 'string', maxLength: 100 },
-      image_url: { type: 'string', maxLength: 500 },
+      title: { type: 'string' },
+      slug: { type: 'string', pattern: '^[a-z0-9-]+$' },
+      description: { type: 'string' },
+      duration: { type: 'string' },
+      format: { type: 'string' },
+      category: { type: 'string' },
+      image_url: { type: 'string' },
       certificate: { type: 'boolean', default: false },
       portfolio: { type: 'boolean', default: false },
       status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'], default: 'DRAFT' },
-      meta_title: { type: 'string', maxLength: 255 },
-      meta_description: { type: 'string', maxLength: 500 },
     },
     additionalProperties: false,
   },
@@ -331,19 +322,18 @@ export const updateAcademySchema = {
   params: idParamSchema,
   body: {
     type: 'object',
+    required: ['title', 'description', 'duration', 'format', 'category', 'status'],
     properties: {
-      title: { type: 'string', minLength: 3, maxLength: 255 },
-      path_slug: { type: 'string', pattern: '^[a-z0-9-]+$', minLength: 3, maxLength: 100 },
-      description: { type: 'string', minLength: 10 },
-      duration: { type: 'string', maxLength: 100 },
-      format: { type: 'string', maxLength: 100 },
-      category: { type: 'string', maxLength: 100 },
-      image_url: { type: 'string', maxLength: 500 },
+      title: { type: 'string' },
+      slug: { type: 'string', pattern: '^[a-z0-9-]+$' },
+      description: { type: 'string' },
+      duration: { type: 'string' },
+      format: { type: 'string' },
+      category: { type: 'string' },
+      image_url: { type: 'string' },
       certificate: { type: 'boolean' },
       portfolio: { type: 'boolean' },
       status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'] },
-      meta_title: { type: 'string', maxLength: 255 },
-      meta_description: { type: 'string', maxLength: 500 },
     },
     additionalProperties: false,
   },
@@ -375,7 +365,7 @@ export const adminAcademyWithRelationsSchema = {
   properties: {
     id: { type: 'integer' },
     title: { type: 'string' },
-    path_slug: { type: 'string' },
+    slug: { type: 'string' },
     description: { type: 'string' },
     duration: { type: 'string' },
     format: { type: 'string' },
@@ -386,8 +376,6 @@ export const adminAcademyWithRelationsSchema = {
     certificate: { type: 'boolean' },
     portfolio: { type: 'boolean' },
     status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'] },
-    meta_title: { type: 'string' },
-    meta_description: { type: 'string' },
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
 
@@ -403,9 +391,9 @@ export const adminAcademyWithRelationsSchema = {
       type: 'array',
       items: academyInstructorSchema,
     },
-    topics: {
+    themes: {
       type: 'array',
-      items: academyTopicSchema,
+      items: academyThemeSchema,
     },
     faqs: {
       type: 'array',
@@ -424,14 +412,12 @@ export const adminAcademyWithRelationsSchema = {
     },
     isPopular: { type: 'boolean' },
     isPremium: { type: 'boolean' },
-    enrollmentCount: { type: 'integer' },
     formattedPricing: {
       type: 'array',
       items: academyPricingSchema,
     },
     instructorCount: { type: 'integer' },
     topicCount: { type: 'integer' },
-    sessionCount: { type: 'integer' },
   },
 };
 
@@ -441,10 +427,7 @@ export const getAdminAcademiesSchema = {
   description: 'Retrieve all academys with pagination for admin dashboard',
   querystring: academyQuerySchema,
   response: {
-    200: createPaginatedResponseSchema({
-      type: 'array',
-      items: adminAcademyWithRelationsSchema,
-    }),
+    200: createPaginatedResponseSchema(adminAcademyWithRelationsSchema),
     400: createErrorResponseSchema(400, 'Bad Request - Invalid query parameters'),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
@@ -483,7 +466,6 @@ export const getAcademyStatisticsSchema = {
         activeAcademies: { type: 'integer' },
         draftAcademies: { type: 'integer' },
         archivedAcademies: { type: 'integer' },
-        totalEnrollments: { type: 'integer' },
         averageRating: { type: 'number' },
       },
     }),
@@ -506,12 +488,12 @@ export const createPricingSchema = {
   body: {
     type: 'object',
     properties: {
-      name: { type: 'string', minLength: 1, maxLength: 50 },
-      original_price: { type: 'number', minimum: 1 },
-      discount_price: { type: 'number', minimum: 0 },
-      order: { type: 'number', minimum: 1 },
+      name: { type: 'string' },
+      original_price: { type: 'number' },
+      discount_price: { type: 'number' },
+      order: { type: 'number' },
     },
-    required: ['name', 'original_price', 'discount_price', 'order'],
+    required: ['name', 'original_price'],
     additionalProperties: false,
   },
   response: {
@@ -538,12 +520,12 @@ export const updatePricingSchema = {
   body: {
     type: 'object',
     properties: {
-      name: { type: 'string', minLength: 1, maxLength: 50 },
-      original_price: { type: 'number', minimum: 1 },
-      discount_price: { type: 'number', minimum: 0 },
-      order: { type: 'number', minimum: 1 },
+      name: { type: 'string' },
+      original_price: { type: 'number' },
+      discount_price: { type: 'number' },
+      order: { type: 'number' },
     },
-    required: ['name', 'original_price', 'discount_price', 'order'],
+    required: ['name', 'original_price'],
     additionalProperties: false,
   },
   response: {
@@ -589,12 +571,12 @@ export const createFeatureSchema = {
   body: {
     type: 'object',
     properties: {
-      title: { type: 'string', minLength: 1, maxLength: 100 },
-      description: { type: 'string', minLength: 1, maxLength: 500 },
-      icon: { type: 'string', minLength: 1, maxLength: 50 },
-      feature_order: { type: 'number', minimum: 1 },
+      title: { type: 'string' },
+      description: { type: 'string' },
+      icon: { type: 'string' },
+      feature_order: { type: 'number' },
     },
-    required: ['title', 'description', 'icon', 'feature_order'],
+    required: ['title', 'description', 'icon'],
     additionalProperties: false,
   },
   response: {
@@ -621,12 +603,12 @@ export const updateFeatureSchema = {
   body: {
     type: 'object',
     properties: {
-      title: { type: 'string', minLength: 1, maxLength: 100 },
-      description: { type: 'string', minLength: 1, maxLength: 500 },
-      icon: { type: 'string', minLength: 1, maxLength: 50 },
-      feature_order: { type: 'number', minimum: 1 },
+      title: { type: 'string' },
+      description: { type: 'string' },
+      icon: { type: 'string' },
+      feature_order: { type: 'number' },
     },
-    required: ['title', 'description', 'icon', 'feature_order'],
+    required: ['title', 'description', 'icon'],
     additionalProperties: false,
   },
   response: {
@@ -672,13 +654,13 @@ export const createInstructorSchema = {
   body: {
     type: 'object',
     properties: {
-      name: { type: 'string', minLength: 1, maxLength: 100 },
-      job_title: { type: 'string', minLength: 1, maxLength: 100 },
-      avatar_url: { type: 'string', maxLength: 500 },
-      description: { type: 'string', maxLength: 1000 },
-      order: { type: 'number', minimum: 1 },
+      name: { type: 'string' },
+      job_title: { type: 'string' },
+      avatar_url: { type: 'string' },
+      description: { type: 'string' },
+      order: { type: 'number' },
     },
-    required: ['name', 'job_title', 'order'],
+    required: ['name', 'job_title'],
     additionalProperties: false,
   },
   response: {
@@ -705,12 +687,13 @@ export const updateInstructorSchema = {
   body: {
     type: 'object',
     properties: {
-      name: { type: 'string', minLength: 1, maxLength: 100 },
-      job_title: { type: 'string', minLength: 1, maxLength: 100 },
-      avatar_url: { type: 'string', maxLength: 500 },
-      description: { type: 'string', maxLength: 1000 },
-      order: { type: 'number', minimum: 1 },
+      name: { type: 'string' },
+      job_title: { type: 'string' },
+      avatar_url: { type: 'string' },
+      description: { type: 'string' },
+      order: { type: 'number' },
     },
+    required: ['name', 'job_title'],
     additionalProperties: false,
   },
   response: {
@@ -745,7 +728,7 @@ export const deleteInstructorSchema = {
 export const createTopicSchema = {
   tags: ['Admin Academies'],
   summary: 'Create topic for academy',
-  description: 'Add a new topic to a academy',
+  description: 'Add a new topic (Level 2) to a academy, must belong to a theme',
   params: {
     type: 'object',
     properties: {
@@ -756,11 +739,12 @@ export const createTopicSchema = {
   body: {
     type: 'object',
     properties: {
-      title: { type: 'string', minLength: 1, maxLength: 200 },
-      description: { type: 'string', minLength: 1, maxLength: 1000 },
-      topic_order: { type: 'number', minimum: 1 },
+      theme_id: { type: 'integer' },
+      title: { type: 'string' },
+      description: { type: 'string' },
+      topic_order: { type: 'number' },
     },
-    required: ['title', 'description', 'topic_order'],
+    required: ['theme_id', 'title'],
     additionalProperties: false,
   },
   response: {
@@ -786,10 +770,11 @@ export const updateTopicSchema = {
   },
   body: {
     type: 'object',
+    required: ['title'],
     properties: {
-      title: { type: 'string', minLength: 1, maxLength: 200 },
-      description: { type: 'string', minLength: 1, maxLength: 1000 },
-      topic_order: { type: 'number', minimum: 1 },
+      title: { type: 'string' },
+      description: { type: 'string' },
+      topic_order: { type: 'number' },
     },
     additionalProperties: false,
   },
@@ -836,12 +821,12 @@ export const createTestimonialSchema = {
   body: {
     type: 'object',
     properties: {
-      name: { type: 'string', minLength: 1, maxLength: 100 },
-      avatar_url: { type: 'string', maxLength: 500 },
-      comment: { type: 'string', minLength: 1, maxLength: 1000 },
-      testimonial_order: { type: 'number', minimum: 1 },
+      name: { type: 'string' },
+      avatar_url: { type: 'string' },
+      comment: { type: 'string' },
+      testimonial_order: { type: 'number' },
     },
-    required: ['name', 'comment', 'testimonial_order'],
+    required: ['name', 'comment'],
     additionalProperties: false,
   },
   response: {
@@ -868,11 +853,12 @@ export const updateTestimonialSchema = {
   body: {
     type: 'object',
     properties: {
-      name: { type: 'string', minLength: 1, maxLength: 100 },
-      avatar_url: { type: 'string', maxLength: 500 },
-      comment: { type: 'string', minLength: 1, maxLength: 1000 },
-      testimonial_order: { type: 'number', minimum: 1 },
+      name: { type: 'string' },
+      avatar_url: { type: 'string' },
+      comment: { type: 'string' },
+      testimonial_order: { type: 'number' },
     },
+    required: ['name', 'comment'],
     additionalProperties: false,
   },
   response: {
@@ -918,11 +904,11 @@ export const createFaqSchema = {
   body: {
     type: 'object',
     properties: {
-      question: { type: 'string', minLength: 1, maxLength: 500 },
-      answer: { type: 'string', minLength: 1, maxLength: 2000 },
-      faq_order: { type: 'number', minimum: 1 },
+      question: { type: 'string' },
+      answer: { type: 'string' },
+      faq_order: { type: 'number' },
     },
-    required: ['question', 'answer', 'faq_order'],
+    required: ['question', 'answer'],
     additionalProperties: false,
   },
   response: {
@@ -949,10 +935,11 @@ export const updateFaqSchema = {
   body: {
     type: 'object',
     properties: {
-      question: { type: 'string', minLength: 1, maxLength: 500 },
-      answer: { type: 'string', minLength: 1, maxLength: 2000 },
-      faq_order: { type: 'number', minimum: 1 },
+      question: { type: 'string' },
+      answer: { type: 'string' },
+      faq_order: { type: 'number' },
     },
+    required: ['question', 'answer'],
     additionalProperties: false,
   },
   response: {
@@ -984,83 +971,178 @@ export const deleteFaqSchema = {
   },
 };
 
-export const createSessionSchema = {
+// ─── GET sub-resource list schemas ───────────────────────────────────────────
+
+const academyIdParam = {
+  type: 'object',
+  properties: { id: { type: 'string', minLength: 1 } },
+  required: ['id'],
+};
+
+export const getAcademyPricingsSchema = {
   tags: ['Admin Academies'],
-  summary: 'Create session for topic',
-  description: 'Add a new session to a topic',
-  params: {
-    type: 'object',
-    properties: {
-      academy_id: { type: 'string', minLength: 1 },
-      topic_id: { type: 'string', minLength: 1 },
-    },
-    required: ['academy_id', 'topic_id'],
-  },
-  body: {
-    type: 'object',
-    properties: {
-      title: { type: 'string', minLength: 1, maxLength: 200 },
-      session_order: { type: 'number', minimum: 1 },
-    },
-    required: ['title', 'session_order'],
-    additionalProperties: false,
-  },
+  summary: 'Get pricing list for academy',
+  description: 'Retrieve all pricing tiers for a specific academy',
+  params: academyIdParam,
   response: {
-    201: createSuccessResponseSchema(academySessionSchema),
-    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    200: createSuccessResponseSchema({ type: 'array', items: academyPricingSchema }),
     401: createErrorResponseSchema(401, 'Unauthorized'),
-    404: createErrorResponseSchema(404, 'Topic not found'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
-export const updateSessionSchema = {
+export const getAcademyFeaturesSchema = {
   tags: ['Admin Academies'],
-  summary: 'Update session',
-  description: 'Update an existing session',
-  params: {
-    type: 'object',
-    properties: {
-      academy_id: { type: 'string', minLength: 1 },
-      topic_id: { type: 'string', minLength: 1 },
-      session_id: { type: 'string', minLength: 1 },
-    },
-    required: ['academy_id', 'topic_id', 'session_id'],
-  },
-  body: {
-    type: 'object',
-    properties: {
-      title: { type: 'string', minLength: 1, maxLength: 200 },
-      session_order: { type: 'number', minimum: 1 },
-    },
-    additionalProperties: false,
-  },
+  summary: 'Get features list for academy',
+  description: 'Retrieve all features for a specific academy',
+  params: academyIdParam,
   response: {
-    200: createSuccessResponseSchema(academySessionSchema),
-    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    200: createSuccessResponseSchema({ type: 'array', items: academyFeatureSchema }),
     401: createErrorResponseSchema(401, 'Unauthorized'),
-    404: createErrorResponseSchema(404, 'Session not found'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
-export const deleteSessionSchema = {
+export const getAcademyInstructorsSchema = {
   tags: ['Admin Academies'],
-  summary: 'Delete session',
-  description: 'Delete a session from a topic',
+  summary: 'Get instructors list for academy',
+  description: 'Retrieve all instructors for a specific academy',
+  params: academyIdParam,
+  response: {
+    200: createSuccessResponseSchema({ type: 'array', items: academyInstructorSchema }),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getAcademyTopicsSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Get topics list for academy',
+  description: 'Retrieve all topics (Level 2) for a specific academy',
+  params: academyIdParam,
+  response: {
+    200: createSuccessResponseSchema({ type: 'array', items: academyTopicSchema }),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getAcademyTestimonialsSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Get testimonials list for academy',
+  description: 'Retrieve all testimonials for a specific academy',
+  params: academyIdParam,
+  response: {
+    200: createSuccessResponseSchema({ type: 'array', items: academyTestimonialSchema }),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const getAcademyFaqsSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Get FAQs list for academy',
+  description: 'Retrieve all FAQs for a specific academy',
+  params: academyIdParam,
+  response: {
+    200: createSuccessResponseSchema({ type: 'array', items: academyFaqSchema }),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+// ─── Theme CRUD schemas ───────────────────────────────────────────────────────
+
+export const getAcademyThemesSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Get themes list for academy',
+  description: 'Retrieve all themes (Level 1) with nested topics for a specific academy',
+  params: academyIdParam,
+  response: {
+    200: createSuccessResponseSchema({ type: 'array', items: academyThemeSchema }),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const createThemeSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Create theme for academy',
+  description: 'Add a new curriculum theme (Level 1) to a academy',
+  params: academyIdParam,
+  body: {
+    type: 'object',
+    properties: {
+      title: { type: 'string' },
+      description: { type: 'string' },
+      order: { type: 'number' },
+    },
+    required: ['title'],
+    additionalProperties: false,
+  },
+  response: {
+    201: createSuccessResponseSchema(academyThemeSchema),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Academy not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const updateThemeSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Update theme for academy',
+  description: 'Update an existing curriculum theme (Level 1)',
   params: {
     type: 'object',
     properties: {
-      academy_id: { type: 'string', minLength: 1 },
-      topic_id: { type: 'string', minLength: 1 },
-      session_id: { type: 'string', minLength: 1 },
+      id: { type: 'string', minLength: 1 },
+      themeId: { type: 'string', minLength: 1 },
     },
-    required: ['academy_id', 'topic_id', 'session_id'],
+    required: ['id', 'themeId'],
+  },
+  body: {
+    type: 'object',
+    required: ['title'],
+    properties: {
+      title: { type: 'string' },
+      description: { type: 'string' },
+      order: { type: 'number' },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: createSuccessResponseSchema(academyThemeSchema),
+    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    404: createErrorResponseSchema(404, 'Theme not found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const deleteThemeSchema = {
+  tags: ['Admin Academies'],
+  summary: 'Delete theme from academy',
+  description: 'Remove a curriculum theme (Level 1) and all its topics from academy',
+  params: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', minLength: 1 },
+      themeId: { type: 'string', minLength: 1 },
+    },
+    required: ['id', 'themeId'],
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object', properties: { message: { type: 'string' } } }),
     401: createErrorResponseSchema(401, 'Unauthorized'),
-    404: createErrorResponseSchema(404, 'Session not found'),
+    404: createErrorResponseSchema(404, 'Theme not found'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };

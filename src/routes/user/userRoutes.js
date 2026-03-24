@@ -1,6 +1,8 @@
 import { userController } from '../../controllers/user/userController.js';
 import { authMiddleware } from '../../middleware/auth.js';
-import { uploadUserAvatar } from '../../middleware/fileUploadMiddleware.js';
+import { createUploadMiddleware } from '../../middleware/uploadMiddleware.js';
+
+const uploadUserAvatar = createUploadMiddleware('user_avatar');
 import {
   getUserProfileSchema,
   getUserSettingsSchema,

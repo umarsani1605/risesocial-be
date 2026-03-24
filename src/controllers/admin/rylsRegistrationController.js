@@ -11,11 +11,10 @@ export class AdminRylsRegistrationController {
       request.log.info('[adminRylsRegistrationController] getRegistrations start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
 
-      const { page = 1, limit = 10, status, registrationType, sortBy = 'createdAt', sortOrder = 'desc', search, startDate, endDate } = request.query;
+      const { page = 1, limit = 10, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search, startDate, endDate } = request.query;
 
       const filters = {
-        status,
-        registrationType,
+        scholarshipType,
         search,
         startDate,
         endDate,
@@ -143,13 +142,9 @@ export class AdminRylsRegistrationController {
       request.log.info('[adminRylsRegistrationController] exportRegistrations start');
       request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
 
-      const { format = 'csv', startDate, endDate, status } = request.query;
+      const { format = 'csv', startDate, endDate } = request.query;
 
-      const filters = {
-        startDate,
-        endDate,
-        status,
-      };
+      const filters = { startDate, endDate };
 
       const result = await this.registrationService.exportRegistrations(format, filters);
 

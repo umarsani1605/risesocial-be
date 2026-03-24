@@ -1,19 +1,19 @@
 #!/bin/bash
 
-# Production Payment Migration Deployment Script (with Cleanup)
+# Production Payment Migration Deployment Script - Prisma Way
 # 
-# This script performs complete migration with immediate cleanup:
+# This script performs complete migration using Prisma migrations:
 # 1. Backup current database
-# 2. Apply new schema migration (adds new tables, keeps old ones)
+# 2. Apply Phase 1 migration (adds new tables, keeps old ones)
 # 3. Migrate data from old tables to new 3-layer architecture
 # 4. Verify migration success
-# 5. CLEANUP: Drop old tables and columns immediately
+# 5. Apply Phase 2 migration (cleanup via Prisma - NO manual SQL!)
 
 set -e  # Exit on error
 
 echo "=========================================="
-echo "  PRODUCTION PAYMENT MIGRATION DEPLOYMENT"
-echo "  (WITH IMMEDIATE CLEANUP)"
+echo "  PRODUCTION PAYMENT MIGRATION"
+echo "  (PRISMA WAY - 2 PHASE)"
 echo "=========================================="
 echo ""
 
@@ -76,21 +76,26 @@ FROM ryls_payments;
 echo ""
 
 # ============================================
-# STEP 3: APPLY NEW SCHEMA MIGRATION
+# STEP 3: APPLY PHASE 1 MIGRATION (Add Tables)
 # ============================================
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "STEP 3: Applying new schema migration..."
+echo "STEP 3: Applying Phase 1 Migration (Add new tables)..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "This will add new tables (transactions, midtrans_transactions, transaction_items)"
-echo "Old tables will be kept temporarily for data migration"
+echo "This will add:"
+echo "  - transactions table"
+echo "  - midtrans_transactions table"
+echo "  - transaction_items table"
+echo "  - new columns to ryls_payments"
+echo ""
+echo "Old tables will be kept temporarily for data migration."
 echo ""
 
 npx prisma migrate deploy
 
 if [ $? -eq 0 ]; then
-    echo "✅ Schema migration applied successfully"
+    echo "✅ Phase 1 migration applied successfully"
 else
-    echo "❌ Schema migration failed!"
+    echo "❌ Phase 1 migration failed!"
     echo ""
     echo "To rollback, restore from backup:"
     echo "  bash scripts/quick-restore.sh $BACKUP_FILE"
@@ -107,7 +112,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "STEP 4: Migrating data to new architecture..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-node scripts/migrate-payment-data-clean.js
+node scripts/migrate-payment-data.js
 
 if [ $? -eq 0 ]; then
     echo "✅ Data migration completed"
@@ -121,10 +126,10 @@ fi
 echo ""
 
 # ============================================
-# STEP 5: VERIFY MIGRATION BEFORE CLEANUP
+# STEP 5: VERIFY DATA MIGRATION
 # ============================================
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "STEP 5: Verifying migration before cleanup..."
+echo "STEP 5: Verifying data migration..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Get counts
@@ -144,63 +149,60 @@ echo ""
 if [ "$OLD_COUNT" -ne "$NEW_COUNT" ]; then
     echo "❌ ERROR: Record count mismatch!"
     echo "   Expected: $OLD_COUNT, Got: $NEW_COUNT"
-    echo "   Aborting cleanup. Data is safe in both old and new tables."
+    echo "   Aborting Phase 2. Data is safe in both old and new tables."
     echo ""
     echo "To rollback:"
     echo "  bash scripts/quick-restore.sh $BACKUP_FILE"
     exit 1
 fi
 
-echo "✅ Record counts match - safe to proceed with cleanup"
+echo "✅ Data verified - counts match"
 echo ""
 
 # ============================================
-# STEP 6: CLEANUP OLD TABLES AND COLUMNS
+# STEP 6: APPLY PHASE 2 MIGRATION (Cleanup)
 # ============================================
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "STEP 6: Cleaning up old tables and columns..."
+echo "STEP 6: Applying Phase 2 Migration (Cleanup)..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-
-# Drop old midtrans_payments table
-echo "🗑️  Dropping midtrans_payments table..."
-psql "$CLEAN_DB_URL" -c "DROP TABLE IF EXISTS midtrans_payments CASCADE;" > /dev/null 2>&1
-
-if [ $? -eq 0 ]; then
-    echo "   ✅ midtrans_payments table dropped"
-else
-    echo "   ⚠️  Failed to drop midtrans_payments table"
-fi
-
-# Drop old columns from ryls_payments
-echo "🗑️  Dropping old columns from ryls_payments..."
-psql "$CLEAN_DB_URL" -c "
-  ALTER TABLE ryls_payments 
-    DROP COLUMN IF EXISTS amount,
-    DROP COLUMN IF EXISTS type,
-    DROP COLUMN IF EXISTS paid_at,
-    DROP COLUMN IF EXISTS midtrans_id;
-" > /dev/null 2>&1
-
-if [ $? -eq 0 ]; then
-    echo "   ✅ Old columns dropped (amount, type, paid_at, midtrans_id)"
-else
-    echo "   ⚠️  Failed to drop some columns"
-fi
-
-# Drop old enum types
-echo "🗑️  Dropping old enum types..."
-psql "$CLEAN_DB_URL" -c "DROP TYPE IF EXISTS \"MidtransTransactionStatus\";" > /dev/null 2>&1
-psql "$CLEAN_DB_URL" -c "DROP TYPE IF EXISTS \"MidtransFraudStatus\";" > /dev/null 2>&1
-
-if [ $? -eq 0 ]; then
-    echo "   ✅ Old enum types dropped"
-else
-    echo "   ⚠️  Failed to drop some enum types"
-fi
-
+echo "⚠️  Phase 2 will (via Prisma migration):"
+echo "   - DROP midtrans_payments table"
+echo "   - DROP old columns from ryls_payments"
+echo "   - DROP old enum types"
 echo ""
-echo "✅ Cleanup completed successfully"
+echo "This is done via Prisma migration (NOT manual SQL)."
+echo ""
+
+# Check if cleanup migration exists
+CLEANUP_MIGRATION=$(ls -1 prisma/migrations/ | grep cleanup_old_payment_tables | tail -1)
+
+if [ -z "$CLEANUP_MIGRATION" ]; then
+    echo "❌ ERROR: Phase 2 migration not found!"
+    echo ""
+    echo "Expected migration: cleanup_old_payment_tables"
+    echo ""
+    echo "Please ensure Phase 2 migration has been generated."
+    echo "The migration should already exist in prisma/migrations/"
+    exit 1
+fi
+
+echo "Found Phase 2 migration: $CLEANUP_MIGRATION"
+echo ""
+
+npx prisma migrate deploy
+
+if [ $? -eq 0 ]; then
+    echo "✅ Phase 2 migration applied successfully"
+else
+    echo "❌ Phase 2 migration failed!"
+    echo ""
+    echo "To rollback:"
+    echo "  bash scripts/quick-restore.sh $BACKUP_FILE"
+    exit 1
+fi
+
+npx prisma generate > /dev/null 2>&1
 echo ""
 
 # ============================================
@@ -227,6 +229,11 @@ if [ "$OLD_AMOUNT_EXISTS" = "f" ]; then
 else
     echo "⚠️  Old columns still exist in ryls_payments"
 fi
+
+# Check Prisma migration status
+echo ""
+echo "Checking Prisma migration status..."
+npx prisma migrate status
 
 # Show final table structure
 echo ""
@@ -255,38 +262,41 @@ ORDER BY table_name;
 "
 echo ""
 
-# Sample data check
-echo "Sample data from new tables:"
-psql "$CLEAN_DB_URL" -c "
-SELECT 
-  t.transaction_code,
-  t.status,
-  t.amount,
-  t.payment_method,
-  mt.transaction_status as midtrans_status
-FROM transactions t
-JOIN midtrans_transactions mt ON mt.transaction_id = t.id
-ORDER BY t.created_at DESC
-LIMIT 3;
-"
-echo ""
+# Sample data check (if data exists)
+if [ "$NEW_COUNT" -gt 0 ]; then
+    echo "Sample data from new tables:"
+    psql "$CLEAN_DB_URL" -c "
+    SELECT 
+      t.transaction_code,
+      t.status,
+      t.amount,
+      t.payment_method,
+      mt.transaction_status as midtrans_status
+    FROM transactions t
+    JOIN midtrans_transactions mt ON mt.transaction_id = t.id
+    ORDER BY t.created_at DESC
+    LIMIT 3;
+    "
+    echo ""
+fi
 
 # ============================================
 # COMPLETION
 # ============================================
 echo "=========================================="
-echo "  ✅ MIGRATION & CLEANUP COMPLETE"
+echo "  ✅ MIGRATION COMPLETE (PRISMA WAY)"
 echo "=========================================="
 echo ""
-echo "🕐 Completed at: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "� Completed at: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
-echo "📊 SUMMARY:"
-echo "  ✅ Migrated records: $NEW_COUNT"
-echo "  ✅ New tables: transactions, midtrans_transactions, transaction_items"
-echo "  ✅ Cleaned up: midtrans_payments table, old columns, old enums"
-echo "  ✅ Database now matches Prisma schema exactly"
+echo "� SUMMARY:"
+echo "  ✅ Phase 1: Added new tables (via Prisma)"
+echo "  ✅ Data migrated: $NEW_COUNT records"
+echo "  ✅ Phase 2: Cleaned up old tables (via Prisma)"
+echo "  ✅ Migration history: CLEAN & SYNCED"
+echo "  ✅ Database matches Prisma schema exactly"
 echo ""
-echo "📦 Backup location: $BACKUP_FILE"
+echo "� Backup location: $BACKUP_FILE"
 echo ""
 echo "📋 NEXT STEPS:"
 echo "  1. Test payment creation flow"

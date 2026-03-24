@@ -5,7 +5,7 @@ const paymentStatusDataSchema = {
   properties: {
     hasPayment: { type: 'boolean', description: 'Indicates if payment exists' },
     status: { type: ['string', 'null'], description: 'Payment status' },
-    orderId: { type: ['string', 'null'], description: 'Order identifier' },
+    transaction_code: { type: ['string', 'null'], description: 'Transaction code' },
     amount: { type: ['number', 'null'], description: 'Payment amount' },
     currency: { type: 'string', default: 'IDR', description: 'Currency' },
     paymentType: { type: ['string', 'null'], description: 'Payment method type' },

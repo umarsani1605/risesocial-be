@@ -31,53 +31,28 @@ export class UserRylsRegistrationController {
     }
   };
 
-  submitFullyFundedRegistration = async (request, reply) => {
+  submitRegistration = async (request, reply) => {
     try {
-      request.log.info('[userRylsRegistrationController] submitFullyFundedRegistration start');
+      request.log.info('[userRylsRegistrationController] submitRegistration start');
       request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
       const formData = request.body;
 
-      if (!formData.step1 || !formData.essayTopic || !formData.essayFileId) {
+      if (!formData.step1) {
         return reply.status(400).send(errorResponse('Missing required form data', 400, 'Incomplete form submission'));
       }
 
-      const result = await this.registrationService.submitFullyFundedRegistration(formData);
+      const result = await this.registrationService.submitRegistration(formData);
 
-      request.log.info('[userRylsRegistrationController] submitFullyFundedRegistration success');
-      return reply.status(201).send(successResponse(result, 'Fully funded registration submitted successfully'));
+      request.log.info('[userRylsRegistrationController] submitRegistration success');
+      return reply.status(201).send(successResponse(result, 'Registration submitted successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userRylsRegistrationController] submitFullyFundedRegistration error');
+      request.log.error({ err: error }, '[userRylsRegistrationController] submitRegistration error');
 
       if (error.message.includes('Missing required fields') || error.message.includes('Invalid')) {
         return reply.status(400).send(errorResponse('Validation failed', 400, error.message));
       }
 
-      return reply.status(500).send(errorResponse('Failed to submit fully funded registration', 500, error.message));
-    }
-  };
-
-  submitSelfFundedRegistration = async (request, reply) => {
-    try {
-      request.log.info('[userRylsRegistrationController] submitSelfFundedRegistration start');
-      request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
-      const formData = request.body;
-
-      if (!formData.step1 || !formData.essayTopic || !formData.essayFileId || !formData.paymentProofFileId) {
-        return reply.status(400).send(errorResponse('Missing required form data', 400, 'Incomplete form submission'));
-      }
-
-      const result = await this.registrationService.submitSelfFundedRegistration(formData);
-
-      request.log.info('[userRylsRegistrationController] submitSelfFundedRegistration success');
-      return reply.status(201).send(successResponse(result, 'Self funded registration submitted successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[userRylsRegistrationController] submitSelfFundedRegistration error');
-
-      if (error.message.includes('Missing required fields') || error.message.includes('Invalid')) {
-        return reply.status(400).send(errorResponse('Validation failed', 400, error.message));
-      }
-
-      return reply.status(500).send(errorResponse('Failed to submit self funded registration', 500, error.message));
+      return reply.status(500).send(errorResponse('Failed to submit registration', 500, error.message));
     }
   };
 

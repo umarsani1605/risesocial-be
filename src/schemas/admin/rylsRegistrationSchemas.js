@@ -27,7 +27,32 @@ const registrationEntitySchema = {
   },
 };
 
-const fullyFundedSubmissionSchema = {
+// Response schema for submission endpoint (camelCase format)
+const submissionResponseSchema = {
+  type: 'object',
+  properties: {
+    registrationId: { type: 'integer', description: 'Registration ID' },
+    submissionId: { type: 'integer', description: 'Submission ID' },
+    email: { type: 'string', format: 'email', description: 'Email address' },
+    fullName: { type: 'string', description: 'Full name' },
+    scholarshipType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'], description: 'Scholarship type' },
+    createdAt: { type: 'string', format: 'date-time', description: 'Creation timestamp' },
+    submission: {
+      type: 'object',
+      properties: {
+        id: { type: 'integer', description: 'Submission ID' },
+        essayTopic: { type: ['string', 'null'], description: 'Essay topic (FULLY_FUNDED)' },
+        essayDescription: { type: ['string', 'null'], description: 'Essay description (FULLY_FUNDED)' },
+        passportNumber: { type: ['string', 'null'], description: 'Passport number (SELF_FUNDED)' },
+        needVisa: { type: ['boolean', 'null'], description: 'Need visa (SELF_FUNDED)' },
+        readPolicies: { type: ['boolean', 'null'], description: 'Read policies (SELF_FUNDED)' },
+      },
+    },
+  },
+};
+
+// Unified submission schema for both FULLY_FUNDED and SELF_FUNDED
+export const submitRegistrationBodySchema = {
   type: 'object',
   required: ['step1'],
   properties: {
@@ -57,49 +82,15 @@ const fullyFundedSubmissionSchema = {
         gender: { type: 'string', enum: ['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY'] },
         discoverSource: { type: 'string', enum: ['RISE_INSTAGRAM', 'OTHER_INSTAGRAM', 'FRIENDS', 'OTHER'] },
         discoverOtherText: { type: 'string', maxLength: 500 },
-        scholarshipType: { type: 'string', enum: ['FULLY_FUNDED'] },
+        scholarshipType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'] },
       },
+      additionalProperties: false,
     },
+    // FULLY_FUNDED optional fields
     essayTopic: { type: 'string', minLength: 1, maxLength: 255 },
     essayFileId: { type: 'integer', minimum: 1 },
     essayDescription: { type: 'string', maxLength: 2000 },
-  },
-  additionalProperties: false,
-};
-
-const selfFundedSubmissionSchema = {
-  type: 'object',
-  required: ['step1', 'passportNumber', 'needVisa', 'headshotFileId', 'readPolicies'],
-  properties: {
-    step1: {
-      type: 'object',
-      required: [
-        'fullName',
-        'email',
-        'residence',
-        'nationality',
-        'whatsapp',
-        'institution',
-        'dateOfBirth',
-        'gender',
-        'discoverSource',
-        'scholarshipType',
-      ],
-      properties: {
-        fullName: { type: 'string', minLength: 1, maxLength: 255 },
-        email: { type: 'string', format: 'email' },
-        residence: { type: 'string', minLength: 1, maxLength: 255 },
-        nationality: { type: 'string', minLength: 1, maxLength: 100 },
-        secondNationality: { type: 'string', maxLength: 100 },
-        whatsapp: { type: 'string', minLength: 1, maxLength: 50 },
-        institution: { type: 'string', minLength: 1, maxLength: 255 },
-        dateOfBirth: { type: 'string', format: 'date' },
-        gender: { type: 'string', enum: ['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY'] },
-        discoverSource: { type: 'string', enum: ['RISE_INSTAGRAM', 'OTHER_INSTAGRAM', 'FRIENDS', 'OTHER'] },
-        discoverOtherText: { type: 'string', maxLength: 500 },
-        scholarshipType: { type: 'string', enum: ['SELF_FUNDED'] },
-      },
-    },
+    // SELF_FUNDED optional fields
     passportNumber: { type: 'string', minLength: 1, maxLength: 20 },
     needVisa: { type: 'string', enum: ['YES', 'NO'] },
     headshotFileId: { type: 'integer', minimum: 1 },
@@ -114,28 +105,6 @@ const registrationsQuerySchema = {
     ...paginationQuerySchema.properties,
     scholarshipType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'] },
     status: { type: 'string', enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'] },
-  },
-};
-
-export const submitFullyFundedSchema = {
-  tags: ['RYLS Registration'],
-  summary: 'Submit fully funded registration',
-  body: fullyFundedSubmissionSchema,
-  response: {
-    201: createSuccessResponseSchema(registrationEntitySchema, 'Registration submitted'),
-    400: createErrorResponseSchema(400, 'Bad Request'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
-export const submitSelfFundedSchema = {
-  tags: ['RYLS Registration'],
-  summary: 'Submit self funded registration',
-  body: selfFundedSubmissionSchema,
-  response: {
-    201: createSuccessResponseSchema(registrationEntitySchema, 'Registration submitted'),
-    400: createErrorResponseSchema(400, 'Bad Request'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 
@@ -171,7 +140,7 @@ export const updateRegistrationStatusSchema = {
     type: 'object',
     required: ['status'],
     properties: {
-      status: { type: 'string', enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'] },
+      status: { type: 'string', enum: ['PENDING', 'APPROVED', 'REJECTED', 'WAITLISTED'] },
     },
   },
   response: {
@@ -282,6 +251,17 @@ export const userRegistrationHealthCheckSchema = {
       },
       'Health check successful',
     ),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const submitRegistrationSchema = {
+  tags: ['RYLS Registration'],
+  summary: 'Submit RYLS registration',
+  body: submitRegistrationBodySchema,
+  response: {
+    201: createSuccessResponseSchema(submissionResponseSchema, 'Registration submitted'),
+    400: createErrorResponseSchema(400, 'Bad Request'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };

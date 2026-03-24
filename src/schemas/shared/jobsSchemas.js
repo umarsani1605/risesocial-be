@@ -125,54 +125,6 @@ const jobEntitySchema = {
   },
 };
 
-const jobCreateInputSchema = {
-  type: 'object',
-  required: ['title', 'description', 'company', 'location'],
-  properties: {
-    title: { type: 'string', minLength: 3, maxLength: 255, description: 'Job title' },
-    description: { type: 'string', minLength: 50, description: 'Detailed job description' },
-    company: { type: 'string', minLength: 1, description: 'Company name' },
-    location: { type: 'string', minLength: 1, description: 'Job location' },
-    slug: { type: 'string', minLength: 3, maxLength: 100, pattern: '^[a-z0-9-]+$', description: 'URL slug' },
-    jobType: { type: 'string', enum: JOB_TYPES, description: 'Type of employment' },
-    experienceLevel: { type: 'string', enum: EXPERIENCE_LEVELS, description: 'Required experience level' },
-    salary_min: { type: 'integer', minimum: 0, description: 'Minimum salary range' },
-    salary_max: { type: 'integer', minimum: 0, description: 'Maximum salary range' },
-    skills: { type: 'array', items: { type: 'string' }, description: 'Required skills' },
-    requirements: { type: 'array', items: { type: 'string' }, description: 'Job requirements' },
-    benefits: { type: 'array', items: { type: 'string' }, description: 'Job benefits' },
-    isRemote: { type: 'boolean', default: false, description: 'Whether the job is remote' },
-    application_deadline: { type: 'string', format: 'date-time', description: 'Application deadline' },
-    applicationUrl: { type: 'string', format: 'uri', description: 'External application URL' },
-    contactEmail: { type: 'string', format: 'email', description: 'Contact email for applications' },
-  },
-  additionalProperties: false,
-};
-
-const jobUpdateInputSchema = {
-  type: 'object',
-  properties: {
-    title: { type: 'string', minLength: 3, maxLength: 255, description: 'Job title' },
-    description: { type: 'string', minLength: 50, description: 'Detailed job description' },
-    company: { type: 'string', minLength: 1, description: 'Company name' },
-    location: { type: 'string', minLength: 1, description: 'Job location' },
-    slug: { type: 'string', minLength: 3, maxLength: 100, pattern: '^[a-z0-9-]+$', description: 'URL slug' },
-    jobType: { type: 'string', enum: JOB_TYPES, description: 'Type of employment' },
-    experienceLevel: { type: 'string', enum: EXPERIENCE_LEVELS, description: 'Required experience level' },
-    salary_min: { type: 'integer', minimum: 0, description: 'Minimum salary range' },
-    salary_max: { type: 'integer', minimum: 0, description: 'Maximum salary range' },
-    skills: { type: 'array', items: { type: 'string' }, description: 'Required skills' },
-    requirements: { type: 'array', items: { type: 'string' }, description: 'Job requirements' },
-    benefits: { type: 'array', items: { type: 'string' }, description: 'Job benefits' },
-    isRemote: { type: 'boolean', description: 'Whether the job is remote' },
-    application_deadline: { type: 'string', format: 'date-time', description: 'Application deadline' },
-    applicationUrl: { type: 'string', format: 'uri', description: 'External application URL' },
-    contactEmail: { type: 'string', format: 'email', description: 'Contact email for applications' },
-    isActive: { type: 'boolean', description: 'Whether the job is active' },
-  },
-  additionalProperties: false,
-};
-
 const jobsQuerySchema = {
   type: 'object',
   properties: {
@@ -230,69 +182,6 @@ const jobsQuerySchema = {
   },
 };
 
-export const getAllJobsSchema = {
-  summary: 'Get all jobs with pagination and filtering',
-  description: 'Retrieve a paginated list of jobs with optional filtering',
-  querystring: jobsQuerySchema,
-  response: {
-    200: createPaginatedResponseSchema(jobEntitySchema, 'Jobs retrieved successfully'),
-    400: createErrorResponseSchema(400, 'Bad Request - Invalid query parameters'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
-export const getJobByIdSchema = {
-  summary: 'Get job by ID',
-  description: 'Retrieve a specific job by its ID',
-  params: idParamSchema,
-  response: {
-    200: createSuccessResponseSchema(jobEntitySchema, 'Job retrieved successfully'),
-    404: createErrorResponseSchema(404, 'Job not found'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
-export const createJobSchema = {
-  summary: 'Create new job',
-  description: 'Create a new job posting (Admin only)',
-  body: jobCreateInputSchema,
-  response: {
-    201: createSuccessResponseSchema(jobEntitySchema, 'Job created successfully'),
-    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
-    401: createErrorResponseSchema(401, 'Unauthorized'),
-    403: createErrorResponseSchema(403, 'Forbidden - Admin access required'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
-export const updateJobSchema = {
-  summary: 'Update job',
-  description: 'Update an existing job posting (Admin only)',
-  params: idParamSchema,
-  body: jobUpdateInputSchema,
-  response: {
-    200: createSuccessResponseSchema(jobEntitySchema, 'Job updated successfully'),
-    400: createErrorResponseSchema(400, 'Bad Request - Invalid input data'),
-    401: createErrorResponseSchema(401, 'Unauthorized'),
-    403: createErrorResponseSchema(403, 'Forbidden - Admin access required'),
-    404: createErrorResponseSchema(404, 'Job not found'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
-export const deleteJobSchema = {
-  summary: 'Delete job',
-  description: 'Delete a job posting (Admin only)',
-  params: idParamSchema,
-  response: {
-    200: createSuccessResponseSchema('Job deleted successfully'),
-    401: createErrorResponseSchema(401, 'Unauthorized'),
-    403: createErrorResponseSchema(403, 'Forbidden - Admin access required'),
-    404: createErrorResponseSchema(404, 'Job not found'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
 export const searchJobsSchema = {
   summary: 'Search jobs',
   description: 'Search jobs with advanced filtering and full-text search',
@@ -310,40 +199,6 @@ export const searchJobsSchema = {
   response: {
     200: createPaginatedResponseSchema(jobEntitySchema, 'Jobs search completed'),
     400: createErrorResponseSchema(400, 'Bad Request - Invalid search parameters'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
-export const getJobStatsSchema = {
-  summary: 'Get job statistics',
-  description: 'Get aggregated statistics about jobs',
-  response: {
-    200: createSuccessResponseSchema(
-      {
-        type: 'object',
-        properties: {
-          total: { type: 'integer', description: 'Total number of jobs' },
-          active: { type: 'integer', description: 'Number of active jobs' },
-          byType: {
-            type: 'object',
-            additionalProperties: { type: 'integer' },
-            description: 'Jobs count by type',
-          },
-          byExperienceLevel: {
-            type: 'object',
-            additionalProperties: { type: 'integer' },
-            description: 'Jobs count by experience level',
-          },
-          byLocation: {
-            type: 'object',
-            additionalProperties: { type: 'integer' },
-            description: 'Jobs count by location',
-          },
-          remote: { type: 'integer', description: 'Number of remote jobs' },
-        },
-      },
-      'Job statistics retrieved successfully',
-    ),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
@@ -399,8 +254,8 @@ export const getCompaniesSchema = {
             linkedin_followers: { type: 'integer', description: 'LinkedIn followers count' },
             linkedin_type: { type: 'string', description: 'LinkedIn company type' },
             linkedin_founded_date: { type: 'string', description: 'Founded date' },
-            linkedin_specialties: { type: 'array', items: { type: 'string' } },
-            linkedin_locations: { type: 'array', items: { type: 'string' } },
+            linkedin_specialties: { type: 'string', nullable: true },
+            linkedin_locations: { type: 'string', nullable: true },
             linkedin_is_recruitment_agency: { type: 'boolean' },
             created_at: { type: 'string', format: 'date-time' },
             updated_at: { type: 'string', format: 'date-time' },

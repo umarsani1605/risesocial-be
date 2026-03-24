@@ -22,6 +22,8 @@ export class FileUploadRepository extends BaseRepository {
           file_size: fileData.size,
           mime_type: fileData.mimeType,
           upload_type: fileData.uploadType,
+          cohort_module_id: fileData.cohortModuleId || null,
+          academy_id: fileData.academyId || null,
         },
       });
 

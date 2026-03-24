@@ -36,7 +36,7 @@ export async function optionalAuthMiddleware(request, reply) {
     request.log.debug({ tokenPrefix: token ? token.slice(0, 12) : '' }, '[optionalAuth] tokenPrefix');
     const decoded = await request.jwtVerify();
     request.user = decoded;
-    request.log.info({ userId: decoded?.id, role: decoded?.role }, '[optionalAuth] verified');
+    request.log.info({ userId: decoded?.userId, role: decoded?.role }, '[optionalAuth] verified');
   } catch (error) {
     request.log.warn({ err: error?.message }, '[optionalAuth] verify failed, continuing unauthenticated');
   }

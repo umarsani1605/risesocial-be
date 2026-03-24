@@ -227,7 +227,7 @@ class InstructorService {
       status_badge: this.getStatusBadge(academy.status),
       duration_formatted: this.formatDuration(academy.duration),
       rating_display: this.formatRating(academy.rating),
-      url: `/academy/${academy.path_slug}`,
+      url: `/academy/${academy.slug}`,
     };
   }
 

@@ -70,10 +70,13 @@ export class UserRepository extends BaseRepository {
   async findManyWithPagination(options = {}) {
     this.logger.info({ options }, '[userRepository] findManyWithPagination start');
     try {
-      const { page = 1, limit = 10, role, search } = options;
-      const skip = (page - 1) * limit;
+      const { page, limit, role, search, id } = options;
+
+      const skip = page && limit ? (page - 1) * limit : undefined;
+      const take = limit ? Number(limit) : undefined;
 
       const where = {};
+      if (id) where.id = Number(id);
       if (role) where.role = role;
       if (search) {
         where.OR = [
@@ -85,11 +88,26 @@ export class UserRepository extends BaseRepository {
       }
 
       const [data, total] = await Promise.all([
-        this.model.findMany({ where, skip, take: Number(limit), orderBy: { created_at: 'desc' }, include: { user_settings: true } }),
+        this.model.findMany({
+          where,
+          ...(skip !== undefined && { skip }),
+          ...(take !== undefined && { take }),
+          orderBy: { created_at: 'desc' },
+          include: { user_settings: true },
+        }),
         this.model.count({ where }),
       ]);
 
-      const result = { data, meta: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / limit) } };
+      const result = { data };
+      if (page && limit) {
+        result.meta = {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          totalPages: Math.ceil(total / limit),
+        };
+      }
+
       this.logger.info('[userRepository] findManyWithPagination success');
       return result;
     } catch (error) {

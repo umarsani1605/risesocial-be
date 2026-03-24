@@ -16,46 +16,35 @@ export class RylsRegistrationService {
     return process.env.BACKEND_URL;
   }
 
-  async createRegistration(formData) {
-    this.logger.info('[rylsRegistrationService] createRegistration start');
-    this.logger.debug({ formKeys: Object.keys(formData || {}) }, '[rylsRegistrationService] rawKeys');
-    try {
-      const step1 = formData.step1;
-      const payment = formData.payment;
+  async submitRegistration(formData) {
+    this.logger.info('[rylsRegistrationService] submitRegistration start');
+    const scholarshipType = formData.step1?.scholarshipType;
 
-      const registration = await this.registrationRepository.createRegistration(step1, payment.id);
-
-      if (!registration) {
-        throw new Error('Failed to create registration');
+    // FULLY_FUNDED validation and routing
+    if (scholarshipType === 'FULLY_FUNDED') {
+      if (!formData.essayFileId) {
+        throw new Error('essayFileId is required for FULLY_FUNDED scholarship type');
       }
-
-      let submission;
-
-      if (step1.scholarshipType === 'FULLY_FUNDED') {
-        submission = await this.registrationRepository.createFullyFundedSubmission(registration.id, {
-          essayTopic: formData.essayTopic,
-          essayFile: formData.essayFile,
-          essayDescription: formData.essayDescription,
-        });
-      } else {
-        submission = await this.registrationRepository.createSelfFundedSubmission(registration.id, {
-          passportNumber: formData.passportNumber,
-          needVisa: formData.needVisa,
-          headshotFile: formData.headshotFile,
-          readPolicies: formData.readPolicies,
-        });
-      }
-
-      if (!submission) {
-        throw new Error('Failed to create submission');
-      }
-
-      this.logger.info('[rylsRegistrationService] createRegistration success');
-      return registration;
-    } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] createRegistration error');
-      throw error;
+      return await this.submitFullyFundedRegistration(formData);
     }
+
+    // SELF_FUNDED validation and routing
+    if (scholarshipType === 'SELF_FUNDED') {
+      const missingFields = [];
+      if (!formData.passportNumber) missingFields.push('passportNumber');
+      if (!formData.needVisa) missingFields.push('needVisa');
+      if (!formData.headshotFileId) missingFields.push('headshotFileId');
+      if (!formData.readPolicies) missingFields.push('readPolicies');
+
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields for SELF_FUNDED scholarship type: ${missingFields.join(', ')}`);
+      }
+
+      return await this.submitSelfFundedRegistration(formData);
+    }
+
+    // Invalid scholarshipType handling
+    throw new Error(`Invalid scholarshipType: ${scholarshipType}`);
   }
 
   async submitFullyFundedRegistration(formData) {
@@ -63,15 +52,17 @@ export class RylsRegistrationService {
     try {
       const { registration, submission } = await this.registrationRepository.createFullyFundedFlow({
         step1: formData.step1,
+        essayTopic: formData.essayTopic,
+        essayFileId: formData.essayFileId,
+        essayDescription: formData.essayDescription,
       });
 
       const result = {
         registrationId: registration.id,
-        submissionId: registration.submission_id,
+        submissionId: registration.id,
         email: registration.email,
         fullName: registration.full_name,
         scholarshipType: 'FULLY_FUNDED',
-        status: registration.payment_status,
         createdAt: registration.created_at,
         submission: {
           id: submission.id,
@@ -88,7 +79,7 @@ export class RylsRegistrationService {
     }
   }
 
-  async submitSelfFundedRegistration(formData, paymentOrderId = null) {
+  async submitSelfFundedRegistration(formData) {
     this.logger.info('[rylsRegistrationService] submitSelfFundedRegistration start');
     try {
       const { registration, submission } = await this.registrationRepository.createSelfFundedFlow({
@@ -97,16 +88,14 @@ export class RylsRegistrationService {
         needVisa: formData.needVisa,
         headshotFileId: formData.headshotFileId,
         readPolicies: formData.readPolicies,
-        paymentOrderId: paymentOrderId,
       });
 
       const result = {
         registrationId: registration.id,
-        submissionId: registration.submission_id,
+        submissionId: registration.id,
         email: registration.email,
         fullName: registration.full_name,
         scholarshipType: 'SELF_FUNDED',
-        status: registration.payment_status,
         createdAt: registration.created_at,
         submission: {
           id: submission.id,
@@ -128,9 +117,8 @@ export class RylsRegistrationService {
     this.logger.info({ submissionId }, '[rylsRegistrationService] getRegistrationBySubmissionId start');
     try {
       const registration = await this.registrationRepository.findBySubmissionId(submissionId);
-      const result = registration || null;
       this.logger.info('[rylsRegistrationService] getRegistrationBySubmissionId success');
-      return result;
+      return registration || null;
     } catch (error) {
       this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationBySubmissionId error');
       throw new Error('Failed to retrieve registration');
@@ -141,9 +129,8 @@ export class RylsRegistrationService {
     this.logger.info({ id }, '[rylsRegistrationService] getRegistrationById start');
     try {
       const registration = await this.registrationRepository.findByIdWithRelations(id);
-      const result = registration || null;
       this.logger.info('[rylsRegistrationService] getRegistrationById success');
-      return result;
+      return registration || null;
     } catch (error) {
       this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationById error');
       throw new Error('Failed to retrieve registration');
@@ -154,24 +141,15 @@ export class RylsRegistrationService {
     this.logger.info('[rylsRegistrationService] getRegistrations start');
     this.logger.debug({ options }, '[rylsRegistrationService] rawOptions');
     try {
-      const result = await this.registrationRepository.getRegistrations(options);
+      // Flatten nested filters from admin controller: { page, limit, filters: {}, sortBy, sortOrder }
+      const { page, limit, filters = {}, sortBy, sortOrder } = options;
+      const repoOptions = { page, limit, sortBy, sortOrder, ...filters };
+      const result = await this.registrationRepository.getRegistrations(repoOptions);
       this.logger.info('[rylsRegistrationService] getRegistrations success');
       return result;
     } catch (error) {
       this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrations error');
       throw new Error('Failed to retrieve registrations');
-    }
-  }
-
-  async updateRegistrationStatus(id, status) {
-    this.logger.info({ id, status }, '[rylsRegistrationService] updateRegistrationStatus start');
-    try {
-      const updatedRegistration = await this.registrationRepository.updateStatus(id, status);
-      this.logger.info('[rylsRegistrationService] updateRegistrationStatus success');
-      return updatedRegistration;
-    } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] updateRegistrationStatus error');
-      throw error;
     }
   }
 
@@ -201,10 +179,10 @@ export class RylsRegistrationService {
     }
   }
 
-  async getRegistrationsByDateRange(startDate, endDate, options = {}) {
+  async getRegistrationsByDateRange({ startDate, endDate, page, limit } = {}) {
     this.logger.info({ startDate, endDate }, '[rylsRegistrationService] getRegistrationsByDateRange start');
     try {
-      const registrations = await this.registrationRepository.getRegistrationsByDateRange(startDate, endDate, options);
+      const registrations = await this.registrationRepository.getRegistrationsByDateRange(startDate, endDate, { page, limit });
       this.logger.info('[rylsRegistrationService] getRegistrationsByDateRange success');
       return registrations;
     } catch (error) {
@@ -219,23 +197,17 @@ export class RylsRegistrationService {
       const registration = await this.registrationRepository.findByIdWithRelations(id);
 
       if (!registration) {
-        const err = new Error('Registration not found');
-        this.logger.info({ id }, '[rylsRegistrationService] deleteRegistration not_found');
-        throw err;
+        throw new Error('Registration not found');
       }
 
       const filesToDelete = [];
 
-      if (registration.fully_funded_submission) {
-        if (registration.fully_funded_submission.essay_file_id) {
-          filesToDelete.push(registration.fully_funded_submission.essay_file_id);
-        }
+      if (registration.fully_funded_submission?.essay_file_id) {
+        filesToDelete.push(registration.fully_funded_submission.essay_file_id);
       }
 
-      if (registration.self_funded_submission) {
-        if (registration.self_funded_submission.headshot_file_id) {
-          filesToDelete.push(registration.self_funded_submission.headshot_file_id);
-        }
+      if (registration.self_funded_submission?.headshot_file_id) {
+        filesToDelete.push(registration.self_funded_submission.headshot_file_id);
       }
 
       await Promise.all(filesToDelete.map((fileId) => this.fileUploadService.deleteFile(fileId)));
@@ -247,6 +219,71 @@ export class RylsRegistrationService {
     } catch (error) {
       this.logger.error({ err: error }, '[rylsRegistrationService] deleteRegistration error');
       throw error;
+    }
+  }
+
+  async checkEmailExists(email) {
+    this.logger.info({ email }, '[rylsRegistrationService] checkEmailExists start');
+    try {
+      const exists = await this.registrationRepository.emailExists(email);
+      this.logger.info('[rylsRegistrationService] checkEmailExists success');
+      return { exists };
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsRegistrationService] checkEmailExists error');
+      throw new Error('Failed to check email');
+    }
+  }
+
+  async healthCheck() {
+    this.logger.info('[rylsRegistrationService] healthCheck start');
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+
+  async exportRegistrations(format = 'csv', filters = {}) {
+    this.logger.info('[rylsRegistrationService] exportRegistrations start');
+    try {
+      const { registrations } = await this.registrationRepository.getRegistrations({
+        limit: 10000,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+        ...filters,
+      });
+
+      if (format === 'json') {
+        return JSON.stringify(registrations, null, 2);
+      }
+
+      // CSV format
+      const headers = [
+        'id',
+        'full_name',
+        'email',
+        'residence',
+        'nationality',
+        'whatsapp',
+        'institution',
+        'date_of_birth',
+        'gender',
+        'discover_source',
+        'scholarship_type',
+        'created_at',
+      ];
+      const rows = registrations.map((reg) =>
+        headers
+          .map((h) => {
+            const val = reg[h];
+            if (val == null) return '';
+            const str = String(val).replace(/"/g, '""');
+            return str.includes(',') || str.includes('"') || str.includes('\n') ? `"${str}"` : str;
+          })
+          .join(','),
+      );
+
+      this.logger.info('[rylsRegistrationService] exportRegistrations success');
+      return [headers.join(','), ...rows].join('\n');
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsRegistrationService] exportRegistrations error');
+      throw new Error('Failed to export registrations');
     }
   }
 
@@ -306,7 +343,7 @@ export class RylsRegistrationService {
     ];
     const rows = [headers];
     registrations.forEach((reg) => {
-      const row = [
+      rows.push([
         reg.id,
         reg.full_name || '',
         reg.email || '',
@@ -321,8 +358,7 @@ export class RylsRegistrationService {
         reg.discover_other_text || '',
         reg.scholarship_type || '',
         reg.created_at ? new Date(reg.created_at).toLocaleString() : '',
-      ];
-      rows.push(row);
+      ]);
     });
     return rows;
   }
@@ -342,7 +378,7 @@ export class RylsRegistrationService {
     const rows = [headers];
     registrations.forEach((reg) => {
       if (reg.self_funded_submission) {
-        const row = [
+        rows.push([
           reg.id,
           reg.full_name || '',
           reg.email || '',
@@ -352,8 +388,7 @@ export class RylsRegistrationService {
           reg.self_funded_submission.headshot_file?.id ? `${this.getBaseUrl()}/api/uploads/${reg.self_funded_submission.headshot_file.id}` : '',
           reg.self_funded_submission.read_policies ? 'Yes' : 'No',
           reg.self_funded_submission.created_at ? new Date(reg.self_funded_submission.created_at).toLocaleString() : '',
-        ];
-        rows.push(row);
+        ]);
       }
     });
     return rows;
@@ -364,7 +399,7 @@ export class RylsRegistrationService {
     const rows = [headers];
     registrations.forEach((reg) => {
       if (reg.fully_funded_submission) {
-        const row = [
+        rows.push([
           reg.id,
           reg.full_name || '',
           reg.fully_funded_submission.essay_topic || '',
@@ -373,29 +408,27 @@ export class RylsRegistrationService {
             ? `${this.getBaseUrl()}/uploads/${this.extractUploadPath(reg.fully_funded_submission.essay_file.file_path)}`
             : '',
           reg.fully_funded_submission.essay_description || '',
-        ];
-        rows.push(row);
+        ]);
       }
     });
     return rows;
   }
 
   preparePaymentsSheetData(registrations) {
-    const headers = ['Registration ID', 'Full Name', 'Amount', 'Type', 'PayPal Payment Proof', 'Midtrans Order ID', 'Paid At'];
+    const headers = ['Registration ID', 'Full Name', 'Amount', 'Type', 'PayPal Payment Proof', 'Transaction Code', 'Paid At'];
     const rows = [headers];
     registrations.forEach((reg) => {
-      if (reg.payments && reg.payments.length > 0) {
+      if (reg.payments?.length > 0) {
         reg.payments.forEach((payment) => {
-          const row = [
+          rows.push([
             reg.id,
             reg.full_name || '',
-            payment.amount || '',
-            payment.type || '',
+            payment.transaction?.amount || '',
+            payment.payment_method || '',
             payment.payment_proof?.file_path ? `${this.getBaseUrl()}/uploads/${this.extractUploadPath(payment.payment_proof.file_path)}` : '',
-            payment.midtrans?.order_id || '',
-            payment.paid_at ? new Date(payment.paid_at).toLocaleString() : '',
-          ];
-          rows.push(row);
+            payment.transaction?.transaction_code || '',
+            payment.transaction?.paid_at ? new Date(payment.transaction.paid_at).toLocaleString() : '',
+          ]);
         });
       }
     });
@@ -405,26 +438,17 @@ export class RylsRegistrationService {
   extractUploadPath(filePath) {
     if (!filePath) return null;
     const uploadsIndex = filePath.indexOf('/uploads/');
-    if (uploadsIndex !== -1) {
-      return filePath.substring(uploadsIndex + 9);
-    }
-    return null;
+    return uploadsIndex !== -1 ? filePath.substring(uploadsIndex + 9) : null;
   }
 
   calculateColumnWidths(sheetData) {
-    if (!sheetData || sheetData.length === 0) return [];
+    if (!sheetData?.length) return [];
     const numColumns = sheetData[0].length;
     const columnWidths = [];
     for (let col = 0; col < numColumns; col++) {
       let maxWidth = 0;
-      if (sheetData[0] && sheetData[0][col]) {
-        maxWidth = Math.max(maxWidth, String(sheetData[0][col]).length);
-      }
-      for (let row = 1; row < sheetData.length; row++) {
-        if (sheetData[row] && sheetData[row][col]) {
-          const cellValue = String(sheetData[row][col]);
-          maxWidth = Math.max(maxWidth, cellValue.length);
-        }
+      for (const row of sheetData) {
+        if (row?.[col]) maxWidth = Math.max(maxWidth, String(row[col]).length);
       }
       const optimalWidth = Math.min(Math.max(maxWidth + 2, 8), 50);
       columnWidths.push({ width: optimalWidth, wch: optimalWidth });

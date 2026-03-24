@@ -98,16 +98,53 @@ export class JobsService {
       if (slugExists) throw new Error('Slug is already taken');
     }
 
-    const jobDataWithDefaults = {
-      ...jobData,
+    // Resolve company_id: find by name or create minimal record
+    let companyId;
+    const existingCompany = await jobsRepository.findCompanyByName(jobData.company);
+    if (existingCompany) {
+      companyId = existingCompany.id;
+    } else {
+      const companySlug = this.generateSlug(jobData.company);
+      const newCompany = await jobsRepository.createCompany({ name: jobData.company, slug: companySlug });
+      companyId = newCompany.id;
+    }
+
+    // Resolve location_id: parse "City, Country" string, find or create
+    let locationId = null;
+    if (jobData.location) {
+      const parts = jobData.location.split(',').map((s) => s.trim());
+      const city = parts.length > 1 ? parts[0] : null;
+      const country = parts[parts.length - 1];
+      const existingLocation = await jobsRepository.findLocationByDetails({ city, region: null, country });
+      if (existingLocation) {
+        locationId = existingLocation.id;
+      } else {
+        const newLocation = await jobsRepository.createLocation({
+          city,
+          country,
+          is_remote: jobData.is_remote ?? false,
+        });
+        locationId = newLocation.id;
+      }
+    }
+
+    const jobRecord = {
+      title: jobData.title,
+      slug: jobData.slug,
+      description: jobData.description,
+      company_id: companyId,
+      location_id: locationId,
+      employment_type: jobData.employment_type ?? 'FULL_TIME',
+      seniority_level: jobData.seniority_level ?? null,
+      external_url: jobData.external_url || null,
+      valid_until: jobData.valid_until ? new Date(jobData.valid_until) : null,
       posted_date: new Date(),
-      application_deadline: jobData.application_deadline ? new Date(jobData.application_deadline) : null,
+      status: 'active',
+      direct_apply: !jobData.external_url,
       created_by: userId,
-      skills: Array.isArray(jobData.skills) ? jobData.skills : [],
     };
 
-    const job = await jobsRepository.create(jobDataWithDefaults);
-    return job;
+    return await jobsRepository.create(jobRecord);
   }
 
   async updateJob(id, updateData) {
@@ -134,9 +171,10 @@ export class JobsService {
       updateData.valid_until = new Date(updateData.valid_until);
     }
 
+    // Strip company/location strings — they are not updatable as plain strings via this endpoint
     const { company, location, ...jobUpdateData } = updateData;
 
-    const job = await jobsRepository.updateWithRelations(id, jobUpdateData, company, location);
+    const job = await jobsRepository.updateWithRelations(id, jobUpdateData, null, null);
     return job;
   }
 

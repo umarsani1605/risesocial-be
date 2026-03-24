@@ -18,6 +18,11 @@ import jobsRoutes from '../../src/routes/user/jobsRoutes.js';
 import adminTestimonialsRoutes from '../../src/routes/admin/testimonialsRoutes.js';
 import userTestimonialsRoutes from '../../src/routes/user/testimonialsRoutes.js';
 import webhookRoutes from '../../src/routes/shared/webhookRoutes.js';
+import adminCohortRoutes from '../../src/routes/admin/cohortRoutes.js';
+import userCohortRoutes, { certificateVerifyRoutes } from '../../src/routes/user/cohortRoutes.js';
+import userRylsRegistrationRoutes from '../../src/routes/user/rylsRegistrationRoutes.js';
+import adminRylsRegistrationRoutes from '../../src/routes/admin/rylsRegistrationRoutes.js';
+import rylsPaymentRoutes from '../../src/routes/payments/rylsPaymentRoutes.js';
 
 /**
  * Create a configured Fastify test instance
@@ -66,6 +71,12 @@ export async function createTestApp() {
   await fastify.register(userTestimonialsRoutes, { prefix: '/testimonials' });
   await fastify.register(adminTestimonialsRoutes, { prefix: '/admin/testimonials' });
   await fastify.register(webhookRoutes, { prefix: '/api/webhooks' });
+  await fastify.register(adminCohortRoutes, { prefix: '/admin/cohorts' });
+  await fastify.register(userCohortRoutes, { prefix: '/cohorts' });
+  await fastify.register(certificateVerifyRoutes, { prefix: '/certificates' });
+  await fastify.register(userRylsRegistrationRoutes, { prefix: '/ryls' });
+  await fastify.register(adminRylsRegistrationRoutes, { prefix: '/admin/ryls' });
+  await fastify.register(rylsPaymentRoutes, { prefix: '/payments' });
 
   await fastify.ready();
 

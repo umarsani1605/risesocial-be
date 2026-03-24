@@ -1,0 +1,259 @@
+{
+    "success": true,
+    "message": "Academy retrieved successfully",
+    "data": {
+        "id": 5,
+        "title": "Carbon Accounting",
+        "path_slug": "carbon-accounting",
+        "description": "The Carbon Accounting Mini Academy is an intensive, hands-on program designed to equip you with in-demand carbon accounting skills. Learn how to measure, calculate, and report GHG emissions using global standards and real industry tools, explore carbon markets and Indonesia’s carbon trading landscape, and gain practical experience through real case studies and software simulations. Become job-ready to drive sustainability and decarbonization in just 2 months!\r\n\r\nPerfect for fresh graduates, career shifters, and green employees ready to level up in sustainability 🌱💼",
+        "duration": "2 months",
+        "format": "Online Live Class",
+        "category": "INTAKE: 24 January 2026",
+        "image_url": "https://api.risesocial.org/uploads/images/1764483357928-envato-labs-ai-63438b73-1de8-48e2-b128-4776152191bc.jpg",
+        "rating": 0,
+        "rating_count": 0,
+        "certificate": true,
+        "portfolio": true,
+        "status": "ACTIVE",
+        "meta_title": "Carbon Accounting",
+        "meta_description": "The Carbon Accounting Mini Academy is an intensive, hands-on program designed to equip you with in-demand carbon accounting skills. Learn how to measure, cal...",
+        "created_at": "2025-11-30T06:15:57.940Z",
+        "updated_at": "2025-12-22T07:52:47.894Z",
+        "pricing": [
+            {
+                "id": 9,
+                "academy_id": 5,
+                "name": "Harga Special",
+                "original_price": 6889000,
+                "discount_price": 3889000,
+                "order": 1,
+                "created_at": "2025-11-30T06:16:29.913Z"
+            }
+        ],
+        "features": [
+            {
+                "id": 38,
+                "academy_id": 5,
+                "title": "Exclusive Community Group",
+                "description": "Join our vibrant and supportive community to connect with peers, share knowledge, and expand your professional network.",
+                "icon": "lucide:users",
+                "order": 1,
+                "created_at": "2025-11-30T06:25:34.424Z"
+            },
+            {
+                "id": 37,
+                "academy_id": 5,
+                "title": "Real-World Case Studies for Your Portfolio",
+                "description": "Build a compelling portfolio by working on authentic, industry-relevant projects. This hands-on experience proves your skills to potential employers.",
+                "icon": "lucide:briefcase-business",
+                "order": 2,
+                "created_at": "2025-11-30T06:25:12.192Z"
+            },
+            {
+                "id": 36,
+                "academy_id": 5,
+                "title": "CV and LinkedIn Profile Review",
+                "description": "Get personalized feedback on your CV and LinkedIn profile from our mentors, ensuring you stand out to recruiters and land your dream job.",
+                "icon": "lucide:sparkles",
+                "order": 3,
+                "created_at": "2025-11-30T06:24:35.417Z"
+            },
+            {
+                "id": 35,
+                "academy_id": 5,
+                "title": "Certificate of Completion",
+                "description": "Receive a formal certificate to validate your new skills. This credential enhances your professional profile and boosts your credibility.",
+                "icon": "lucide:notepad-text",
+                "order": 4,
+                "created_at": "2025-11-30T06:24:17.897Z"
+            },
+            {
+                "id": 34,
+                "academy_id": 5,
+                "title": "Lifetime Access to Materials",
+                "description": "You'll have unlimited access to all course materials, session recordings, and resources, even after the academy ends.",
+                "icon": "lucide:scroll-text",
+                "order": 5,
+                "created_at": "2025-11-30T06:23:33.171Z"
+            },
+            {
+                "id": 33,
+                "academy_id": 5,
+                "title": "Beginner-Friendly Curriculum",
+                "description": "Our curriculum is designed for complete beginners. No prior experience is required, we’ll guide you step-by-step from the fundamentals to an advanced level.",
+                "icon": "lucide:book-open",
+                "order": 6,
+                "created_at": "2025-11-30T06:22:25.056Z"
+            },
+            {
+                "id": 32,
+                "academy_id": 5,
+                "title": "Live Session with Expert",
+                "description": "Engage in interactive live sessions led by professionals, giving you the chance to ask questions and gain direct insights.",
+                "icon": "lucide:video",
+                "order": 7,
+                "created_at": "2025-11-30T06:21:51.343Z"
+            }
+        ],
+        "topics": [
+            {
+                "id": 7,
+                "academy_id": 5,
+                "title": "Introdution to Carbon Accounting",
+                "description": "Exploring definition, key concept, global trend, best practices and CA career path.",
+                "order": 1,
+                "created_at": "2025-12-22T04:20:34.949Z",
+                "sessions": []
+            },
+            {
+                "id": 8,
+                "academy_id": 5,
+                "title": "Standards, Principles & Regulations",
+                "description": "Understanding CA principles, framework ((GHG Protocol (scope 1,2,3), ISO 14064, IPCC, SBTi), global & local regulations, and boundary setting.",
+                "order": 2,
+                "created_at": "2025-12-22T04:24:20.303Z",
+                "sessions": []
+            },
+            {
+                "id": 9,
+                "academy_id": 5,
+                "title": "Scope 1, 2 & 3",
+                "description": "Deep dive on Scope 1, 2 & 3 (Emission factors, Data collection & quantification, Calculation Method & analysis)",
+                "order": 3,
+                "created_at": "2025-12-22T04:28:21.099Z",
+                "sessions": []
+            },
+            {
+                "id": 10,
+                "academy_id": 5,
+                "title": "Value Chain",
+                "description": "Understanding value chain emission & the difference between value chain emissions and embedded carbon.",
+                "order": 4,
+                "created_at": "2025-12-22T04:31:26.610Z",
+                "sessions": []
+            },
+            {
+                "id": 11,
+                "academy_id": 5,
+                "title": "Tools & Digital Carbon Accounting",
+                "description": "Exploring tools and software commonly used in Carbon Accounting (ex: Persefoni, Greenly, Emitwise, Envizi, Simapro) for more complex calculations (real-world software use cases), Data integration & automation, Data management & monitoring.",
+                "order": 5,
+                "created_at": "2025-12-22T04:33:14.146Z",
+                "sessions": []
+            },
+            {
+                "id": 12,
+                "academy_id": 5,
+                "title": "Reporting, Verification, Mitigation Strategies & Decarbonization Roadmap",
+                "description": "Learning Report Framework (ex: GRI, CDP, TCFD, CSRD, PROPER), Audit & verification ISO 14064, Making decarbonization roadmap.",
+                "order": 6,
+                "created_at": "2025-12-22T04:37:28.454Z",
+                "sessions": []
+            },
+            {
+                "id": 13,
+                "academy_id": 5,
+                "title": "Carbon Market & Carbon Trading",
+                "description": "Understanding definition and concepts of the carbon market and carbon trading, Differences between compliance markets and voluntary markets, Carbon offset mechanisms, arbon markets / carbon trading in Indonesia.",
+                "order": 7,
+                "created_at": "2025-12-22T04:40:37.894Z",
+                "sessions": []
+            },
+            {
+                "id": 14,
+                "academy_id": 5,
+                "title": "Case Study",
+                "description": "Case study presentation and discussion.",
+                "order": 8,
+                "created_at": "2025-12-22T04:41:22.656Z",
+                "sessions": []
+            }
+        ],
+        "instructors": [
+            {
+                "id": 8,
+                "academy_id": 5,
+                "name": "Fathoni Khotibul I",
+                "job_title": "Carbon Analyst Officer",
+                "avatar_url": "https://api.risesocial.org/uploads/images/1766383441902-0DB5D023-5F6F-4418-8B8A-49DF9FB879F9.jpeg",
+                "description": "",
+                "order": 1,
+                "created_at": "2025-12-22T06:03:21.039Z",
+                "updated_at": "2025-12-22T06:04:02.017Z"
+            },
+            {
+                "id": 7,
+                "academy_id": 5,
+                "name": "Azizah",
+                "job_title": "Founder Green Jobs Career Indonesia",
+                "avatar_url": "https://api.risesocial.org/uploads/images/1764483473914-Profile Photo Azizah (1).jpg",
+                "description": "",
+                "order": 2,
+                "created_at": "2025-11-30T06:17:53.941Z",
+                "updated_at": "2025-12-22T06:03:21.030Z"
+            }
+        ],
+        "testimonials": [
+            {
+                "id": 10,
+                "academy_id": 5,
+                "name": "Grammy Romeo",
+                "avatar_url": null,
+                "comment": "Penjelasanya sangat comprehensive dan jelas, seu banget untuk dipahami dengan teliti oleh orang dengan zero background seperti saya",
+                "order": 1,
+                "created_at": "2025-12-22T06:07:45.738Z"
+            },
+            {
+                "id": 11,
+                "academy_id": 5,
+                "name": "Umar Sani",
+                "avatar_url": null,
+                "comment": "Banyak insight baru yang menarik banget, dan dibahas per pertemuan secara terstruktur, mudah dipahami",
+                "order": 2,
+                "created_at": "2025-12-22T06:08:26.746Z"
+            }
+        ],
+        "faqs": [
+            {
+                "id": 16,
+                "academy_id": 5,
+                "question": "Apakah kelas ini cocok untuk pemula?",
+                "answer": "Kelas ini dirancang untuk orang yang mulai dari nol dan tidak punya basic di bidang carbon accounting sekalipun.",
+                "order": 1,
+                "created_at": "2025-12-22T07:13:13.172Z"
+            },
+            {
+                "id": 15,
+                "academy_id": 5,
+                "question": "Apakah kelas ini dilaksanakan online?",
+                "answer": "Ya, kelas ini dilakukan online, jadi jika kamu tidak bisa hadir, kamu bisa menyaksikan rekaman kelasnya di hari lain.",
+                "order": 2,
+                "created_at": "2025-12-22T07:12:28.657Z"
+            },
+            {
+                "id": 17,
+                "academy_id": 5,
+                "question": "Apakah pembayarannya bisa dicicil?",
+                "answer": "Pembayaran untuk kelas bisa dicicil, silakan hubungi admin untuk info lebih lanjut",
+                "order": 3,
+                "created_at": "2025-12-22T07:13:58.540Z"
+            },
+            {
+                "id": 18,
+                "academy_id": 5,
+                "question": "Berapa lama kelas ini berlangsung?",
+                "answer": "Kelas berlangsung selama 2 bulan dengan study case untuk portfolio kamu",
+                "order": 4,
+                "created_at": "2025-12-22T07:14:41.001Z"
+            },
+            {
+                "id": 19,
+                "academy_id": 5,
+                "question": "Saya ada pertanyaan lain",
+                "answer": "Boleh banget, jangan ragu untuk hubungi kami di +62 851 6257 1299",
+                "order": 5,
+                "created_at": "2025-12-22T07:19:37.414Z"
+            }
+        ]
+    }
+}

@@ -1,5 +1,5 @@
 import { fileUploadController } from '../../controllers/guest/fileUploadController.js';
-import { uploadHeadshot, uploadPaymentProof } from '../../middleware/fileUploadMiddleware.js';
+import { createUploadMiddleware } from '../../middleware/uploadMiddleware.js';
 import {
   uploadHeadshotSchema,
   uploadPaymentProofSchema,
@@ -12,13 +12,13 @@ import {
 export default async function userFileUploadRoutes(fastify) {
   fastify.post('/headshot', {
     schema: uploadHeadshotSchema,
-    preHandler: [uploadHeadshot],
+    preHandler: [createUploadMiddleware('ryls_headshot')],
     handler: fileUploadController.uploadHeadshot,
   });
 
   fastify.post('/payment-proof', {
     schema: uploadPaymentProofSchema,
-    preHandler: [uploadPaymentProof],
+    preHandler: [createUploadMiddleware('ryls_payment_proof')],
     handler: fileUploadController.uploadPaymentProof,
   });
 

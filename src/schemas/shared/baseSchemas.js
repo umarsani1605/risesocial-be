@@ -45,8 +45,11 @@ export const errorResponseSchema = {
       description: 'HTTP status code',
     },
     details: {
-      type: 'object',
       description: 'Additional error details (development only)',
+      oneOf: [
+        { type: 'string' },
+        { type: 'object' },
+      ],
     },
   },
 };
@@ -57,15 +60,12 @@ export const paginationQuerySchema = {
     page: {
       type: 'integer',
       minimum: 1,
-      default: 1,
       description: 'Page number (starts from 1)',
     },
     limit: {
       type: 'integer',
       minimum: 1,
-      maximum: 100,
-      default: 10,
-      description: 'Number of items per page',
+      description: 'Number of items per page. Omit to return all data.',
     },
   },
 };

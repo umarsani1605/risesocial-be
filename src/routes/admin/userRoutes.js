@@ -17,6 +17,7 @@ export default async function adminUserRoutes(fastify) {
           properties: {
             page: { type: 'integer', minimum: 1, default: 1 },
             limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
+            id: { type: 'integer' },
             search: { type: 'string' },
             role: { type: 'string', enum: ['user', 'admin'] },
             status: { type: 'string', enum: ['active', 'inactive'] },
@@ -88,10 +89,12 @@ export default async function adminUserRoutes(fastify) {
         description: 'Create new user (Admin only)',
         body: {
           type: 'object',
-          required: ['email', 'password'],
+          required: ['email', 'password', 'first_name', 'last_name'],
           properties: {
             email: { type: 'string', format: 'email' },
             password: { type: 'string', minLength: 6 },
+            first_name: { type: 'string' },
+            last_name: { type: 'string' },
             username: { type: 'string' },
             role: { type: 'string', enum: ['user', 'admin'] },
           },
@@ -137,8 +140,11 @@ export default async function adminUserRoutes(fastify) {
         body: {
           type: 'object',
           properties: {
+            first_name: { type: 'string' },
+            last_name: { type: 'string' },
             email: { type: 'string', format: 'email' },
             username: { type: 'string' },
+            password: { type: 'string', minLength: 6 },
             role: { type: 'string', enum: ['user', 'admin'] },
             status: { type: 'string', enum: ['active', 'inactive'] },
           },

@@ -1,6 +1,6 @@
 import { adminInstructorController } from '../../controllers/admin/instructorController.js';
 import { authMiddleware } from '../../middleware/auth.js';
-import { uploadMiddleware } from '../../middleware/fileUploadMiddleware.js';
+import { createUploadMiddleware } from '../../middleware/uploadMiddleware.js';
 import {
   adminCreateInstructorSchema,
   adminUpdateInstructorSchema,
@@ -52,7 +52,7 @@ export default async function adminInstructorRoutes(fastify) {
 
   fastify.post('/:id/avatar', {
     schema: uploadInstructorAvatarSchema,
-    preHandler: [uploadMiddleware],
+    preHandler: [createUploadMiddleware('instructor_avatar')],
     handler: adminInstructorController.uploadInstructorAvatar,
   });
 }

@@ -42,7 +42,7 @@ export class WebhookController {
 
       // Step 3: Map status and payment method
       const genericStatus = mapMidtransStatus(transaction_status);
-      const paymentMethod = mapPaymentMethod({ payment_type, bank, store });
+      const paymentMethod = mapPaymentMethod(notificationData);
 
       this.logger.info(
         {
@@ -126,16 +126,28 @@ export class WebhookController {
           this.logger.info('[WebhookController] Layer 3 (RYLS) updated');
         }
 
-        // Check if this is Academy payment (future)
-        // const academyPayment = await tx.academyPayment.findUnique({
-        //   where: { transaction_id: transaction.id },
-        // });
-        // if (academyPayment) {
-        //   await tx.academyPayment.update({
-        //     where: { id: academyPayment.id },
-        //     data: { status: genericStatus },
-        //   });
-        // }
+        // Check if this is a Cohort Enrollment payment (Layer 3)
+        const cohortEnrollment = await tx.cohortEnrollment.findFirst({
+          where: { transaction_id: transaction.id },
+        });
+
+        if (cohortEnrollment) {
+          this.logger.info({ cohort_enrollment_id: cohortEnrollment.id }, '[WebhookController] Cohort enrollment found');
+
+          const enrollmentStatus =
+            genericStatus === 'paid' ? 'active' : genericStatus === 'failed' || genericStatus === 'expired' ? 'dropped' : cohortEnrollment.status;
+
+          await tx.cohortEnrollment.update({
+            where: { id: cohortEnrollment.id },
+            data: {
+              status: enrollmentStatus,
+              ...(genericStatus === 'paid' ? { enrolled_at: new Date() } : {}),
+              updated_at: new Date(),
+            },
+          });
+
+          this.logger.info({ enrollment_status: enrollmentStatus }, '[WebhookController] Layer 3 (CohortEnrollment) updated');
+        }
       });
 
       this.logger.info('[WebhookController] all layers updated successfully');

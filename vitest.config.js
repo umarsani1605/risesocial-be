@@ -6,26 +6,22 @@ export default defineConfig({
     setupFiles: ['tests/setup-env.js'],
     globalTeardown: ['tests/teardown.js'],
     globals: true,
-    
+
+    // Run integration tests sequentially to prevent database deadlocks
+    fileParallelism: false,
+
     // Coverage configuration
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json'],
       reportsDirectory: './coverage',
-      
+
       // Include source files for coverage
       include: ['src/**/*.js'],
-      
+
       // Exclude non-testable files
-      exclude: [
-        'node_modules/**',
-        'src/schemas/**',
-        'src/server.js',
-        'prisma/**',
-        'tests/**',
-        '**/*.config.js',
-      ],
-      
+      exclude: ['node_modules/**', 'src/schemas/**', 'src/server.js', 'prisma/**', 'tests/**', '**/*.config.js'],
+
       // Coverage thresholds (70% target)
       thresholds: {
         global: {
@@ -36,10 +32,10 @@ export default defineConfig({
         },
       },
     },
-    
+
     // Test file patterns
     include: ['tests/**/*.test.js'],
-    
+
     // Timeout for tests
     testTimeout: 10000,
   },

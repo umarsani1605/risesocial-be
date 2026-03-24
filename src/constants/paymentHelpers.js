@@ -32,43 +32,39 @@ export function mapMidtransStatus(midtransStatus) {
  * @returns {string} - Detailed payment method (bca_va, gopay, qris, etc.)
  */
 export function mapPaymentMethod(notification) {
-  const { payment_type, bank, store } = notification;
+  const { payment_type, store } = notification;
 
-  // Bank Transfer
+  // Extract bank: va_numbers array (BCA/BNI/BRI/CIMB) → permata_va_number (Permata) → top-level bank (legacy)
+  const bank =
+    notification.va_numbers?.[0]?.bank ??
+    (notification.permata_va_number ? 'permata' : undefined) ??
+    notification.bank;
+
   if (payment_type === 'bank_transfer') {
-    if (bank === 'bca') return 'bca_va';
-    if (bank === 'bni') return 'bni_va';
-    if (bank === 'bri') return 'bri_va';
-    if (bank === 'permata') return 'permata_va';
-    if (bank === 'cimb') return 'cimb_va';
-    return 'bank_transfer';
+    if (bank === 'bca')     return 'BCA Virtual Account';
+    if (bank === 'bni')     return 'BNI Virtual Account';
+    if (bank === 'bri')     return 'BRI Virtual Account';
+    if (bank === 'permata') return 'Permata Virtual Account';
+    if (bank === 'cimb')    return 'CIMB Virtual Account';
+    return 'Bank Transfer';
   }
 
-  // E-Channel (Mandiri Bill)
-  if (payment_type === 'echannel') {
-    return 'mandiri_bill';
-  }
+  if (payment_type === 'echannel') return 'Mandiri Bill';
 
-  // E-Wallet
-  if (payment_type === 'gopay') return 'gopay';
-  if (payment_type === 'shopeepay') return 'shopeepay';
-  if (payment_type === 'qris') return 'qris';
+  if (payment_type === 'gopay')     return 'GoPay';
+  if (payment_type === 'shopeepay') return 'ShopeePay';
+  if (payment_type === 'qris')      return 'QRIS';
 
-  // Over The Counter
   if (payment_type === 'cstore') {
-    if (store === 'indomaret') return 'indomaret';
-    if (store === 'alfamart') return 'alfamart';
-    return 'cstore';
+    if (store === 'indomaret') return 'Indomaret';
+    if (store === 'alfamart')  return 'Alfamart';
+    return 'Convenient Store';
   }
 
-  // Card
-  if (payment_type === 'credit_card') return 'credit_card';
+  if (payment_type === 'credit_card') return 'Credit Card';
+  if (payment_type === 'akulaku')     return 'Akulaku';
+  if (payment_type === 'kredivo')     return 'Kredivo';
 
-  // Cardless Credit
-  if (payment_type === 'akulaku') return 'akulaku';
-  if (payment_type === 'kredivo') return 'kredivo';
-
-  // Default
   return payment_type;
 }
 

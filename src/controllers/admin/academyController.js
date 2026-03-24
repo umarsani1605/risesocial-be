@@ -1,3 +1,4 @@
+import { adminAcademyService } from '../../services/admin/academyService.js';
 import { academyService } from '../../services/shared/academyService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
@@ -14,7 +15,7 @@ export class AdminAcademyController {
         request.log.info('[adminAcademyController] image file received from middleware');
       }
 
-      const academy = await academyService.createAcademy(createData);
+      const academy = await adminAcademyService.createAcademy(createData);
 
       request.log.info('[adminAcademyController] createAcademy success');
 
@@ -25,6 +26,10 @@ export class AdminAcademyController {
       if (error.statusCode === 400) {
         request.log.info({ body: request.body }, '[adminAcademyController] createAcademy validation_failed');
         return reply.status(400).send(errorResponse(error.message, 400));
+      }
+
+      if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+        return reply.status(400).send(errorResponse('Telah ada academy dengan nama yang sama', 400));
       }
 
       return reply.status(500).send(errorResponse('Failed to create academy', 500, error.message));
@@ -46,7 +51,7 @@ export class AdminAcademyController {
         request.log.info('[adminAcademyController] image file received from middleware');
       }
 
-      const academy = await academyService.updateAcademy(Number(id), updateData);
+      const academy = await adminAcademyService.updateAcademy(Number(id), updateData);
 
       request.log.info('[adminAcademyController] updateAcademy success');
 
@@ -74,7 +79,7 @@ export class AdminAcademyController {
       request.log.debug({ params: request.params }, '[adminAcademyController] rawParams');
 
       const { id } = request.params;
-      await academyService.deleteAcademy(Number(id));
+      await adminAcademyService.deleteAcademy(Number(id));
 
       request.log.info('[adminAcademyController] deleteAcademy success');
 
@@ -99,7 +104,11 @@ export class AdminAcademyController {
 
       request.log.info('[adminAcademyController] getAllAcademies success');
 
-      return reply.send(successResponse(result.data, 'Academies retrieved successfully', result.meta));
+      if (result.meta) {
+        return reply.send(successResponse(result.data, 'Academies retrieved successfully', result.meta));
+      } else {
+        return reply.send(successResponse(result.data, 'Academies retrieved successfully'));
+      }
     } catch (error) {
       request.log.error({ err: error }, '[adminAcademyController] getAllAcademies error');
       return reply.status(500).send(errorResponse('Failed to fetch academies', 500, error.message));
@@ -128,18 +137,132 @@ export class AdminAcademyController {
     }
   }
 
-  async getStatistics(request, reply) {
+  // ─── GET sub-resource handlers ───────────────────────────────────────────────
+
+  async getPricings(request, reply) {
     try {
-      request.log.info('[adminAcademyController] getStatistics start');
-
-      const statistics = await academyService.getStatistics();
-
-      request.log.info('[adminAcademyController] getStatistics success');
-
-      return reply.send(successResponse(statistics, 'Statistics retrieved successfully'));
+      const { id } = request.params;
+      const data = await adminAcademyService.getPricings(Number(id));
+      return reply.send(successResponse(data, 'Pricings retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminAcademyController] getStatistics error');
-      return reply.status(500).send(errorResponse('Failed to fetch statistics', 500, error.message));
+      request.log.error({ err: error }, '[adminAcademyController] getPricings error');
+      return reply.status(500).send(errorResponse('Failed to fetch pricings', 500, error.message));
+    }
+  }
+
+  async getFeatures(request, reply) {
+    try {
+      const { id } = request.params;
+      const data = await adminAcademyService.getFeatures(Number(id));
+      return reply.send(successResponse(data, 'Features retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminAcademyController] getFeatures error');
+      return reply.status(500).send(errorResponse('Failed to fetch features', 500, error.message));
+    }
+  }
+
+  async getInstructors(request, reply) {
+    try {
+      const { id } = request.params;
+      const data = await adminAcademyService.getInstructors(Number(id));
+      return reply.send(successResponse(data, 'Instructors retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminAcademyController] getInstructors error');
+      return reply.status(500).send(errorResponse('Failed to fetch instructors', 500, error.message));
+    }
+  }
+
+  async getTopics(request, reply) {
+    try {
+      const { id } = request.params;
+      const data = await adminAcademyService.getTopics(Number(id));
+      return reply.send(successResponse(data, 'Topics retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminAcademyController] getTopics error');
+      return reply.status(500).send(errorResponse('Failed to fetch topics', 500, error.message));
+    }
+  }
+
+  async getTestimonials(request, reply) {
+    try {
+      const { id } = request.params;
+      const data = await adminAcademyService.getTestimonials(Number(id));
+      return reply.send(successResponse(data, 'Testimonials retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminAcademyController] getTestimonials error');
+      return reply.status(500).send(errorResponse('Failed to fetch testimonials', 500, error.message));
+    }
+  }
+
+  async getFaqs(request, reply) {
+    try {
+      const { id } = request.params;
+      const data = await adminAcademyService.getFaqs(Number(id));
+      return reply.send(successResponse(data, 'FAQs retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminAcademyController] getFaqs error');
+      return reply.status(500).send(errorResponse('Failed to fetch FAQs', 500, error.message));
+    }
+  }
+
+  // ─── Theme CRUD handlers ─────────────────────────────────────────────────────
+
+  async getThemes(request, reply) {
+    try {
+      const { id } = request.params;
+      const data = await adminAcademyService.getThemes(Number(id));
+      return reply.send(successResponse(data, 'Themes retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminAcademyController] getThemes error');
+      return reply.status(500).send(errorResponse('Failed to fetch themes', 500, error.message));
+    }
+  }
+
+  async createTheme(request, reply) {
+    try {
+      const { id } = request.params;
+      request.log.info({ academyId: id }, '[adminAcademyController] createTheme start');
+      const theme = await adminAcademyService.createTheme(Number(id), request.body);
+      request.log.info('[adminAcademyController] createTheme success');
+      return reply.status(201).send(successResponse(theme, 'Theme created successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminAcademyController] createTheme error');
+      if (error.statusCode === 404) {
+        return reply.status(404).send(errorResponse(error.message, 404));
+      }
+      return reply.status(500).send(errorResponse('Failed to create theme', 500, error.message));
+    }
+  }
+
+  async updateTheme(request, reply) {
+    try {
+      const { id, themeId } = request.params;
+      request.log.info({ academyId: id, themeId }, '[adminAcademyController] updateTheme start');
+      const theme = await adminAcademyService.updateTheme(Number(id), Number(themeId), request.body);
+      request.log.info('[adminAcademyController] updateTheme success');
+      return reply.send(successResponse(theme, 'Theme updated successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminAcademyController] updateTheme error');
+      if (error.statusCode === 404) {
+        return reply.status(404).send(errorResponse(error.message, 404));
+      }
+      return reply.status(500).send(errorResponse('Failed to update theme', 500, error.message));
+    }
+  }
+
+  async deleteTheme(request, reply) {
+    try {
+      const { id, themeId } = request.params;
+      request.log.info({ academyId: id, themeId }, '[adminAcademyController] deleteTheme start');
+      const result = await adminAcademyService.deleteTheme(Number(id), Number(themeId));
+      request.log.info('[adminAcademyController] deleteTheme success');
+      return reply.send(successResponse(result, 'Theme deleted successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminAcademyController] deleteTheme error');
+      if (error.statusCode === 404) {
+        return reply.status(404).send(errorResponse(error.message, 404));
+      }
+      return reply.status(500).send(errorResponse('Failed to delete theme', 500, error.message));
     }
   }
 
@@ -148,7 +271,7 @@ export class AdminAcademyController {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createPricing start');
 
-      const pricing = await academyService.createPricing(Number(id), request.body);
+      const pricing = await adminAcademyService.createPricing(Number(id), request.body);
 
       request.log.info('[adminAcademyController] createPricing success');
 
@@ -161,6 +284,10 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
+      if (error.message === 'Discount price cannot be greater than original price') {
+        return reply.status(400).send(errorResponse('Failed to create pricing', 400, error.message));
+      }
+
       return reply.status(500).send(errorResponse('Failed to create pricing', 500, error.message));
     }
   }
@@ -171,7 +298,7 @@ export class AdminAcademyController {
 
       request.log.info({ academyId: id, pricingId }, '[adminAcademyController] updatePricing start');
 
-      const pricing = await academyService.updatePricing(Number(id), Number(pricingId), request.body);
+      const pricing = await adminAcademyService.updatePricing(Number(id), Number(pricingId), request.body);
 
       request.log.info('[adminAcademyController] updatePricing success');
 
@@ -184,6 +311,10 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
+      if (error.message === 'Discount price cannot be greater than original price') {
+        return reply.status(400).send(errorResponse('Failed to update pricing', 400, error.message));
+      }
+
       return reply.status(500).send(errorResponse('Failed to update pricing', 500, error.message));
     }
   }
@@ -193,7 +324,7 @@ export class AdminAcademyController {
       const { id, pricingId } = request.params;
       request.log.info({ academyId: id, pricingId }, '[adminAcademyController] deletePricing start');
 
-      const result = await academyService.deletePricing(Number(id), Number(pricingId));
+      const result = await adminAcademyService.deletePricing(Number(id), Number(pricingId));
 
       request.log.info('[adminAcademyController] deletePricing success');
 
@@ -215,7 +346,7 @@ export class AdminAcademyController {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createFeature start');
 
-      const feature = await academyService.createFeature(Number(id), request.body);
+      const feature = await adminAcademyService.createFeature(Number(id), request.body);
 
       request.log.info('[adminAcademyController] createFeature success');
       return reply.status(201).send(successResponse(feature, 'Feature created successfully'));
@@ -236,7 +367,7 @@ export class AdminAcademyController {
       const { id, featureId } = request.params;
       request.log.info({ academyId: id, featureId }, '[adminAcademyController] updateFeature start');
 
-      const feature = await academyService.updateFeature(Number(id), Number(featureId), request.body);
+      const feature = await adminAcademyService.updateFeature(Number(id), Number(featureId), request.body);
 
       request.log.info('[adminAcademyController] updateFeature success');
       return reply.send(successResponse(feature, 'Feature updated successfully'));
@@ -257,7 +388,7 @@ export class AdminAcademyController {
       const { id, featureId } = request.params;
       request.log.info({ academyId: id, featureId }, '[adminAcademyController] deleteFeature start');
 
-      const result = await academyService.deleteFeature(Number(id), Number(featureId));
+      const result = await adminAcademyService.deleteFeature(Number(id), Number(featureId));
 
       request.log.info('[adminAcademyController] deleteFeature success');
       return reply.send(successResponse(result, 'Feature deleted successfully'));
@@ -285,7 +416,7 @@ export class AdminAcademyController {
         request.log.info('[adminAcademyController] instructor avatar file received from middleware');
       }
 
-      const instructor = await academyService.createInstructor(Number(id), instructorData);
+      const instructor = await adminAcademyService.createInstructor(Number(id), instructorData);
 
       request.log.info({ instructorId: instructor.id }, '[adminAcademyController] createInstructor success');
       return reply.status(201).send(successResponse(instructor, 'Instructor added successfully'));
@@ -313,7 +444,7 @@ export class AdminAcademyController {
         request.log.info('[adminAcademyController] instructor avatar file received from middleware');
       }
 
-      const instructor = await academyService.updateInstructor(Number(id), Number(instructorId), instructorData);
+      const instructor = await adminAcademyService.updateInstructor(Number(id), Number(instructorId), instructorData);
 
       request.log.info({ instructorId: instructor.id }, '[adminAcademyController] updateInstructor success');
       return reply.send(successResponse(instructor, 'Instructor updated successfully'));
@@ -337,7 +468,7 @@ export class AdminAcademyController {
       const { id, instructorId } = request.params;
       request.log.info({ academyId: id, instructorId }, '[adminAcademyController] deleteInstructor start');
 
-      const result = await academyService.deleteInstructor(Number(id), Number(instructorId));
+      const result = await adminAcademyService.deleteInstructor(Number(id), Number(instructorId));
 
       request.log.info('[adminAcademyController] deleteInstructor success');
       return reply.send(successResponse(result, 'Instructor removed successfully'));
@@ -361,7 +492,7 @@ export class AdminAcademyController {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createTopic start');
 
-      const topic = await academyService.createTopic(Number(id), request.body);
+      const topic = await adminAcademyService.createTopic(Number(id), request.body);
 
       request.log.info('[adminAcademyController] createTopic success');
       return reply.status(201).send(successResponse(topic, 'Topic added successfully'));
@@ -382,7 +513,7 @@ export class AdminAcademyController {
       const { id, topicId } = request.params;
       request.log.info({ academyId: id, topicId }, '[adminAcademyController] updateTopic start');
 
-      const topic = await academyService.updateTopic(Number(id), Number(topicId), request.body);
+      const topic = await adminAcademyService.updateTopic(Number(id), Number(topicId), request.body);
 
       request.log.info('[adminAcademyController] updateTopic success');
       return reply.send(successResponse(topic, 'Topic updated successfully'));
@@ -403,7 +534,7 @@ export class AdminAcademyController {
       const { id, topicId } = request.params;
       request.log.info({ academyId: id, topicId }, '[adminAcademyController] deleteTopic start');
 
-      const result = await academyService.deleteTopic(Number(id), Number(topicId));
+      const result = await adminAcademyService.deleteTopic(Number(id), Number(topicId));
 
       request.log.info('[adminAcademyController] deleteTopic success');
       return reply.send(successResponse(result, 'Topic deleted successfully'));
@@ -431,7 +562,7 @@ export class AdminAcademyController {
         request.log.info('[adminAcademyController] testimonial avatar file received from middleware');
       }
 
-      const testimonial = await academyService.createTestimonial(Number(id), testimonialData);
+      const testimonial = await adminAcademyService.createTestimonial(Number(id), testimonialData);
 
       request.log.info('[adminAcademyController] createTestimonial success');
       return reply.status(201).send(successResponse(testimonial, 'Testimonial added successfully'));
@@ -459,7 +590,7 @@ export class AdminAcademyController {
         request.log.info('[adminAcademyController] testimonial avatar file received from middleware');
       }
 
-      const testimonial = await academyService.updateTestimonial(Number(id), Number(testimonialId), testimonialData);
+      const testimonial = await adminAcademyService.updateTestimonial(Number(id), Number(testimonialId), testimonialData);
 
       request.log.info('[adminAcademyController] updateTestimonial success');
       return reply.send(successResponse(testimonial, 'Testimonial updated successfully'));
@@ -483,7 +614,7 @@ export class AdminAcademyController {
       const { id, testimonialId } = request.params;
       request.log.info({ academyId: id, testimonialId }, '[adminAcademyController] deleteTestimonial start');
 
-      const result = await academyService.deleteTestimonial(Number(id), Number(testimonialId));
+      const result = await adminAcademyService.deleteTestimonial(Number(id), Number(testimonialId));
 
       request.log.info('[adminAcademyController] deleteTestimonial success');
       return reply.send(successResponse(result, 'Testimonial deleted successfully'));
@@ -507,7 +638,7 @@ export class AdminAcademyController {
       const { id } = request.params;
       request.log.info({ academyId: id }, '[adminAcademyController] createFaq start');
 
-      const faq = await academyService.createFaq(Number(id), request.body);
+      const faq = await adminAcademyService.createFaq(Number(id), request.body);
 
       request.log.info('[adminAcademyController] createFaq success');
       return reply.status(201).send(successResponse(faq, 'FAQ added successfully'));
@@ -528,7 +659,7 @@ export class AdminAcademyController {
       const { id, faqId } = request.params;
       request.log.info({ academyId: id, faqId }, '[adminAcademyController] updateFaq start');
 
-      const faq = await academyService.updateFaq(Number(id), Number(faqId), request.body);
+      const faq = await adminAcademyService.updateFaq(Number(id), Number(faqId), request.body);
 
       request.log.info('[adminAcademyController] updateFaq success');
       return reply.send(successResponse(faq, 'FAQ updated successfully'));
@@ -549,7 +680,7 @@ export class AdminAcademyController {
       const { id, faqId } = request.params;
       request.log.info({ academyId: id, faqId }, '[adminAcademyController] deleteFaq start');
 
-      const result = await academyService.deleteFaq(Number(id), Number(faqId));
+      const result = await adminAcademyService.deleteFaq(Number(id), Number(faqId));
 
       request.log.info('[adminAcademyController] deleteFaq success');
       return reply.send(successResponse(result, 'FAQ deleted successfully'));
@@ -562,77 +693,6 @@ export class AdminAcademyController {
       }
 
       return reply.status(500).send(errorResponse('Failed to delete FAQ', 500, error.message));
-    }
-  }
-
-  async createSession(request, reply) {
-    try {
-      request.log.info('[adminAcademyController] createSession start');
-      request.log.debug({ params: request.params, body: request.body }, '[adminAcademyController] createSession params');
-
-      const { academy_id, topic_id } = request.params;
-      const session = await academyService.createSession(Number(academy_id), Number(topic_id), request.body);
-
-      request.log.info('[adminAcademyController] createSession success');
-      return reply.status(201).send(successResponse(session, 'Session created successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[adminAcademyController] createSession error');
-
-      if (error.message === 'Academy not found' || error.message === 'Topic not found or does not belong to academy') {
-        return reply.status(404).send(errorResponse(error.message, 404));
-      }
-
-      return reply.status(500).send(errorResponse('Failed to create session', 500, error.message));
-    }
-  }
-
-  async updateSession(request, reply) {
-    try {
-      request.log.info('[adminAcademyController] updateSession start');
-      request.log.debug({ params: request.params, body: request.body }, '[adminAcademyController] updateSession params');
-
-      const { academy_id, topic_id, session_id } = request.params;
-      const session = await academyService.updateSession(Number(academy_id), Number(topic_id), Number(session_id), request.body);
-
-      request.log.info('[adminAcademyController] updateSession success');
-      return reply.send(successResponse(session, 'Session updated successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[adminAcademyController] updateSession error');
-
-      if (
-        error.message === 'Academy not found' ||
-        error.message === 'Topic not found or does not belong to academy' ||
-        error.message === 'Session not found or does not belong to topic'
-      ) {
-        return reply.status(404).send(errorResponse(error.message, 404));
-      }
-
-      return reply.status(500).send(errorResponse('Failed to update session', 500, error.message));
-    }
-  }
-
-  async deleteSession(request, reply) {
-    try {
-      request.log.info('[adminAcademyController] deleteSession start');
-      request.log.debug({ params: request.params }, '[adminAcademyController] deleteSession params');
-
-      const { academy_id, topic_id, session_id } = request.params;
-      const result = await academyService.deleteSession(Number(academy_id), Number(topic_id), Number(session_id));
-
-      request.log.info('[adminAcademyController] deleteSession success');
-      return reply.send(successResponse(result, 'Session deleted successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[adminAcademyController] deleteSession error');
-
-      if (
-        error.message === 'Academy not found' ||
-        error.message === 'Topic not found or does not belong to academy' ||
-        error.message === 'Session not found or does not belong to topic'
-      ) {
-        return reply.status(404).send(errorResponse(error.message, 404));
-      }
-
-      return reply.status(500).send(errorResponse('Failed to delete session', 500, error.message));
     }
   }
 }

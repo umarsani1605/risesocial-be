@@ -1,0 +1,233 @@
+{
+  "academies": [
+    {
+      "title": "Carbon Accounting",
+      "slug": "carbon-accounting",
+      "description": "The Carbon Accounting Mini Academy is an intensive, hands-on program designed to equip you with in-demand carbon accounting skills. Learn how to measure, calculate, and report GHG emissions using global standards and real industry tools, explore carbon markets and Indonesia's carbon trading landscape, and gain practical experience through real case studies and software simulations. Become job-ready to drive sustainability and decarbonization in just 2 months!\n\nPerfect for fresh graduates, career shifters, and green employees ready to level up in sustainability 🌱💼",
+      "duration": "2 months",
+      "format": "Online Live Class",
+      "category": "INTAKE: 24 January 2026",
+      "image_url": "https://api.risesocial.org/uploads/images/1764483357928-envato-labs-ai-63438b73-1de8-48e2-b128-4776152191bc.jpg",
+      "certificate": true,
+      "portfolio": true,
+      "status": "ACTIVE",
+      "pixel_id": null,
+      "pricing": [
+        {
+          "name": "Harga Special",
+          "original_price": 6889000,
+          "discount_price": 3889000,
+          "order": 1
+        }
+      ],
+      "features": [
+        {
+          "title": "Exclusive Community Group",
+          "description": "Join our vibrant and supportive community to connect with peers, share knowledge, and expand your professional network.",
+          "icon": "lucide:users",
+          "order": 1
+        },
+        {
+          "title": "Real-World Case Studies for Your Portfolio",
+          "description": "Build a compelling portfolio by working on authentic, industry-relevant projects. This hands-on experience proves your skills to potential employers.",
+          "icon": "lucide:briefcase-business",
+          "order": 2
+        },
+        {
+          "title": "CV and LinkedIn Profile Review",
+          "description": "Get personalized feedback on your CV and LinkedIn profile from our mentors, ensuring you stand out to recruiters and land your dream job.",
+          "icon": "lucide:sparkles",
+          "order": 3
+        },
+        {
+          "title": "Certificate of Completion",
+          "description": "Receive a formal certificate to validate your new skills. This credential enhances your professional profile and boosts your credibility.",
+          "icon": "lucide:notepad-text",
+          "order": 4
+        },
+        {
+          "title": "Lifetime Access to Materials",
+          "description": "You'll have unlimited access to all course materials, session recordings, and resources, even after the academy ends.",
+          "icon": "lucide:scroll-text",
+          "order": 5
+        },
+        {
+          "title": "Beginner-Friendly Curriculum",
+          "description": "Our curriculum is designed for complete beginners. No prior experience is required, we'll guide you step-by-step from the fundamentals to an advanced level.",
+          "icon": "lucide:book-open",
+          "order": 6
+        },
+        {
+          "title": "Live Session with Expert",
+          "description": "Engage in interactive live sessions led by professionals, giving you the chance to ask questions and gain direct insights.",
+          "icon": "lucide:video",
+          "order": 7
+        }
+      ],
+      "themes": [
+        {
+          "title": "Introduction to Carbon Accounting",
+          "description": "Exploring definition, key concept, global trend, best practices and CA career path.",
+          "order": 1,
+          "topics": []
+        },
+        {
+          "title": "Standards, Principles & Regulations",
+          "description": "Understanding CA principles, framework (GHG Protocol (scope 1,2,3), ISO 14064, IPCC, SBTi), global & local regulations, and boundary setting.",
+          "order": 2,
+          "topics": []
+        },
+        {
+          "title": "Scope 1, 2 & 3",
+          "description": "Deep dive on Scope 1, 2 & 3 (Emission factors, Data collection & quantification, Calculation Method & analysis)",
+          "order": 3,
+          "topics": []
+        },
+        {
+          "title": "Value Chain",
+          "description": "Understanding value chain emission & the difference between value chain emissions and embedded carbon.",
+          "order": 4,
+          "topics": []
+        },
+        {
+          "title": "Tools & Digital Carbon Accounting",
+          "description": "Exploring tools and software commonly used in Carbon Accounting (ex: Persefoni, Greenly, Emitwise, Envizi, Simapro) for more complex calculations (real-world software use cases), Data integration & automation, Data management & monitoring.",
+          "order": 5,
+          "topics": []
+        },
+        {
+          "title": "Reporting, Verification, Mitigation Strategies & Decarbonization Roadmap",
+          "description": "Learning Report Framework (ex: GRI, CDP, TCFD, CSRD, PROPER), Audit & verification ISO 14064, Making decarbonization roadmap.",
+          "order": 6,
+          "topics": []
+        },
+        {
+          "title": "Carbon Market & Carbon Trading",
+          "description": "Understanding definition and concepts of the carbon market and carbon trading, Differences between compliance markets and voluntary markets, Carbon offset mechanisms, carbon markets / carbon trading in Indonesia.",
+          "order": 7,
+          "topics": []
+        },
+        {
+          "title": "Case Study",
+          "description": "Case study presentation and discussion.",
+          "order": 8,
+          "topics": []
+        }
+      ],
+      "instructors": [
+        {
+          "name": "Fathoni Khotibul I",
+          "job_title": "Carbon Analyst Officer",
+          "avatar_url": "https://api.risesocial.org/uploads/images/1766383441902-0DB5D023-5F6F-4418-8B8A-49DF9FB879F9.jpeg",
+          "description": "",
+          "order": 1
+        },
+        {
+          "name": "Azizah",
+          "job_title": "Founder Green Jobs Career Indonesia",
+          "avatar_url": "https://api.risesocial.org/uploads/images/1764483473914-Profile Photo Azizah (1).jpg",
+          "description": "",
+          "order": 2
+        }
+      ],
+      "testimonials": [
+        {
+          "name": "Grammy Romeo",
+          "avatar_url": null,
+          "comment": "Penjelasanya sangat comprehensive dan jelas, seu banget untuk dipahami dengan teliti oleh orang dengan zero background seperti saya",
+          "order": 1
+        },
+        {
+          "name": "Umar Sani",
+          "avatar_url": null,
+          "comment": "Banyak insight baru yang menarik banget, dan dibahas per pertemuan secara terstruktur, mudah dipahami",
+          "order": 2
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Apakah kelas ini cocok untuk pemula?",
+          "answer": "Kelas ini dirancang untuk orang yang mulai dari nol dan tidak punya basic di bidang carbon accounting sekalipun.",
+          "order": 1
+        },
+        {
+          "question": "Apakah kelas ini dilaksanakan online?",
+          "answer": "Ya, kelas ini dilakukan online, jadi jika kamu tidak bisa hadir, kamu bisa menyaksikan rekaman kelasnya di hari lain.",
+          "order": 2
+        },
+        {
+          "question": "Apakah pembayarannya bisa dicicil?",
+          "answer": "Pembayaran untuk kelas bisa dicicil, silakan hubungi admin untuk info lebih lanjut",
+          "order": 3
+        },
+        {
+          "question": "Berapa lama kelas ini berlangsung?",
+          "answer": "Kelas berlangsung selama 2 bulan dengan study case untuk portfolio kamu",
+          "order": 4
+        },
+        {
+          "question": "Saya ada pertanyaan lain",
+          "answer": "Boleh banget, jangan ragu untuk hubungi kami di +62 851 6257 1299",
+          "order": 5
+        }
+      ]
+    },
+    {
+      "title": "ESG (Environmental, Social, and Governance)",
+      "slug": "esg-environmental-social-and-governance",
+      "description": "The ESG Academy is an intensive program designed to equip participants with in-demand sustainability skills through 15 live classes led by ESG experts, interactive real-world case studies, and a job accelerator program. Participants will gain practical insights into Environmental, Social, and Governance (ESG) principles, sharpen their problem-solving abilities by working on industry-relevant challenges, and receive tailored career support including CV building, interview preparation, and access to ESG-related job and internship opportunities. Making it ideal for students, young professionals, or career switchers looking to thrive in the sustainability sector in just 3 Months! 🌱🚀",
+      "duration": "3 months",
+      "format": "Online Live Classes",
+      "category": "INTAKE: 24 January 2026",
+      "image_url": "https://api.risesocial.org/uploads/images/1759169547380-envato-labs-ai-9c9ce885-958f-4713-a157-7468b9ed0d55.jpg",
+      "certificate": true,
+      "portfolio": true,
+      "status": "ACTIVE",
+      "pixel_id": null,
+      "pricing": [],
+      "features": [],
+      "themes": [],
+      "instructors": [],
+      "testimonials": [],
+      "faqs": []
+    },
+    {
+      "title": "LCA (Life Cycle Assessment)",
+      "slug": "lca-life-cycle-assessment",
+      "description": "The LCA Mini Academy is an intensive short program (1 month) that introduces the fundamentals of Life Cycle Assessment (LCA), from purpose, scope, and framework to Life Cycle Inventory (LCI) and Impact Assessment (LCIA). Participants will learn core concepts, practice using openLCA software, and apply their knowledge through real-world case studies, making it the perfect entry point for students, young professionals, or career switchers eager to build practical sustainability skills 🌱🚀",
+      "duration": "1 month",
+      "format": "Online Live Classes",
+      "category": "INTAKE: 24 January 2026",
+      "image_url": "/images/stock-image/envato-labs-ai-9800312a-b542-4b5c-9f6e-ce5dfb5fe808.jpg",
+      "certificate": true,
+      "portfolio": true,
+      "status": "ACTIVE",
+      "pixel_id": null,
+      "pricing": [],
+      "features": [],
+      "themes": [],
+      "instructors": [],
+      "testimonials": [],
+      "faqs": []
+    },
+    {
+      "title": "Sociopreneur",
+      "slug": "sociopreneur",
+      "description": "The Sociopreneur Rise Social program is an intensive bootcamp designed to guide aspiring social entrepreneurs in transforming their vision into sustainable impact-driven businesses. From understanding the fundamentals of sociopreneurship, conducting problem analysis, and applying design thinking for ideation, to mapping stakeholders and capital resources, participants are equipped with the tools to build strong foundations for their ventures. The program also covers essential skills such as financial management, go-to-market strategies, pitching, branding, and social impact measurement. Through interactive sessions, case studies, and mentorship, Sociopreneur Rise Social serves as both a learning platform and an incubator that empowers participants to create innovative, measurable, and sustainable social solutions",
+      "duration": "3 months",
+      "format": "Online Live Classes",
+      "category": "Social Business",
+      "image_url": "/images/stock-image/envato-labs-ai-277a431b-c290-41a0-a4fc-07b363d1a7a5.jpg",
+      "certificate": true,
+      "portfolio": true,
+      "status": "ARCHIVED",
+      "pixel_id": null,
+      "pricing": [],
+      "features": [],
+      "themes": [],
+      "instructors": [],
+      "testimonials": [],
+      "faqs": []
+    }
+  ]
+}

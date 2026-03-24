@@ -21,11 +21,19 @@ export function errorResponse(message, statusCode = 500, details = null) {
     data: null,
   };
 
-  if (details && process.env.NODE_ENV === 'development') {
-    response.details = details;
+  if (details && (process.env.NODE_ENV === 'development' || statusCode < 500)) {
+    // eslint-disable-next-line no-control-regex
+    const stripAnsi = (str) => typeof str === 'string' ? str.replace(/\u001b\[[0-9;]*m/g, '') : str;
+    response.details = stripAnsi(details);
   }
 
   return response;
+}
+
+export function toFileUrl(filePath) {
+  if (!filePath) return null;
+  const base = (process.env.BACKEND_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+  return `${base}/uploads/${filePath}`;
 }
 
 export function paginationMeta(page, limit, total) {

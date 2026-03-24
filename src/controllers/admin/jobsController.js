@@ -63,7 +63,7 @@ class JobsController {
       request.log.info('[adminJobsController] createJob start');
       request.log.debug({ body: request.body }, '[adminJobsController] rawBody');
 
-      const userId = request.user.id;
+      const userId = request.user.userId;
       const job = await this.jobsService.createJob(request.body, userId);
 
       request.log.info('[adminJobsController] createJob success');
@@ -118,7 +118,7 @@ class JobsController {
     }
   };
 
-  syncLinkedInJobs = async (req, reply) => {
+  syncLinkedInJobs = async (request, reply) => {
     try {
       request.log.info('[adminJobsController] syncLinkedInJobs start');
       request.log.debug({ body: request.body }, '[adminJobsController] rawBody');
@@ -141,7 +141,7 @@ class JobsController {
     }
   };
 
-  getJobStatistics = async (req, reply) => {
+  getJobStatistics = async (request, reply) => {
     try {
       request.log.info('[adminJobsController] getJobStatistics start');
       request.log.debug({ params: request.params }, '[adminJobsController] rawParams');
@@ -157,7 +157,7 @@ class JobsController {
     }
   };
 
-  getAllJobsStatistics = async (req, reply) => {
+  getAllJobsStatistics = async (request, reply) => {
     try {
       request.log.info('[adminJobsController] getAllJobsStatistics start');
       const stats = await this.jobsService.getAllJobsStatistics();
@@ -169,7 +169,7 @@ class JobsController {
     }
   };
 
-  getJobsStatistics = async (req, reply) => {
+  getJobsStatistics = async (request, reply) => {
     try {
       request.log.info('[adminJobsController] getJobsStatistics start');
       const stats = await this.jobsService.getJobsStatistics();

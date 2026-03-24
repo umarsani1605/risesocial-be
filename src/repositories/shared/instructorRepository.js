@@ -31,7 +31,7 @@ class InstructorRepository extends BaseRepository {
       ? {
           academy_instructors: {
             include: {
-              academy: { select: { id: true, title: true, path_slug: true, category: true, status: true } },
+              academy: { select: { id: true, title: true, slug: true, category: true, status: true } },
             },
             orderBy: { instructor_order: 'asc' },
           },
@@ -60,7 +60,7 @@ class InstructorRepository extends BaseRepository {
           academy_instructors: {
             include: {
               academy: {
-                select: { id: true, title: true, path_slug: true, category: true, status: true, image_url: true, duration: true, rating: true },
+                select: { id: true, title: true, slug: true, category: true, status: true, image_url: true, duration: true, rating: true },
               },
             },
             orderBy: { instructor_order: 'asc' },

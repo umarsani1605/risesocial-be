@@ -10,7 +10,7 @@ export class FileUploadController {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
       }
 
-      const uploadResult = await fileUploadService.processFileUpload(request.uploadedFile, 'ESSAY');
+      const uploadResult = await fileUploadService.upload(request.uploadedFile, {});
 
       return reply.status(201).send(successResponse(uploadResult, 'Essay file uploaded successfully'));
     } catch (error) {
@@ -24,7 +24,7 @@ export class FileUploadController {
       if (!request.uploadedFile) {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
       }
-      const uploadResult = await fileUploadService.processFileUpload(request.uploadedFile, 'HEADSHOT');
+      const uploadResult = await fileUploadService.upload(request.uploadedFile, {});
 
       return reply.status(201).send(successResponse(uploadResult, 'Headshot file uploaded successfully'));
     } catch (error) {
@@ -39,7 +39,7 @@ export class FileUploadController {
         return reply.status(400).send(errorResponse('No file uploaded', 400));
       }
 
-      const uploadResult = await fileUploadService.processFileUpload(request.uploadedFile, 'PAYMENT_PROOF');
+      const uploadResult = await fileUploadService.upload(request.uploadedFile, {});
 
       request.log.info({ uploadResult }, 'Payment proof uploaded successfully');
 

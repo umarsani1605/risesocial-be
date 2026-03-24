@@ -1,8 +1,13 @@
 import { fileUploadRepository } from '../../repositories/shared/fileUploadRepository.js';
-import { deleteFile } from '../../middleware/fileUploadMiddleware.js';
+import { UPLOAD_CONFIG } from '../../config/uploadConfig.js';
 import fs from 'fs-extra';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { getLogger } from '../../utils/loggerContext.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsBaseDir = path.join(__dirname, '../../../uploads');
 
 export class FileUploadService {
   constructor() {
@@ -46,7 +51,7 @@ export class FileUploadService {
       return result;
     } catch (error) {
       if (fileData && fileData.path) {
-        await deleteFile(fileData.path);
+        await fs.remove(fileData.path).catch(() => {});
       }
       this.logger.error({ err: error }, '[fileUploadService] processFileUpload error');
       throw error;
@@ -102,7 +107,7 @@ export class FileUploadService {
         throw new Error('File not found');
       }
 
-      const fileDeleted = await deleteFile(file.file_path);
+      const fileDeleted = await fs.remove(file.file_path).then(() => true).catch(() => false);
       await this.fileUploadRepository.deleteFileUpload(fileId);
 
       this.logger.info('[fileUploadService] deleteFile success');
@@ -234,7 +239,7 @@ export class FileUploadService {
           const fileExists = await this.fileUploadRepository.fileExistsByPath(filePath);
           if (!fileExists) {
             orphanedCount++;
-            const deleted = await deleteFile(filePath);
+            const deleted = await fs.remove(filePath).then(() => true).catch(() => false);
             if (deleted) cleanedCount++;
           }
         }
@@ -251,6 +256,82 @@ export class FileUploadService {
     } catch (error) {
       this.logger.error({ err: error }, '[fileUploadService] cleanupOrphanedFiles error');
       throw new Error('Failed to cleanup orphaned files');
+    }
+  }
+
+  /**
+   * Unified atomic upload method.
+   * Writes file to disk, then inserts DB record.
+   * If DB insert fails, deletes the physical file (atomicity fix).
+   *
+   * @param {Object} uploadedFile - from createUploadMiddleware: { buffer, originalName, mimeType, size, uploadType }
+   * @param {Object} entityRefs   - optional entity FKs: { cohortModuleId, academyId }
+   * @returns {Promise<Object>} file record with relativePath and publicUrl
+   */
+  async upload(uploadedFile, entityRefs = {}) {
+    this.logger.info({ uploadType: uploadedFile?.uploadType }, '[fileUploadService] upload start');
+    try {
+      const config = UPLOAD_CONFIG[uploadedFile.uploadType];
+      if (!config) {
+        const err = new Error(`Unknown upload type: ${uploadedFile.uploadType}`);
+        err.statusCode = 400;
+        throw err;
+      }
+
+      const storageDir = path.join(uploadsBaseDir, config.storagePath);
+      const ext = path.extname(uploadedFile.originalName).toLowerCase();
+      const baseName = path.basename(uploadedFile.originalName, ext)
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .replace(/_+/g, '_')
+        .slice(0, 100);
+      let candidateName = `${baseName}${ext}`;
+      let counter = 1;
+      while (await fs.pathExists(path.join(storageDir, candidateName))) {
+        counter++;
+        candidateName = `${baseName}_${counter}${ext}`;
+      }
+      const uniqueName = candidateName;
+      const absolutePath = path.join(storageDir, uniqueName);
+      const relativePath = `${config.storagePath}/${uniqueName}`;
+
+      await fs.ensureDir(storageDir);
+      await fs.writeFile(absolutePath, uploadedFile.buffer);
+
+      let record;
+      try {
+        record = await this.fileUploadRepository.createFileUpload({
+          originalName: uploadedFile.originalName,
+          path: relativePath,
+          size: uploadedFile.size,
+          mimeType: uploadedFile.mimeType,
+          uploadType: uploadedFile.uploadType,
+          cohortModuleId: entityRefs.cohortModuleId || null,
+          academyId: entityRefs.academyId || null,
+        });
+      } catch (dbErr) {
+        // Atomicity: remove physical file if DB insert fails
+        await fs.remove(absolutePath).catch(() => {});
+        this.logger.error({ err: dbErr }, '[fileUploadService] upload DB error, physical file removed');
+        throw dbErr;
+      }
+
+      const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+      const publicUrl = `${baseUrl}/uploads/${relativePath}`;
+
+      this.logger.info({ fileId: record.id }, '[fileUploadService] upload success');
+      return {
+        id: record.id,
+        originalName: record.original_name,
+        relativePath,
+        absolutePath,
+        fileSize: record.file_size,
+        mimeType: record.mime_type,
+        uploadType: record.upload_type,
+        publicUrl,
+      };
+    } catch (error) {
+      this.logger.error({ err: error }, '[fileUploadService] upload error');
+      throw error;
     }
   }
 }
