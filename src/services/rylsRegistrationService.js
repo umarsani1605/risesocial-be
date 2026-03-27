@@ -1,5 +1,6 @@
 import { RylsRegistrationRepository } from '../repositories/rylsRegistrationRepository.js';
 import { FileUploadService } from './fileUploadService.js';
+import { RylsDraftService } from './rylsDraftService.js';
 import { getLogger } from '../lib/loggerContext.js';
 
 /**
@@ -10,6 +11,7 @@ export class RylsRegistrationService {
   constructor() {
     this.registrationRepository = new RylsRegistrationRepository();
     this.fileUploadService = new FileUploadService();
+    this.draftService = new RylsDraftService();
   }
 
   get logger() {
@@ -57,6 +59,15 @@ export class RylsRegistrationService {
 
       if (!submission) {
         throw new Error('Failed to create submission');
+      }
+
+      if (formData.resumeToken) {
+        try {
+          await this.draftService.deleteDraft(formData.resumeToken);
+          this.logger.info('[rylsRegistrationService] draft cleaned up');
+        } catch (err) {
+          this.logger.warn({ err }, '[rylsRegistrationService] draft cleanup failed');
+        }
       }
 
       this.logger.info('[rylsRegistrationService] createRegistration success');

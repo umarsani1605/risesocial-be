@@ -1,6 +1,7 @@
 import { adminRylsRegistrationController } from '../../controllers/admin/rylsRegistrationController.js';
 import { authMiddleware, authorizeRoles } from '../../middleware/auth.js';
 import { rylsRegistrationSchemas } from '../../schemas/rylsRegistrationSchemas.js';
+const adminTag = { tags: ['Admin RYLS Registration'] };
 
 /**
  * Admin RYLS Registration Routes
@@ -210,6 +211,53 @@ export default async function adminRylsRegistrationRoutes(fastify) {
     },
     preHandler: [authMiddleware, authorizeRoles(['ADMIN'])],
     handler: adminRylsRegistrationController.exportRegistrations,
+  });
+
+  /**
+   * Get all drafts (Admin only)
+   * GET /api/admin/ryls/registrations/drafts
+   */
+  fastify.get('/drafts', {
+    schema: {
+      description: 'Get all draft registrations (Admin only)',
+      ...adminTag,
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'integer', minimum: 1, default: 1 },
+          limit: { type: 'integer', minimum: 1, maximum: 1000, default: 50 },
+          search: { type: 'string' },
+        },
+      },
+    },
+    preHandler: [authMiddleware, authorizeRoles(['ADMIN'])],
+    handler: adminRylsRegistrationController.getDrafts,
+  });
+
+  /**
+   * Get draft statistics (Admin only)
+   * GET /api/admin/ryls/registrations/drafts/stats
+   */
+  fastify.get('/drafts/stats', {
+    schema: {
+      description: 'Get draft registration statistics (Admin only)',
+      ...adminTag,
+    },
+    preHandler: [authMiddleware, authorizeRoles(['ADMIN'])],
+    handler: adminRylsRegistrationController.getDraftStats,
+  });
+
+  /**
+   * Cleanup expired drafts (Admin only)
+   * DELETE /api/admin/ryls/registrations/drafts/cleanup
+   */
+  fastify.delete('/drafts/cleanup', {
+    schema: {
+      description: 'Delete all expired drafts (Admin only)',
+      ...adminTag,
+    },
+    preHandler: [authMiddleware, authorizeRoles(['ADMIN'])],
+    handler: adminRylsRegistrationController.cleanupExpiredDrafts,
   });
 
   /**

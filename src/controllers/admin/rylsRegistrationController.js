@@ -1,4 +1,5 @@
 import { RylsRegistrationService } from '../../services/rylsRegistrationService.js';
+import { RylsDraftService } from '../../services/rylsDraftService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 /**
@@ -8,6 +9,7 @@ import { successResponse, errorResponse } from '../../utils/response.js';
 export class AdminRylsRegistrationController {
   constructor() {
     this.registrationService = new RylsRegistrationService();
+    this.draftService = new RylsDraftService();
   }
 
   /**
@@ -250,6 +252,60 @@ export class AdminRylsRegistrationController {
     } catch (error) {
       request.log.error({ err: error }, '[adminRylsRegistrationController] exportRegistrationsExcel error');
       return reply.status(500).send(errorResponse('Failed to export registrations to Excel', 500, error.message));
+    }
+  };
+  /**
+   * Get all drafts (Admin only)
+   * GET /api/admin/ryls/registrations/drafts
+   */
+  getDrafts = async (request, reply) => {
+    try {
+      request.log.info('[adminRylsRegistrationController] getDrafts start');
+      const { page = 1, limit = 50, search } = request.query;
+
+      const result = await this.draftService.getDrafts({
+        page: parseInt(page),
+        limit: parseInt(limit),
+        search,
+      });
+
+      request.log.info('[adminRylsRegistrationController] getDrafts success');
+      return reply.send(successResponse(result, 'Drafts retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminRylsRegistrationController] getDrafts error');
+      return reply.status(500).send(errorResponse('Failed to retrieve drafts', 500, error.message));
+    }
+  };
+
+  /**
+   * Get draft statistics (Admin only)
+   * GET /api/admin/ryls/registrations/drafts/stats
+   */
+  getDraftStats = async (request, reply) => {
+    try {
+      request.log.info('[adminRylsRegistrationController] getDraftStats start');
+      const result = await this.draftService.getDraftStats();
+      request.log.info('[adminRylsRegistrationController] getDraftStats success');
+      return reply.send(successResponse(result, 'Draft stats retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminRylsRegistrationController] getDraftStats error');
+      return reply.status(500).send(errorResponse('Failed to retrieve draft stats', 500, error.message));
+    }
+  };
+
+  /**
+   * Cleanup expired drafts (Admin only)
+   * DELETE /api/admin/ryls/registrations/drafts/cleanup
+   */
+  cleanupExpiredDrafts = async (request, reply) => {
+    try {
+      request.log.info('[adminRylsRegistrationController] cleanupExpiredDrafts start');
+      const count = await this.draftService.cleanupExpired();
+      request.log.info({ count }, '[adminRylsRegistrationController] cleanupExpiredDrafts success');
+      return reply.send(successResponse({ deletedCount: count }, `${count} expired drafts deleted`));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminRylsRegistrationController] cleanupExpiredDrafts error');
+      return reply.status(500).send(errorResponse('Failed to cleanup expired drafts', 500, error.message));
     }
   };
 }

@@ -1,5 +1,7 @@
 import { userRylsRegistrationController } from '../../controllers/user/rylsRegistrationController.js';
 import { rylsRegistrationSchemas } from '../../schemas/rylsRegistrationSchemas.js';
+import { rylsDraftController } from '../../controllers/user/rylsDraftController.js';
+import { rylsDraftSchemas } from '../../schemas/rylsDraftSchemas.js';
 
 /**
  * User RYLS Registration Routes
@@ -78,6 +80,33 @@ export default async function userRylsRegistrationRoutes(fastify) {
       },
     },
     handler: userRylsRegistrationController.checkEmailExists,
+  });
+
+  /**
+   * Save or update draft registration
+   * POST /api/ryls/registrations/draft
+   */
+  fastify.post('/draft', {
+    schema: { ...rylsDraftSchemas.saveDraft, ...userRegistrationTag },
+    handler: rylsDraftController.saveDraft,
+  });
+
+  /**
+   * Get draft by resume token
+   * GET /api/ryls/registrations/draft/resume/:token
+   */
+  fastify.get('/draft/resume/:token', {
+    schema: { ...rylsDraftSchemas.getDraft, ...userRegistrationTag },
+    handler: rylsDraftController.getDraft,
+  });
+
+  /**
+   * Delete draft by token
+   * DELETE /api/ryls/registrations/draft/:token
+   */
+  fastify.delete('/draft/:token', {
+    schema: { ...rylsDraftSchemas.deleteDraft, ...userRegistrationTag },
+    handler: rylsDraftController.deleteDraft,
   });
 
   /**
