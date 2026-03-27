@@ -13,6 +13,7 @@ const transactionListItemSchema = {
     customer_email: { type: 'string' },
     customer_phone: { type: ['string', 'null'] },
     product_type: { type: 'string' },
+    product_name: { type: ['string', 'null'] },
     amount: { type: 'integer' },
     currency: { type: 'string' },
     status: { type: 'string' },

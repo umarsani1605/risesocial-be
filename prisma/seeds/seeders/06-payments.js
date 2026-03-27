@@ -28,17 +28,15 @@ export async function seedPayments(prisma) {
     const userIds = users.map((u) => u.id);
 
     const enrollments = await prisma.cohortEnrollment.findMany({
-      select: { id: true },
+      select: { id: true, cohort: { select: { name: true, academy: { select: { title: true } } } } },
     });
-    const enrollmentIds = enrollments.map((e) => e.id);
 
     const rylsRegistrations = await prisma.rylsRegistration.findMany({
-      select: { id: true },
+      select: { id: true, scholarship_type: true },
     });
-    const rylsRegistrationIds = rylsRegistrations.map((r) => r.id);
 
     // Generate transaction data
-    const transactionsData = generateTransactions(userIds, enrollmentIds, rylsRegistrationIds);
+    const transactionsData = generateTransactions(userIds, enrollments, rylsRegistrations);
 
     let transactionItemCount = 0;
     let midtransCount = 0;
@@ -75,13 +73,14 @@ export async function seedPayments(prisma) {
 
       // Create RYLS payment link if applicable
       if (transaction.product_type === 'ryls_registration') {
+        const reg = rylsRegistrations.find((r) => r.id === transaction.product_type_id);
         await prisma.rylsPayment.create({
           data: {
             registration_id: transaction.product_type_id,
             transaction_id: transaction.id,
             status: transaction.status,
-            scholarship_type: 'SELF_FUNDED',
-            payment_method: transaction.payment_method || 'bank_transfer',
+            scholarship_type: reg?.scholarship_type ?? 'SELF_FUNDED',
+            payment_method: transaction.payment_method,
           },
         });
         rylsPaymentCount++;

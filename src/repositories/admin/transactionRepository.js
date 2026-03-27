@@ -22,7 +22,7 @@ export class AdminTransactionRepository {
       ];
     }
 
-    const [data, total] = await Promise.all([
+    const [raw, total] = await Promise.all([
       prisma.transaction.findMany({
         where,
         skip,
@@ -41,10 +41,20 @@ export class AdminTransactionRepository {
           provider: true,
           payment_method: true,
           created_at: true,
+          items: {
+            take: 1,
+            select: { product_name: true },
+            orderBy: { id: 'asc' },
+          },
         },
       }),
       prisma.transaction.count({ where }),
     ]);
+
+    const data = raw.map(({ items, ...tx }) => ({
+      ...tx,
+      product_name: items[0]?.product_name ?? null,
+    }));
 
     return {
       data,

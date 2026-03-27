@@ -1,97 +1,183 @@
 /**
  * RYLS (Rise Young Leaders Summit) registration seed data
- * Contains 5 registrations with mix of fully funded and self funded scholarships
+ * Contains 7 registrations — mix of nationalities, scholarship types, and payment statuses.
+ * Data is fictional but follows production patterns (international participants, real-world formats).
+ *
+ * Payment distribution:
+ *   - PAYPAL PAID (with proof): registrations 1, 3, 6
+ *   - MIDTRANS PAID:            registration 2
+ *   - MIDTRANS PENDING:         registrations 4, 5, 7
  */
 
 export const rylsRegistrations = [
+  // 1. Taiwanese (also Taiwanese-Spanish), Spain — FULLY_FUNDED — PAYPAL PAID
   {
-    full_name: 'Andi Pratama',
-    email: 'andi.pratama@example.com',
-    residence: 'Jakarta, Indonesia',
-    nationality: 'Indonesian',
-    whatsapp: '+62-812-3456-7890',
-    institution: 'Universitas Indonesia',
-    date_of_birth: new Date('2002-05-15'),
-    gender: 'MALE',
+    full_name: 'Lin Wei Chen',
+    email: 'linweichen92@gmail.com',
+    residence: 'Spain, Barcelona',
+    nationality: 'Taiwanese',
+    second_nationality: 'Spanish',
+    whatsapp: '+886908123456',
+    institution: 'Soochow University / Ramon Llull University',
+    date_of_birth: new Date('2002-10-16'),
+    gender: 'FEMALE',
     discover_source: 'RISE_INSTAGRAM',
+    discover_other_text: null,
     scholarship_type: 'FULLY_FUNDED',
-    fully_funded: {
-      essay_topic: 'How can young leaders drive sustainable development in Indonesia?',
-      essay_description:
-        'In this essay, I explore the critical role that young leaders play in advancing sustainable development goals in Indonesia. I discuss innovative approaches to environmental conservation, social entrepreneurship, and community empowerment that can create lasting positive impact.',
-      essay_file_path: '/uploads/ryls/essays/andi-pratama-essay.pdf',
+    fully_funded: {},
+    payment: {
+      provider: 'PAYPAL',
+      status: 'paid',
+      amount: 249840,
+      has_proof: true,
     },
   },
+
+  // 2. Nepalese, Kathmandu — FULLY_FUNDED — MIDTRANS PAID
   {
-    full_name: 'Siti Rahma',
-    email: 'siti.rahma@example.com',
-    residence: 'Bandung, Indonesia',
-    nationality: 'Indonesian',
-    whatsapp: '+62-813-4567-8901',
-    institution: 'Institut Teknologi Bandung',
-    date_of_birth: new Date('2001-08-22'),
+    full_name: 'Arjun Shrestha',
+    email: 'arjunshrestha99@gmail.com',
+    residence: 'Kathmandu, Nepal',
+    nationality: 'Nepalese',
+    second_nationality: null,
+    whatsapp: '+9779861234567',
+    institution: 'Tribhuvan University',
+    date_of_birth: new Date('2000-06-21'),
+    gender: 'MALE',
+    discover_source: 'RISE_INSTAGRAM',
+    discover_other_text: null,
+    scholarship_type: 'FULLY_FUNDED',
+    fully_funded: {},
+    payment: {
+      provider: 'MIDTRANS',
+      status: 'paid',
+      amount: 249840,
+      has_proof: false,
+    },
+  },
+
+  // 3. Indian, Japan — FULLY_FUNDED — PAYPAL PAID
+  {
+    full_name: 'Priya Nair',
+    email: 'priyanair2005@gmail.com',
+    residence: 'Beppu City, Japan',
+    nationality: 'Indian',
+    second_nationality: null,
+    whatsapp: '+818079123456',
+    institution: 'Ritsumeikan Asia Pacific University',
+    date_of_birth: new Date('2005-01-27'),
     gender: 'FEMALE',
     discover_source: 'FRIENDS',
-    scholarship_type: 'SELF_FUNDED',
-    self_funded: {
-      passport_number: 'A12345678',
-      need_visa: false,
-      headshot_file_path: '/uploads/ryls/headshots/siti-rahma-headshot.jpg',
-      read_policies: true,
-    },
-  },
-  {
-    full_name: 'Budi Setiawan',
-    email: 'budi.setiawan@example.com',
-    residence: 'Surabaya, Indonesia',
-    nationality: 'Indonesian',
-    whatsapp: '+62-814-5678-9012',
-    institution: 'Universitas Airlangga',
-    date_of_birth: new Date('2003-03-10'),
-    gender: 'MALE',
-    discover_source: 'OTHER_INSTAGRAM',
+    discover_other_text: null,
     scholarship_type: 'FULLY_FUNDED',
-    fully_funded: {
-      essay_topic: 'The role of technology in empowering rural communities',
-      essay_description:
-        'This essay examines how digital technologies and innovative solutions can bridge the urban-rural divide in Indonesia. I present case studies of successful technology interventions in agriculture, education, and healthcare that have transformed rural livelihoods.',
-      essay_file_path: '/uploads/ryls/essays/budi-setiawan-essay.pdf',
+    fully_funded: {},
+    payment: {
+      provider: 'PAYPAL',
+      status: 'paid',
+      amount: 249840,
+      has_proof: true,
     },
   },
+
+  // 4. Indonesian, Manokwari — FULLY_FUNDED — MIDTRANS PENDING
   {
-    full_name: 'Maya Kusuma',
-    email: 'maya.kusuma@example.com',
-    residence: 'Yogyakarta, Indonesia',
+    full_name: 'Dewi Sekar Arum',
+    email: 'dewisekararum02@gmail.com',
+    residence: 'Manokwari, Indonesia',
     nationality: 'Indonesian',
-    whatsapp: '+62-815-6789-0123',
-    institution: 'Universitas Gadjah Mada',
-    date_of_birth: new Date('2002-11-30'),
+    second_nationality: null,
+    whatsapp: '+6281214123456',
+    institution: 'Universitas Papua',
+    date_of_birth: new Date('2002-06-15'),
     gender: 'FEMALE',
     discover_source: 'RISE_INSTAGRAM',
-    scholarship_type: 'SELF_FUNDED',
-    self_funded: {
-      passport_number: 'B98765432',
-      need_visa: false,
-      headshot_file_path: '/uploads/ryls/headshots/maya-kusuma-headshot.jpg',
-      read_policies: true,
+    discover_other_text: null,
+    scholarship_type: 'FULLY_FUNDED',
+    fully_funded: {},
+    payment: {
+      provider: 'MIDTRANS',
+      status: 'pending',
+      amount: 249840,
+      has_proof: false,
     },
   },
+
+  // 5. Cambodian, Phnom Penh — FULLY_FUNDED — MIDTRANS PENDING
   {
-    full_name: 'Rizki Firmansyah',
-    email: 'rizki.firmansyah@example.com',
-    residence: 'Semarang, Indonesia',
-    nationality: 'Indonesian',
-    whatsapp: '+62-816-7890-1234',
-    institution: 'Universitas Diponegoro',
-    date_of_birth: new Date('2001-07-18'),
+    full_name: 'Sovan Dara',
+    email: 'sovandara02@gmail.com',
+    residence: 'Phnom Penh, Cambodia',
+    nationality: 'Cambodian',
+    second_nationality: null,
+    whatsapp: '+85560123456',
+    institution: 'Royal University of Phnom Penh',
+    date_of_birth: new Date('2002-02-15'),
     gender: 'MALE',
     discover_source: 'OTHER',
+    discover_other_text: 'LinkedIn',
     scholarship_type: 'FULLY_FUNDED',
-    fully_funded: {
-      essay_topic: 'Building inclusive economies through social entrepreneurship',
-      essay_description:
-        'My essay explores how social entrepreneurship can address inequality and create inclusive economic opportunities in Indonesia. I analyze successful social enterprises and propose frameworks for scaling impact while maintaining financial sustainability.',
-      essay_file_path: '/uploads/ryls/essays/rizki-firmansyah-essay.pdf',
+    fully_funded: {},
+    payment: {
+      provider: 'MIDTRANS',
+      status: 'pending',
+      amount: 249840,
+      has_proof: false,
+    },
+  },
+
+  // 6. Indonesian, Jakarta — SELF_FUNDED — PAYPAL PAID
+  {
+    full_name: 'Bagas Adi Nugroho',
+    email: 'bagasadinugroho@gmail.com',
+    residence: 'Jakarta, Indonesia',
+    nationality: 'Indonesian',
+    second_nationality: null,
+    whatsapp: '+6281226123456',
+    institution: 'Universitas Indonesia',
+    date_of_birth: new Date('1994-02-20'),
+    gender: 'MALE',
+    discover_source: 'RISE_INSTAGRAM',
+    discover_other_text: null,
+    scholarship_type: 'SELF_FUNDED',
+    self_funded: {
+      passport_number: 'C12345678',
+      need_visa: false,
+      headshot_file_path: '/uploads/ryls/headshots/seed-headshot-1.jpg',
+      read_policies: true,
+    },
+    payment: {
+      provider: 'PAYPAL',
+      status: 'paid',
+      amount: 749840,
+      has_proof: true,
+    },
+  },
+
+  // 7. Indonesian, Surabaya — SELF_FUNDED — MIDTRANS PENDING
+  {
+    full_name: 'Fitri Rahmawati',
+    email: 'fitrirahmawati04@gmail.com',
+    residence: 'Surabaya, Indonesia',
+    nationality: 'Indonesian',
+    second_nationality: null,
+    whatsapp: '+6281231123456',
+    institution: 'Universitas Airlangga',
+    date_of_birth: new Date('2004-09-24'),
+    gender: 'FEMALE',
+    discover_source: 'OTHER_INSTAGRAM',
+    discover_other_text: null,
+    scholarship_type: 'SELF_FUNDED',
+    self_funded: {
+      passport_number: 'D98765432',
+      need_visa: true,
+      headshot_file_path: '/uploads/ryls/headshots/seed-headshot-2.jpg',
+      read_policies: true,
+    },
+    payment: {
+      provider: 'MIDTRANS',
+      status: 'pending',
+      amount: 749840,
+      has_proof: false,
     },
   },
 ];

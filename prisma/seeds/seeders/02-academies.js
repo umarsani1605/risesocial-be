@@ -17,6 +17,8 @@ export async function seedAcademies(prisma) {
     logSeedStart('Academies');
 
     // Clear existing data in correct order
+    // cohortMentor references academy_id, must be deleted before academy
+    await prisma.cohortMentor.deleteMany({});
     await prisma.academyTopic.deleteMany({});
     await prisma.academyTheme.deleteMany({});
     await prisma.academyFaq.deleteMany({});
