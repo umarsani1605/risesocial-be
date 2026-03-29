@@ -261,6 +261,19 @@ export default async function adminRylsRegistrationRoutes(fastify) {
   });
 
   /**
+   * Export drafts to Excel (Admin only)
+   * GET /api/admin/ryls/registrations/drafts/export-excel
+   */
+  fastify.get('/drafts/export-excel', {
+    schema: {
+      description: 'Export all draft registrations to Excel (Admin only)',
+      ...adminTag,
+    },
+    preHandler: [authMiddleware, authorizeRoles(['ADMIN'])],
+    handler: adminRylsRegistrationController.exportDraftsExcel,
+  });
+
+  /**
    * Export registrations to Excel (Admin only)
    * GET /api/admin/ryls/registrations/export-excel
    */

@@ -308,6 +308,34 @@ export class AdminRylsRegistrationController {
       return reply.status(500).send(errorResponse('Failed to cleanup expired drafts', 500, error.message));
     }
   };
+
+  /**
+   * Export drafts to Excel (Admin only)
+   * GET /api/admin/ryls/registrations/drafts/export-excel
+   */
+  exportDraftsExcel = async (request, reply) => {
+    try {
+      request.log.info('[adminRylsRegistrationController] exportDraftsExcel start');
+
+      const result = await this.draftService.getDrafts({ page: 1, limit: 10000 });
+
+      const excelBuffer = await this.registrationService.generateDraftsExcelFile(result.drafts);
+
+      request.log.info('[adminRylsRegistrationController] exportDraftsExcel success');
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `ryls-drafts-${timestamp}.xlsx`;
+
+      reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+      reply.header('Content-Length', excelBuffer.length);
+
+      return reply.send(excelBuffer);
+    } catch (error) {
+      request.log.error({ err: error }, '[adminRylsRegistrationController] exportDraftsExcel error');
+      return reply.status(500).send(errorResponse('Failed to export drafts to Excel', 500, error.message));
+    }
+  };
 }
 
 // Export instance

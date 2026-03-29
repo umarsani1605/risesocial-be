@@ -339,6 +339,69 @@ export class RylsRegistrationService {
     }
   }
 
+  async generateDraftsExcelFile(drafts) {
+    this.logger.info('[rylsRegistrationService] generateDraftsExcelFile start');
+    try {
+      const XLSX = await import('xlsx');
+
+      const workbook = XLSX.utils.book_new();
+
+      const headers = [
+        'No',
+        'Email',
+        'Full Name',
+        'WhatsApp',
+        'Gender',
+        'Date of Birth',
+        'Residence',
+        'Nationality',
+        'Second Nationality',
+        'Institution',
+        'Discover Source',
+        'Scholarship Type',
+        'Current Step',
+        'Last Updated',
+      ];
+
+      const rows = [headers];
+      drafts.forEach((draft, index) => {
+        const s1 = draft.form_data?.step1 || {};
+        const discoverSource =
+          s1.discoverSource === 'OTHER' && s1.discoverOtherText
+            ? `Other: ${s1.discoverOtherText}`
+            : (s1.discoverSource || '');
+        rows.push([
+          index + 1,
+          draft.email || '',
+          s1.fullName || '',
+          s1.whatsapp || '',
+          s1.gender || '',
+          s1.dateOfBirth ? new Date(s1.dateOfBirth).toLocaleDateString() : '',
+          s1.residence || '',
+          s1.nationality || '',
+          s1.secondNationality || '',
+          s1.institution || '',
+          discoverSource,
+          draft.scholarship_type || '',
+          draft.current_step ?? '',
+          draft.updated_at ? new Date(draft.updated_at).toLocaleString() : '',
+        ]);
+      });
+
+      const sheet = XLSX.utils.aoa_to_sheet(rows);
+      sheet['!cols'] = this.calculateColumnWidths(rows);
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Drafts');
+
+      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+      this.logger.info('[rylsRegistrationService] generateDraftsExcelFile success');
+      return excelBuffer;
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsRegistrationService] generateDraftsExcelFile error');
+      throw new Error('Failed to generate drafts Excel file');
+    }
+  }
+
   // helper methods (prepare*, extractUploadPath, calculateColumnWidths) tetap sama
   prepareMainSheetData(registrations) {
     const headers = [
