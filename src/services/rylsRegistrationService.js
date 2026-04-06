@@ -71,6 +71,7 @@ export class RylsRegistrationService {
       }
 
       this.logger.info('[rylsRegistrationService] createRegistration success');
+
       return registration;
     } catch (error) {
       this.logger.error({ err: error }, '[rylsRegistrationService] createRegistration error');
