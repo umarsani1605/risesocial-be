@@ -34,6 +34,7 @@ import userTestimonialsRoutes from './routes/user/testimonialsRoutes.js';
 import adminTestimonialsRoutes from './routes/admin/testimonialsRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import userFileUploadRoutes from './routes/user/fileUploadRoutes.js';
+import trackingRoutes from './routes/trackingRoutes.js';
 import { runWithLogger } from './lib/loggerContext.js';
 
 dotenv.config();
@@ -297,6 +298,7 @@ fastify.register(adminSystemSettingsRoutes, { prefix: '/admin/system/settings' }
 fastify.register(adminRoutes, { prefix: '/admin' });
 fastify.register(rylsPaymentRoutes, { prefix: '/payments' });
 fastify.register(userFileUploadRoutes, { prefix: '/uploads' });
+fastify.register(trackingRoutes, { prefix: '/tracking' });
 
 const gracefulShutdown = async (signal) => {
   fastify.log.info(`\nReceived ${signal}. Starting graceful shutdown...`);
