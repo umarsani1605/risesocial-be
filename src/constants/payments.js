@@ -10,8 +10,8 @@ import { convertUsdToIdr } from '../integrations/currencyConverter.js';
  * @constant {Object}
  */
 export const RYLS_PAYMENT_AMOUNTS_USD = {
-  FULLY_FUNDED: 15,
-  SELF_FUNDED: 750,
+  FULLY_FUNDED: 10,
+  SELF_FUNDED: 800,
 };
 
 /**

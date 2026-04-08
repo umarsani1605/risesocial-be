@@ -201,10 +201,18 @@ export class RylsRegistrationRepository extends BaseRepository {
   async getRegistrations(options = {}) {
     this.logger.info({ options }, '[rylsRegistrationRepository] getRegistrations called');
     try {
-      const { page = 1, limit = 1000, status, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search } = options;
+      const { page = 1, limit = 1000, status, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search, year } = options;
 
       const skip = (page - 1) * limit;
       const whereClause = {};
+
+      // Default: only registrations from 2026 (can override with options.year or skip with year: null)
+      const filterYear = year !== undefined && year !== null ? Number(year) : 2026;
+      whereClause.created_at = {
+        gte: new Date(Date.UTC(filterYear, 0, 1)),
+        lte: new Date(Date.UTC(filterYear, 11, 31, 23, 59, 59, 999)),
+      };
+      this.logger.debug({ filterYear }, '[rylsRegistrationRepository] filter by year');
 
       if (status) {
         whereClause.status = status;
