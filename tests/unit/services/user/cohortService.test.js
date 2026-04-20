@@ -1,6 +1,7 @@
 /**
  * Unit Tests: UserCohortService
- * Focus: computeModuleStatus() logic + enrollment authorization
+ * Focus: enrollment authorization and module retrieval
+ * Note: computeModuleStatus() has been moved to the frontend (app/utils/index.ts)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -43,47 +44,9 @@ vi.mock('../../../../src/utils/loggerContext.js', () => ({
 
 vi.mock('fs-extra', () => ({ default: { pathExists: vi.fn() } }));
 
-const { userCohortService, computeModuleStatus } = await import('../../../../src/services/user/cohortService.js');
+const { userCohortService } = await import('../../../../src/services/user/cohortService.js');
 
 // --- Tests ---
-
-describe('computeModuleStatus()', () => {
-  const now = new Date('2026-03-08T12:00:00Z');
-
-  it('returns "hidden" when is_published is false', () => {
-    expect(computeModuleStatus({ is_published: false, session_timestamp: null }, now)).toBe('hidden');
-  });
-
-  it('returns "upcoming" when is_published=true and session_timestamp is null', () => {
-    expect(computeModuleStatus({ is_published: true, session_timestamp: null }, now)).toBe('upcoming');
-  });
-
-  it('returns "upcoming" when session is more than 60 min in the future', () => {
-    const session = new Date('2026-03-08T14:01:00Z'); // +2h1m → > 60min
-    expect(computeModuleStatus({ is_published: true, session_timestamp: session }, now)).toBe('upcoming');
-  });
-
-  it('returns "live" when session is exactly at current time (within window)', () => {
-    const session = new Date('2026-03-08T12:00:00Z'); // same as now → diff=0
-    expect(computeModuleStatus({ is_published: true, session_timestamp: session }, now)).toBe('live');
-  });
-
-  it('returns "live" when session started 90 min ago (within -2h window)', () => {
-    const session = new Date('2026-03-08T10:30:00Z'); // -1.5h
-    expect(computeModuleStatus({ is_published: true, session_timestamp: session }, now)).toBe('live');
-  });
-
-  it('returns "completed" when session is more than 2 hours in the past', () => {
-    const session = new Date('2026-03-08T09:00:00Z'); // -3h
-    expect(computeModuleStatus({ is_published: true, session_timestamp: session }, now)).toBe('completed');
-  });
-
-  it('returns "live" at the boundary: session starts in exactly 60 min', () => {
-    // 60 min in future → diffMinutes = 60 → NOT > 60 → falls into live window
-    const session = new Date('2026-03-08T13:00:00Z'); // exactly +60 min
-    expect(computeModuleStatus({ is_published: true, session_timestamp: session }, now)).toBe('live');
-  });
-});
 
 describe('UserCohortService', () => {
   beforeEach(() => {
@@ -102,11 +65,11 @@ describe('UserCohortService', () => {
       expect(mockUserCohortRepository.findPublishedModules).not.toHaveBeenCalled();
     });
 
-    it('should return modules with computed_status when user is enrolled', async () => {
+    it('should return modules when user is enrolled', async () => {
       const enrollment = { id: 1, user_id: 42, cohort_id: 1, status: 'active' };
       const modules = [
-        { id: 1, is_published: true, session_timestamp: null, attachments: [] },
-        { id: 2, is_published: false, session_timestamp: null, attachments: [] },
+        { id: 1, is_published: true, session_start_time: null, session_end_time: null, attachments: [] },
+        { id: 2, is_published: false, session_start_time: null, session_end_time: null, attachments: [] },
       ];
 
       mockUserCohortRepository.findActiveEnrollment.mockResolvedValue(enrollment);
@@ -115,9 +78,9 @@ describe('UserCohortService', () => {
       const result = await userCohortService.getCohortModules(1, 42);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toHaveProperty('computed_status');
-      expect(result[0].computed_status).toBe('upcoming'); // published + no timestamp
-      expect(result[1].computed_status).toBe('hidden');   // not published
+      expect(result[0]).toHaveProperty('session_start_time');
+      expect(result[0]).toHaveProperty('session_end_time');
+      expect(result[0]).not.toHaveProperty('computed_status');
     });
   });
 

@@ -20,6 +20,7 @@ const cohortEntitySchema = {
     status: { type: 'string' },
     start_date: { type: ['string', 'null'] },
     end_date: { type: ['string', 'null'] },
+    enrollment_count: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
   },
@@ -34,10 +35,13 @@ const cohortModuleEntitySchema = {
     title: { type: 'string' },
     description: { type: ['string', 'null'] },
     is_published: { type: 'boolean' },
-    session_timestamp: { type: ['string', 'null'] },
+    session_start_time: { type: ['string', 'null'] },
+    session_end_time: { type: ['string', 'null'] },
     meeting_link: { type: ['string', 'null'] },
     attendance_link: { type: ['string', 'null'] },
+    assignment_title: { type: ['string', 'null'] },
     assignment_link: { type: ['string', 'null'] },
+    assignment_deadline: { type: ['string', 'null'] },
     order: { type: 'integer' },
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
@@ -87,6 +91,15 @@ const cohortEnrollmentEntitySchema = {
     enrolled_at: { type: ['string', 'null'] },
     completion_date: { type: ['string', 'null'] },
     notes: { type: ['string', 'null'] },
+    certificate: {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'integer' },
+        certificate_code: { type: 'string' },
+        file_path: { type: ['string', 'null'] },
+        file_url: { type: ['string', 'null'] },
+      },
+    },
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
   },
@@ -116,7 +129,7 @@ const cohortCertificateEntitySchema = {
     student_name: { type: 'string' },
     academy_title: { type: 'string' },
     cohort_name: { type: 'string' },
-    issued_at: { type: 'string', format: 'date-time' },
+    grades_transcript: { type: ['object', 'null'] },
     file_path: { type: ['string', 'null'] },
     file_url: { type: ['string', 'null'] },
     created_at: { type: 'string', format: 'date-time' },
@@ -135,7 +148,7 @@ export const getAdminCohortsSchema = {
     properties: {
       id: { type: 'integer' },
       academy_id: { type: 'integer' },
-      status: { type: 'string', enum: ['not_started', 'on_going', 'completed', 'cancelled'] },
+      status: { type: 'string', enum: ['not_started', 'ongoing', 'completed'] },
       page: { type: 'integer', minimum: 1, default: 1 },
       limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
     },
@@ -195,12 +208,12 @@ export const createCohortSchema = {
   security: [{ bearerAuth: [] }],
   body: {
     type: 'object',
-    required: ['academy_id', 'name'],
+    required: ['academy_id', 'name', 'start_date', 'end_date'],
     properties: {
       academy_id: { type: 'integer' },
       name: { type: 'string', minLength: 1 },
       description: { type: 'string' },
-      status: { type: 'string', enum: ['not_started', 'on_going', 'completed', 'cancelled'], default: 'not_started' },
+      status: { type: 'string', enum: ['not_started', 'ongoing', 'completed'], default: 'not_started' },
       start_date: { type: 'string', format: 'date' },
       end_date: { type: 'string', format: 'date' },
     },
@@ -225,10 +238,11 @@ export const updateCohortSchema = {
   },
   body: {
     type: 'object',
+    required: ['start_date', 'end_date'],
     properties: {
       name: { type: 'string', minLength: 1 },
       description: { type: 'string' },
-      status: { type: 'string', enum: ['not_started', 'on_going', 'completed', 'cancelled'] },
+      status: { type: 'string', enum: ['not_started', 'ongoing', 'completed'] },
       start_date: { type: 'string', format: 'date' },
       end_date: { type: 'string', format: 'date' },
     },
@@ -278,10 +292,13 @@ export const createModuleSchema = {
       title: { type: 'string', minLength: 1 },
       description: { type: ['string', 'null'] },
       is_published: { type: 'boolean', default: false },
-      session_timestamp: { type: ['string', 'null'] },
+      session_start_time: { type: ['string', 'null'] },
+      session_end_time: { type: ['string', 'null'] },
       meeting_link: { type: ['string', 'null'] },
       attendance_link: { type: ['string', 'null'] },
+      assignment_title: { type: ['string', 'null'] },
       assignment_link: { type: ['string', 'null'] },
+      assignment_deadline: { type: ['string', 'null'] },
       order: { type: 'integer', minimum: 1 },
       copy_from_topic_id: { type: 'integer' },
     },
@@ -311,10 +328,13 @@ export const updateModuleSchema = {
       title: { type: 'string', minLength: 1 },
       description: { type: ['string', 'null'] },
       is_published: { type: 'boolean' },
-      session_timestamp: { type: ['string', 'null'] },
+      session_start_time: { type: ['string', 'null'] },
+      session_end_time: { type: ['string', 'null'] },
       meeting_link: { type: ['string', 'null'] },
       attendance_link: { type: ['string', 'null'] },
+      assignment_title: { type: ['string', 'null'] },
       assignment_link: { type: ['string', 'null'] },
+      assignment_deadline: { type: ['string', 'null'] },
       order: { type: 'integer', minimum: 1 },
     },
     additionalProperties: false,
@@ -427,7 +447,7 @@ export const getEnrollmentsSchema = {
   querystring: {
     type: 'object',
     properties: {
-      status: { type: 'string', enum: ['pending', 'active', 'completed', 'dropped', 'suspended'] },
+      status: { type: 'string', enum: ['pending', 'active', 'completed', 'dropped'] },
       page: { type: 'integer', minimum: 1, default: 1 },
       limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
     },
@@ -478,7 +498,7 @@ export const updateEnrollmentSchema = {
   body: {
     type: 'object',
     properties: {
-      status: { type: 'string', enum: ['pending', 'active', 'completed', 'dropped', 'suspended'] },
+      status: { type: 'string', enum: ['pending', 'active', 'completed', 'dropped'] },
       completion_date: { type: 'string', format: 'date' },
       notes: { type: 'string' },
     },
@@ -567,29 +587,39 @@ export const deleteMentorSchema = {
 
 // --- Certificate Generation ---
 
-export const generateCertificatesSchema = {
+export const generateCertificateSchema = {
   tags: ['Admin - Cohort Certificates'],
-  summary: 'Generate certificates in bulk for completed students',
+  summary: 'Generate certificate for an enrollment',
   security: [{ bearerAuth: [] }],
   params: {
     type: 'object',
-    required: ['id'],
-    properties: { id: { type: 'integer' } },
+    required: ['id', 'enrollmentId'],
+    properties: {
+      id: { type: 'integer' },
+      enrollmentId: { type: 'integer' },
+    },
   },
-  response: {
-    200: createSuccessResponseSchema(
-      {
+  body: {
+    type: 'object',
+    properties: {
+      grades: {
         type: 'object',
         properties: {
-          generated: { type: 'integer' },
-          skipped: { type: 'integer' },
-          failed: { type: 'integer' },
+          assignments: { type: 'number', minimum: 0, maximum: 10 },
+          case_study: { type: 'number', minimum: 0, maximum: 10 },
+          final_test: { type: 'number', minimum: 0, maximum: 10 },
+          final_score: { type: 'number', minimum: 0, maximum: 10 },
         },
+        additionalProperties: false,
       },
-      'Certificate generation summary',
-    ),
+    },
+    additionalProperties: false,
+  },
+  response: {
+    201: createSuccessResponseSchema(cohortCertificateEntitySchema, 'Certificate generated'),
     400: createErrorResponseSchema(400, 'Bad Request'),
     404: createErrorResponseSchema(404, 'Not Found'),
+    409: createErrorResponseSchema(409, 'Conflict'),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },

@@ -27,7 +27,7 @@ export class UserAcademyController {
       request.log.info({ params: request.params }, '[userAcademyController] rawParams');
 
       const academy = await academyService.getAcademyBySlug(slug);
-      academy.active_cohort = academy.cohorts?.[0] ?? null;
+      academy.has_cohort = (academy.cohorts?.length ?? 0) > 0;
       delete academy.cohorts;
 
       return reply.send(successResponse(academy, 'Academy retrieved successfully'));

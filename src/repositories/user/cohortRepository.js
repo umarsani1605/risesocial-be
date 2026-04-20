@@ -189,6 +189,7 @@ export class UserCohortRepository extends BaseRepository {
               status: true,
               start_date: true,
               end_date: true,
+              _count: { select: { modules: { where: { is_published: true } } } },
               academy: { select: { id: true, title: true, slug: true, image_url: true, duration: true, format: true, certificate: true, description: true } },
             },
           },
@@ -226,6 +227,19 @@ export class UserCohortRepository extends BaseRepository {
     };
   }
 
+  async countCompletedModules(cohortId) {
+    this.logger.info({ cohortId }, '[userCohortRepository] countCompletedModules called');
+
+    // Count published modules whose session has already started — proxy for completed sessions
+    return prisma.cohortModule.count({
+      where: {
+        cohort_id: cohortId,
+        is_published: true,
+        session_start_time: { lt: new Date() },
+      },
+    });
+  }
+
   async findPublishedModules(cohortId) {
     this.logger.info({ cohortId }, '[userCohortRepository] findPublishedModules called');
 
@@ -246,6 +260,40 @@ export class UserCohortRepository extends BaseRepository {
       include: {
         attachments: { orderBy: { order: 'asc' } },
       },
+    });
+  }
+
+  async findUpcomingModulesForUser(userId, limit = 7) {
+    this.logger.info({ userId, limit }, '[userCohortRepository] findUpcomingModulesForUser called');
+
+    const now = new Date();
+
+    const activeEnrollments = await prisma.cohortEnrollment.findMany({
+      where: { user_id: userId, status: 'active' },
+      select: { cohort_id: true },
+    });
+
+    if (activeEnrollments.length === 0) return [];
+
+    const cohortIds = activeEnrollments.map((e) => e.cohort_id);
+
+    return await prisma.cohortModule.findMany({
+      where: {
+        cohort_id: { in: cohortIds },
+        is_published: true,
+        OR: [{ session_start_time: { gt: now } }, { assignment_deadline: { gt: now } }],
+      },
+      select: {
+        id: true,
+        cohort_id: true,
+        title: true,
+        session_start_time: true,
+        session_end_time: true,
+        assignment_deadline: true,
+        meeting_link: true,
+        assignment_link: true,
+      },
+      orderBy: { session_start_time: 'asc' },
     });
   }
 

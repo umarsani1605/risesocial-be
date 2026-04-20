@@ -241,7 +241,7 @@ describe('Cohort E2E Tests', () => {
 
     beforeEach(async () => {
       cohort = await prisma.cohort.create({
-        data: { academy_id: academy.id, name: 'Batch 1', status: 'on_going' },
+        data: { academy_id: academy.id, name: 'Batch 1', status: 'ongoing' },
       });
     });
 

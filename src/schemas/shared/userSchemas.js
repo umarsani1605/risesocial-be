@@ -274,17 +274,10 @@ export const updateUserAccountSchema = {
   description: 'Update account information for the currently authenticated user',
   tags: ['User Self-Management'],
   security: [{ bearerAuth: [] }],
-  body: {
-    type: 'object',
-    properties: {
-      first_name: { type: 'string', minLength: 1, maxLength: 100, description: 'First name' },
-      last_name: { type: 'string', minLength: 1, maxLength: 100, description: 'Last name' },
-      email: { type: 'string', format: 'email', description: 'Email address' },
-      phone: { type: 'string', maxLength: 20, description: 'Phone number' },
-      avatar: { type: 'string', description: 'Avatar URL' },
-    },
-    additionalProperties: false,
-  },
+  consumes: ['multipart/form-data'],
+  // body schema omitted: this endpoint accepts multipart/form-data (with optional avatar file).
+  // @fastify/multipart sets request.body = null before preHandler runs, so AJV body validation
+  // would reject it. Field validation is handled by the service layer instead.
   response: {
     200: createSuccessResponseSchema(userEntitySchema, 'Account updated'),
     400: createErrorResponseSchema(400, 'Bad Request'),

@@ -2,6 +2,8 @@ import { adminCohortRepository } from '../../repositories/admin/cohortRepository
 import { academyRepository } from '../../repositories/shared/academyRepository.js';
 import { fileUploadService } from '../shared/fileUploadService.js';
 import { getLogger } from '../../utils/loggerContext.js';
+import { formatCertificateCode, safeFilename, formatIssuedDate } from '../../utils/certificateHelpers.js';
+import { toFileUrl } from '../../utils/response.js';
 import prisma from '../../config/database.js';
 import path from 'path';
 import fs from 'fs-extra';
@@ -82,7 +84,18 @@ export class AdminCohortService {
       if (data.start_date !== undefined) updateData.start_date = data.start_date ? new Date(data.start_date) : null;
       if (data.end_date !== undefined) updateData.end_date = data.end_date ? new Date(data.end_date) : null;
 
-      const cohort = await this.repository.update(id, updateData);
+      let cohort;
+      if (updateData.status === 'completed') {
+        await prisma.$transaction(async (tx) => {
+          cohort = await tx.cohort.update({ where: { id }, data: updateData });
+          await tx.cohortEnrollment.updateMany({
+            where: { cohort_id: id, status: 'active' },
+            data: { status: 'completed', completion_date: new Date(), updated_at: new Date() },
+          });
+        });
+      } else {
+        cohort = await this.repository.update(id, updateData);
+      }
       this.logger.info('[adminCohortService] updateCohort success');
       return cohort;
     } catch (error) {
@@ -304,6 +317,12 @@ export class AdminCohortService {
     this.logger.info('[adminCohortService] getEnrollments start');
     try {
       const result = await this.repository.findEnrollments(cohortId, params);
+      result.data = result.data.map((e) => ({
+        ...e,
+        certificate: e.certificate
+          ? { ...e.certificate, file_url: toFileUrl(e.certificate.file_path) }
+          : null,
+      }));
       this.logger.info('[adminCohortService] getEnrollments success');
       return result;
     } catch (error) {
@@ -427,8 +446,8 @@ export class AdminCohortService {
 
   // --- Certificate generation ---
 
-  async generateCertificates(cohortId) {
-    this.logger.info('[adminCohortService] generateCertificates start');
+  async generateCertificate(cohortId, enrollmentId, grades = {}) {
+    this.logger.info('[adminCohortService] generateCertificate start');
     try {
       const cohort = await this.repository.findByIdWithDetails(cohortId);
       if (!cohort) {
@@ -437,124 +456,165 @@ export class AdminCohortService {
         throw err;
       }
 
-      if (cohort.status !== 'completed') {
-        const err = new Error('Certificates can only be generated when cohort status is completed');
-        err.statusCode = 400;
+      const enrollment = await prisma.cohortEnrollment.findUnique({
+        where: { id: enrollmentId },
+        include: { user: { select: { first_name: true, last_name: true, email: true } } },
+      });
+
+      if (!enrollment || enrollment.cohort_id !== cohortId) {
+        const err = new Error('Enrollment not found');
+        err.statusCode = 404;
         throw err;
       }
 
-      const enrollments = await prisma.cohortEnrollment.findMany({
-        where: { cohort_id: cohortId, status: 'completed', certificate: null },
-        include: {
-          user: { select: { id: true, first_name: true, last_name: true } },
-        },
-      });
-
       const academy = await this.academyRepository.findById(cohort.academy_id);
+      const studentName = `${enrollment.user.first_name} ${enrollment.user.last_name}`.trim();
+      const gradesTranscript = {
+        assignments: grades.assignments ?? null,
+        case_study: grades.case_study ?? null,
+        final_test: grades.final_test ?? null,
+        final_score: grades.final_score ?? null,
+      };
 
-      const summary = { generated: 0, skipped: 0, failed: 0 };
-      const year = new Date().getFullYear();
-      const baseSlug = academy.slug.toUpperCase().padEnd(6, 'X').substring(0, 6);
-
-      // Get starting sequence
-      const latestCert = await prisma.cohortCertificate.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
-      let sequence = (latestCert?.id || 0) + 1;
-
-      // Ensure upload directory exists
       const certDir = path.join(__dirname, `../../../uploads/certificates/${cohortId}`);
       await fs.ensureDir(certDir);
 
-      for (const enrollment of enrollments) {
-        try {
-          const certCode = `CERT-${baseSlug}-${year}-${String(sequence).padStart(4, '0')}`;
-          const studentName = `${enrollment.user.first_name} ${enrollment.user.last_name}`.trim();
-          const filePath = `/uploads/certificates/${cohortId}/${certCode}.pdf`;
-          const absolutePath = path.join(__dirname, `../../../uploads/certificates/${cohortId}/${certCode}.pdf`);
+      const cert = await prisma.$transaction(async (tx) => {
+        await tx.cohortCertificate.deleteMany({ where: { enrollment_id: enrollmentId } });
 
-          // Generate PDF
-          await this._generatePDF(absolutePath, {
-            studentName,
-            academyTitle: academy.title,
-            cohortName: cohort.name,
-            issuedAt: new Date(),
-            certCode,
-          });
+        // Insert without code/path first to get the id
+        const record = await tx.cohortCertificate.create({
+          data: {
+            academy_id: cohort.academy_id,
+            cohort_id: cohortId,
+            enrollment_id: enrollmentId,
+            user_id: enrollment.user_id,
+            certificate_code: `PENDING-${Date.now()}`,
+            student_name: studentName,
+            academy_title: academy.title,
+            cohort_name: cohort.name,
+            grades_transcript: gradesTranscript,
+          },
+        });
 
-          await prisma.cohortCertificate.create({
-            data: {
-              academy_id: cohort.academy_id,
-              cohort_id: cohortId,
-              enrollment_id: enrollment.id,
-              user_id: enrollment.user_id,
-              certificate_code: certCode,
-              student_name: studentName,
-              academy_title: academy.title,
-              cohort_name: cohort.name,
-              issued_at: new Date(),
-              file_path: filePath,
-              file_url: filePath,
-            },
-          });
+        const certCode = formatCertificateCode(record.id, record.created_at);
+        const filename = safeFilename(certCode);
+        const absolutePath = path.join(certDir, filename);
+        const relPath = `certificates/${cohortId}/${filename}`;
 
-          sequence++;
-          summary.generated++;
-        } catch (certErr) {
-          this.logger.error({ err: certErr, enrollmentId: enrollment.id }, '[adminCohortService] certificate generation failed for enrollment');
-          summary.failed++;
-        }
-      }
+        await this._generatePDF(absolutePath, {
+          studentName,
+          certCode,
+          academyName: academy.title,
+          issuedDate: formatIssuedDate(record.created_at),
+          grades: gradesTranscript,
+        });
 
-      this.logger.info({ summary }, '[adminCohortService] generateCertificates success');
-      return summary;
+        return await tx.cohortCertificate.update({
+          where: { id: record.id },
+          data: { certificate_code: certCode, file_path: relPath },
+        });
+      });
+
+      this.logger.info('[adminCohortService] generateCertificate success');
+      return { ...cert, file_url: toFileUrl(cert.file_path) };
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] generateCertificates error');
+      this.logger.error({ err: error }, '[adminCohortService] generateCertificate error');
       throw error;
     }
   }
 
-  async _generatePDF(filePath, { studentName, academyTitle, cohortName, issuedAt, certCode }) {
-    const { default: PDFDocument } = await import('pdfkit');
+  async _generatePDF(outputPath, { studentName, certCode, academyName, issuedDate, grades }) {
+    const { PDFDocument, rgb } = await import('pdf-lib');
+    const fontkit = (await import('@pdf-lib/fontkit')).default;
+    const hex = (h) => rgb(parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255);
 
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ layout: 'landscape', size: 'A4' });
-      const stream = fs.createWriteStream(filePath);
+    const templatePath = path.join(__dirname, '../../../uploads/certificates/template.pdf');
+    const templateBytes = await fs.readFile(templatePath);
+    const pdfDoc = await PDFDocument.load(templateBytes);
+    pdfDoc.registerFontkit(fontkit);
 
-      doc.pipe(stream);
+    const FONTS = path.join(__dirname, '../../../uploads/certificates/fonts');
+    const corinthiaBold = await pdfDoc.embedFont(await fs.readFile(path.join(FONTS, 'Corinthia/Corinthia-Bold.ttf')));
+    const openSansBold = await pdfDoc.embedFont(await fs.readFile(path.join(FONTS, 'Open_Sans/static/OpenSans-Bold.ttf')));
 
-      // Background
-      doc.rect(0, 0, doc.page.width, doc.page.height).fill('#FAFAFA');
+    const pages = pdfDoc.getPages();
+    const page1 = pages[0];
+    const page2 = pages[1];
 
-      // Border
-      doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).stroke('#C0A060');
+    const brandColor = hex('#405F56');
 
-      // Title
-      doc.fillColor('#2C2C2C').fontSize(36).font('Helvetica-Bold').text('CERTIFICATE OF COMPLETION', 0, 80, { align: 'center' });
-
-      // Issued to
-      doc.fontSize(16).font('Helvetica').fillColor('#555').text('This is to certify that', 0, 150, { align: 'center' });
-
-      // Student name
-      doc.fontSize(30).font('Helvetica-Bold').fillColor('#1A1A1A').text(studentName, 0, 185, { align: 'center' });
-
-      // Academy & cohort
-      doc.fontSize(14).font('Helvetica').fillColor('#555').text('has successfully completed', 0, 240, { align: 'center' });
-
-      doc.fontSize(22).font('Helvetica-Bold').fillColor('#2C2C2C').text(academyTitle, 0, 270, { align: 'center' });
-
-      doc.fontSize(14).font('Helvetica').fillColor('#777').text(`Cohort: ${cohortName}`, 0, 310, { align: 'center' });
-
-      // Date
-      const dateStr = issuedAt.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-      doc.fontSize(12).text(`Issued on: ${dateStr}`, 0, 360, { align: 'center' });
-
-      // Certificate code
-      doc.fontSize(10).fillColor('#999').text(`Certificate Code: ${certCode}`, 0, 390, { align: 'center' });
-
-      doc.end();
-
-      stream.on('finish', resolve);
-      stream.on('error', reject);
+    // Page 1: name, cert code, academy name, issued date
+    page1.drawText(studentName, {
+      x: 230,
+      y: 300,
+      size: 60,
+      font: corinthiaBold,
+      color: brandColor,
     });
+
+    page1.drawText(certCode, {
+      x: 230,
+      y: 420,
+      size: 13,
+      font: openSansBold,
+      color: brandColor,
+    });
+
+    page1.drawText(academyName, {
+      x: 226,
+      y: 216,
+      size: 14,
+      font: openSansBold,
+      color: brandColor,
+    });
+
+    page1.drawText(issuedDate, {
+      x: 230,
+      y: 110,
+      size: 13,
+      font: openSansBold,
+      color: brandColor,
+    });
+
+    // Page 2: grade values
+    const gradeColor = rgb(0.1, 0.1, 0.1);
+    const gradeSize = 15;
+    const fmt = (v) => (v != null ? Number(v).toFixed(2) : '-');
+
+    page2.drawText(fmt(grades.assignments), {
+      x: 695,
+      y: 325,
+      size: gradeSize,
+      font: openSansBold,
+      color: gradeColor,
+    });
+
+    page2.drawText(fmt(grades.case_study), {
+      x: 695,
+      y: 269,
+      size: gradeSize,
+      font: openSansBold,
+      color: gradeColor,
+    });
+
+    page2.drawText(fmt(grades.final_test), {
+      x: 695,
+      y: 213,
+      size: gradeSize,
+      font: openSansBold,
+      color: gradeColor,
+    });
+
+    page2.drawText(fmt(grades.final_score), {
+      x: 695,
+      y: 154,
+      size: gradeSize,
+      font: openSansBold,
+      color: gradeColor,
+    });
+
+    await fs.writeFile(outputPath, await pdfDoc.save());
   }
 }
 

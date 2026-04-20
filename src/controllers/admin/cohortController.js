@@ -349,21 +349,23 @@ export class AdminCohortController {
 
   // --- Certificate generation ---
 
-  async generateCertificates(request, reply) {
+  async generateCertificate(request, reply) {
     try {
-      request.log.info('[adminCohortController] generateCertificates start');
+      request.log.info('[adminCohortController] generateCertificate start');
 
-      const { id } = request.params;
-      const summary = await adminCohortService.generateCertificates(Number(id));
+      const { id, enrollmentId } = request.params;
+      const grades = request.body?.grades ?? {};
+      const cert = await adminCohortService.generateCertificate(Number(id), Number(enrollmentId), grades);
 
-      request.log.info('[adminCohortController] generateCertificates success');
-      return reply.send(successResponse(summary, 'Certificates generated successfully'));
+      request.log.info('[adminCohortController] generateCertificate success');
+      return reply.status(201).send(successResponse(cert, 'Certificate generated successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminCohortController] generateCertificates error');
+      request.log.error({ err: error }, '[adminCohortController] generateCertificate error');
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
       if (error.statusCode === 400) return reply.status(400).send(errorResponse(error.message, 400));
-      return reply.status(500).send(errorResponse('Failed to generate certificates', 500, error.message));
+      if (error.statusCode === 409) return reply.status(409).send(errorResponse(error.message, 409));
+      return reply.status(500).send(errorResponse('Failed to generate certificate', 500, error.message));
     }
   }
 }

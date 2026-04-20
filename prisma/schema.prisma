@@ -36,6 +36,7 @@ model User {
   user_settings       UserSetting[]
   cohort_enrollments  CohortEnrollment[]   @relation("UserCohortEnrollments")
   cohort_certificates CohortCertificate[]  @relation("UserCohortCertificates")
+  assignment_completions CohortAssignmentCompletion[] @relation("UserAssignmentCompletions")
 
   @@index([email])
   @@index([username])
@@ -658,21 +659,25 @@ model CohortModule {
   title             String                    @db.VarChar(200)
   description       String?
   is_published      Boolean                   @default(false)
-  session_timestamp DateTime?
-  meeting_link      String?                   @db.VarChar(500)
-  attendance_link   String?                   @db.VarChar(500)
-  assignment_link   String?                   @db.VarChar(500)
-  order             Int                       @default(1)
-  created_at        DateTime                  @default(now())
-  updated_at        DateTime                  @updatedAt
-  academy           Academy                   @relation("AcademyCohortModules", fields: [academy_id], references: [id], onDelete: Cascade)
-  cohort            Cohort                    @relation("CohortModules", fields: [cohort_id], references: [id], onDelete: Cascade)
-  attachments       CohortModuleAttachment[]  @relation("ModuleAttachments")
-  file_uploads      FileUpload[]              @relation("CohortModuleFiles")
+  session_start_time DateTime?
+  session_end_time   DateTime?
+  meeting_link       String?                   @db.VarChar(500)
+  attendance_link     String?                      @db.VarChar(500)
+  assignment_title    String?                      @db.VarChar(255)
+  assignment_link     String?                      @db.VarChar(500)
+  assignment_deadline DateTime?
+  order               Int                          @default(1)
+  created_at          DateTime                     @default(now())
+  updated_at          DateTime                     @updatedAt
+  academy             Academy                      @relation("AcademyCohortModules", fields: [academy_id], references: [id], onDelete: Cascade)
+  cohort              Cohort                       @relation("CohortModules", fields: [cohort_id], references: [id], onDelete: Cascade)
+  attachments         CohortModuleAttachment[]     @relation("ModuleAttachments")
+  file_uploads        FileUpload[]                 @relation("CohortModuleFiles")
+  assignment_completions CohortAssignmentCompletion[] @relation("ModuleAssignmentCompletions")
 
   @@unique([cohort_id, order])
   @@index([academy_id])
-  @@index([session_timestamp])
+  @@index([session_start_time])
   @@map("cohort_modules")
 }
 
@@ -757,10 +762,8 @@ model CohortCertificate {
   student_name     String           @db.VarChar(255)
   academy_title    String           @db.VarChar(255)
   cohort_name      String           @db.VarChar(100)
-  issued_at        DateTime         @default(now())
+  grades_transcript Json?
   file_path        String?          @db.VarChar(500)
-  file_url         String?          @db.VarChar(500)
-  emailed_at       DateTime?
   created_at       DateTime         @default(now())
   updated_at       DateTime         @updatedAt
   academy          Academy          @relation("AcademyCohortCertificates", fields: [academy_id], references: [id])
@@ -771,6 +774,23 @@ model CohortCertificate {
   @@unique([cohort_id, user_id])
   @@index([user_id])
   @@map("cohort_certificates")
+}
+
+/// CohortAssignmentCompletion - tracks whether a student has marked a module's assignment as done
+model CohortAssignmentCompletion {
+  id               Int          @id @default(autoincrement())
+  cohort_module_id Int
+  user_id          Int
+  completed_at     DateTime     @default(now())
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+  cohort_module    CohortModule @relation("ModuleAssignmentCompletions", fields: [cohort_module_id], references: [id], onDelete: Cascade)
+  user             User         @relation("UserAssignmentCompletions", fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([cohort_module_id, user_id])
+  @@index([user_id])
+  @@index([cohort_module_id])
+  @@map("cohort_assignment_completions")
 }
 
 enum UserRole {

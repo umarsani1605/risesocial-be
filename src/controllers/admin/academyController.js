@@ -122,6 +122,9 @@ export class AdminAcademyController {
 
       const academy = await academyService.getAcademyBySlug(slug);
 
+      academy.has_cohort = (academy.cohorts ?? []).length > 0;
+      delete academy.cohorts;
+
       request.log.info('[adminAcademyController] getAcademyBySlug success');
 
       return reply.send(successResponse(academy, 'Academy retrieved successfully'));

@@ -129,6 +129,36 @@ export class UserCohortController {
     }
   }
 
+  async getUpcomingSessions(request, reply) {
+    try {
+      request.log.info('[userCohortController] getUpcomingSessions start');
+
+      const userId = request.user.userId;
+      const limit = Math.min(Number(request.query.limit ?? 7), 20);
+      const sessions = await userCohortService.getUpcomingSessions(userId, limit);
+
+      request.log.info('[userCohortController] getUpcomingSessions success');
+      return reply.send(successResponse(sessions, 'Upcoming sessions retrieved successfully'));
+    } catch (error) {
+      request.log.error({ err: error }, '[userCohortController] getUpcomingSessions error');
+      return reply.status(500).send(errorResponse('Failed to retrieve upcoming sessions', 500, error.message));
+    }
+  }
+
+  async getCertificateInfo(request, reply) {
+    try {
+      request.log.info('[userCohortController] getCertificateInfo start');
+      const { id } = request.params;
+      const userId = request.user.userId;
+      const result = await userCohortService.getCertificateInfo(Number(id), userId);
+      if (!result) return reply.status(404).send(errorResponse('Certificate not found', 404));
+      return reply.send(successResponse(result, 'Certificate info retrieved'));
+    } catch (error) {
+      request.log.error({ err: error }, '[userCohortController] getCertificateInfo error');
+      return reply.status(500).send(errorResponse('Failed to get certificate info', 500));
+    }
+  }
+
   async downloadCertificate(request, reply) {
     try {
       request.log.info('[userCohortController] downloadCertificate start');

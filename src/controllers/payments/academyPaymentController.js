@@ -29,7 +29,7 @@ export class AcademyPaymentController {
       if (error.message.includes('already enrolled')) {
         return reply.status(409).send(errorResponse(error.message, 409));
       }
-      if (error.message.includes('No active cohort')) {
+      if (error.message.includes('No cohort available')) {
         return reply.status(400).send(errorResponse(error.message, 400));
       }
 

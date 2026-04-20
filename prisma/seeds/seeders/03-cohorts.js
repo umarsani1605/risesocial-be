@@ -1,22 +1,18 @@
 /**
- * Cohort seeder - seeds cohorts with modules, attachments, mentors, enrollments, and certificates
+ * Cohort seeder — seeds cohorts, modules, attachments, mentors, enrollments, and certificates.
+ * Cohort modules derive titles from academy topics.
+ * John Doe (user@risesocial.org) gets 3 special enrollments across 3 different academies.
  */
 
-import { PrismaClient } from '@prisma/client';
 import { logSeedStart, logSeedSuccess, logSeedError } from '../utils/logger.js';
 import { validateDateRange } from '../utils/validation.js';
 import { generateCohorts } from '../data/cohorts.js';
 
-/**
- * Seed cohorts with all related data
- * @param {PrismaClient} prisma - Prisma client instance
- * @returns {Promise<Object>} Statistics object
- */
 export async function seedCohorts(prisma) {
   try {
     logSeedStart('Cohorts');
 
-    // Clear existing data
+    // Clear existing cohort data
     await prisma.cohortCertificate.deleteMany({});
     await prisma.cohortEnrollment.deleteMany({});
     await prisma.cohortMentor.deleteMany({});
@@ -24,55 +20,58 @@ export async function seedCohorts(prisma) {
     await prisma.cohortModule.deleteMany({});
     await prisma.cohort.deleteMany({});
 
-    // Fetch academy IDs
+    // Fetch academies with full topic and instructor data
     const academies = await prisma.academy.findMany({
-      select: { id: true },
+      include: {
+        instructors: { orderBy: { order: 'asc' } },
+        themes: {
+          include: { topics: { orderBy: { order: 'asc' } } },
+          orderBy: { order: 'asc' },
+        },
+      },
     });
-    const academyIds = academies.map((a) => a.id);
 
-    // Fetch user IDs for enrollments
-    const users = await prisma.user.findMany({
-      select: { id: true },
+    // Fetch all non-admin users for random enrollments
+    const regularUsers = await prisma.user.findMany({
+      where: { role: 'USER' },
+      select: { id: true, email: true, first_name: true, last_name: true },
     });
-    const userIds = users.map((u) => u.id);
 
-    // Generate cohort data
-    const cohortsData = generateCohorts(academyIds);
+    const johnDoe = regularUsers.find((u) => u.email === 'user@risesocial.org');
+    const otherUsers = regularUsers.filter((u) => u.email !== 'user@risesocial.org');
+
+    // Generate cohort data from academy topics and instructors
+    const cohortsData = generateCohorts(academies);
 
     let moduleCount = 0;
     let attachmentCount = 0;
     let mentorCount = 0;
     let enrollmentCount = 0;
-    let certificateCount = 0;
 
-    // Create cohorts and related records
+    // Track created cohorts for John Doe override
+    // { cohort, academyIndex, status }
+    const createdCohorts = [];
+
+    // ── Create cohorts ────────────────────────────────────────────────────────
     for (const cohortData of cohortsData) {
       const { modules, mentors, ...cohortFields } = cohortData;
 
-      // Validate dates
       if (!validateDateRange(cohortFields.start_date, cohortFields.end_date)) {
-        throw new Error(`Invalid date range for cohort: start_date (${cohortFields.start_date}) >= end_date (${cohortFields.end_date})`);
+        throw new Error(
+          `Invalid date range for cohort "${cohortFields.name}": start >= end`,
+        );
       }
 
-      // Create cohort
-      const cohort = await prisma.cohort.create({
-        data: cohortFields,
-      });
+      const cohort = await prisma.cohort.create({ data: cohortFields });
 
-      // Create modules
+      // Create modules + attachments
       for (const moduleData of modules) {
         const { attachments, ...moduleFields } = moduleData;
-
         const module = await prisma.cohortModule.create({
-          data: {
-            academy_id: cohort.academy_id,
-            cohort_id: cohort.id,
-            ...moduleFields,
-          },
+          data: { academy_id: cohort.academy_id, cohort_id: cohort.id, ...moduleFields },
         });
         moduleCount++;
 
-        // Create attachments
         for (const attachment of attachments) {
           await prisma.cohortModuleAttachment.create({
             data: {
@@ -89,60 +88,91 @@ export async function seedCohorts(prisma) {
       // Create mentors
       for (const mentor of mentors) {
         await prisma.cohortMentor.create({
-          data: {
-            academy_id: cohort.academy_id,
-            cohort_id: cohort.id,
-            ...mentor,
-          },
+          data: { academy_id: cohort.academy_id, cohort_id: cohort.id, ...mentor },
         });
         mentorCount++;
       }
 
-      // Create enrollments (2 users per cohort)
-      const enrollmentUsers = userIds.slice(0, Math.min(2, userIds.length));
-      for (let i = 0; i < enrollmentUsers.length; i++) {
-        const userId = enrollmentUsers[i];
-        const isCompleted = cohort.status === 'completed' && i === 0;
+      // Random enrollments: pick 2-4 non-John-Doe users per cohort
+      const shuffled = [...otherUsers].sort(() => Math.random() - 0.5);
+      const enrollCount = 2 + Math.floor(Math.random() * 3); // 2-4
+      const enrollees = shuffled.slice(0, Math.min(enrollCount, otherUsers.length));
+
+      for (const user of enrollees) {
+        const enrollStatus =
+          cohort.status === 'completed'
+            ? 'completed'
+            : cohort.status === 'ongoing'
+              ? 'active'
+              : 'pending';
 
         const enrollment = await prisma.cohortEnrollment.create({
           data: {
             academy_id: cohort.academy_id,
             cohort_id: cohort.id,
-            user_id: userId,
-            status: isCompleted ? 'completed' : cohort.status === 'ongoing' ? 'active' : 'pending',
+            user_id: user.id,
+            status: enrollStatus,
             enrolled_at: cohort.start_date,
-            completion_date: isCompleted ? cohort.end_date : null,
+            completion_date: enrollStatus === 'completed' ? cohort.end_date : null,
           },
         });
         enrollmentCount++;
 
-        // Create certificate for completed enrollments
-        if (isCompleted) {
-          const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { first_name: true, last_name: true },
-          });
+      }
 
-          const academy = await prisma.academy.findUnique({
-            where: { id: cohort.academy_id },
-            select: { title: true },
-          });
+      // Track cohort for John Doe override
+      const academyIndex = academies.findIndex((a) => a.id === cohort.academy_id);
+      createdCohorts.push({ cohort, academyIndex, status: cohort.status });
+    }
 
-          await prisma.cohortCertificate.create({
+    // ── John Doe override: 3 enrollments across 3 different academies ─────────
+    // academy[0] DRAFT → not_started, academy[1] ACTIVE → ongoing, academy[2] ARCHIVED → completed
+    if (johnDoe) {
+      const completedEntry = createdCohorts.find(
+        (c) => c.academyIndex === 2 && c.status === 'completed',
+      );
+      const activeEntry = createdCohorts.find(
+        (c) => c.academyIndex === 1 && c.status === 'ongoing',
+      );
+      const pendingEntry = createdCohorts.find(
+        (c) => c.academyIndex === 0 && c.status === 'not_started',
+      );
+
+      const johnDoeAssignments = [
+        completedEntry && { entry: completedEntry, enrollStatus: 'completed' },
+        activeEntry && { entry: activeEntry, enrollStatus: 'active' },
+        pendingEntry && { entry: pendingEntry, enrollStatus: 'pending' },
+      ].filter(Boolean);
+
+      for (const { entry, enrollStatus } of johnDoeAssignments) {
+        const { cohort } = entry;
+
+        // Update if already enrolled during random phase, otherwise create
+        const existing = await prisma.cohortEnrollment.findFirst({
+          where: { cohort_id: cohort.id, user_id: johnDoe.id },
+        });
+
+        if (existing) {
+          await prisma.cohortEnrollment.update({
+            where: { id: existing.id },
+            data: {
+              status: enrollStatus,
+              completion_date: enrollStatus === 'completed' ? cohort.end_date : null,
+            },
+          });
+        } else {
+          const enrollment = await prisma.cohortEnrollment.create({
             data: {
               academy_id: cohort.academy_id,
               cohort_id: cohort.id,
-              enrollment_id: enrollment.id,
-              user_id: userId,
-              certificate_code: `CERT-${cohort.id}-${userId}-${Date.now()}`,
-              student_name: `${user.first_name} ${user.last_name}`,
-              academy_title: academy.title,
-              cohort_name: cohort.name,
-              issued_at: cohort.end_date,
-              file_path: `/certificates/cert-${cohort.id}-${userId}.pdf`,
+              user_id: johnDoe.id,
+              status: enrollStatus,
+              enrolled_at: cohort.start_date,
+              completion_date: enrollStatus === 'completed' ? cohort.end_date : null,
             },
           });
-          certificateCount++;
+          enrollmentCount++;
+
         }
       }
     }
@@ -153,7 +183,6 @@ export async function seedCohorts(prisma) {
       attachmentCount,
       mentorCount,
       enrollmentCount,
-      certificateCount,
     };
 
     logSeedSuccess('Cohorts', stats);

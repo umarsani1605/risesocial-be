@@ -30,10 +30,9 @@ export class AcademyRepository extends BaseRepository {
         testimonials: { orderBy: { order: 'asc' } },
         faqs: { orderBy: { order: 'asc' } },
         cohorts: {
-          where: { status: { in: ['not_started', 'ongoing'] } },
-          orderBy: { start_date: 'desc' },
+          where: { status: 'not_started' },
           take: 1,
-          select: { id: true, name: true, status: true },
+          select: { id: true },
         },
         ...options.include,
       },
@@ -73,16 +72,21 @@ export class AcademyRepository extends BaseRepository {
         }
       : {};
 
-    const [data, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.model.findMany({
         where,
         ...(skip !== undefined && { skip }),
         ...(take !== undefined && { take }),
-        include,
+        include: { ...include, _count: { select: { cohorts: true } } },
         orderBy: [{ created_at: 'desc' }],
       }),
       this.model.count({ where }),
     ]);
+
+    const data = rows.map(({ _count, ...rest }) => ({
+      ...rest,
+      cohort_count: _count.cohorts,
+    }));
 
     const result = { data };
 

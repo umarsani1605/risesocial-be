@@ -22,20 +22,18 @@ export class AcademyPaymentRepository {
     }
   }
 
-  async findActiveCohortByAcademyId(academyId) {
-    this.logger.info({ academyId }, '[AcademyPaymentRepository] findActiveCohortByAcademyId');
+  /** Cohort target untuk enrollment pembayaran academy: hanya status `not_started`, yang paling baru dibuat (by `created_at`, lalu `id`). */
+  async findLatestCohortByAcademyId(academyId) {
+    this.logger.info({ academyId }, '[AcademyPaymentRepository] findLatestCohortByAcademyId');
     try {
       const cohort = await prisma.cohort.findFirst({
-        where: {
-          academy_id: academyId,
-          status: { in: ['not_started', 'ongoing'] },
-        },
-        orderBy: { start_date: 'desc' },
+        where: { academy_id: academyId, status: 'not_started' },
+        orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
       });
       this.logger.info({ found: !!cohort }, '[AcademyPaymentRepository] cohort found');
       return cohort;
     } catch (error) {
-      this.logger.error({ err: error }, '[AcademyPaymentRepository] findActiveCohortByAcademyId error');
+      this.logger.error({ err: error }, '[AcademyPaymentRepository] findLatestCohortByAcademyId error');
       throw error;
     }
   }
@@ -47,8 +45,9 @@ export class AcademyPaymentRepository {
         where: {
           user_id: userId,
           academy_id: academyId,
-          status: { in: ['pending', 'active', 'completed'] },
+          status: { in: ['pending', 'active'] },
         },
+        orderBy: { created_at: 'desc' },
         include: {
           transaction: {
             select: {

@@ -152,14 +152,7 @@ export const academyDetailSchema = {
       type: 'array',
       items: academyFaqSchema,
     },
-    active_cohort: {
-      type: ['object', 'null'],
-      properties: {
-        id: { type: 'integer' },
-        name: { type: 'string' },
-        status: { type: 'string' },
-      },
-    },
+    has_cohort: { type: 'boolean' },
     isPopular: { type: 'boolean' },
     isPremium: { type: 'boolean' },
     formattedPricing: {
@@ -303,6 +296,7 @@ export const createAcademySchema = {
       certificate: { type: 'boolean', default: false },
       portfolio: { type: 'boolean', default: false },
       status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'], default: 'DRAFT' },
+      pixel_id: { type: 'string' },
     },
     additionalProperties: false,
   },
@@ -334,6 +328,7 @@ export const updateAcademySchema = {
       certificate: { type: 'boolean' },
       portfolio: { type: 'boolean' },
       status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'] },
+      pixel_id: { type: 'string' },
     },
     additionalProperties: false,
   },
@@ -410,6 +405,8 @@ export const adminAcademyWithRelationsSchema = {
         enrollments: { type: 'integer' },
       },
     },
+    cohort_count: { type: 'integer' },
+    has_cohort: { type: 'boolean' },
     isPopular: { type: 'boolean' },
     isPremium: { type: 'boolean' },
     formattedPricing: {

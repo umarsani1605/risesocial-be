@@ -279,6 +279,7 @@ export class AdminCohortRepository extends BaseRepository {
         orderBy: { created_at: 'desc' },
         include: {
           user: { select: { id: true, first_name: true, last_name: true, email: true, avatar: true } },
+          certificate: { select: { id: true, certificate_code: true, file_path: true } },
         },
       }),
       prisma.cohortEnrollment.count({ where }),

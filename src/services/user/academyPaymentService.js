@@ -29,10 +29,10 @@ export class AcademyPaymentService {
         throw new Error('Pricing tier not found');
       }
 
-      // Step 3: Find active cohort
-      const cohort = await academyPaymentRepository.findActiveCohortByAcademyId(academyId);
+      // Step 3: Target cohort = terbaru dibuat untuk academy ini
+      const cohort = await academyPaymentRepository.findLatestCohortByAcademyId(academyId);
       if (!cohort) {
-        throw new Error('No active cohort available for this academy');
+        throw new Error('No cohort available for this academy');
       }
 
       // Step 4: Check duplicate enrollment

@@ -5,6 +5,7 @@ import {
   getUserCohortByIdSchema,
   enrollInCohortSchema,
   getMyEnrollmentsSchema,
+  getUpcomingSessionsSchema,
   getCohortModulesSchema,
   getCohortModuleByIdSchema,
   getCohortStudentsSchema,
@@ -25,6 +26,12 @@ export default async function userCohortRoutes(fastify) {
   });
 
   // My enrollments
+  fastify.get('/upcoming', {
+    schema: getUpcomingSessionsSchema,
+    preHandler: [authMiddleware],
+    handler: userCohortController.getUpcomingSessions,
+  });
+
   fastify.get('/my', {
     schema: getMyEnrollmentsSchema,
     preHandler: [authMiddleware],
@@ -49,6 +56,12 @@ export default async function userCohortRoutes(fastify) {
     schema: getCohortModuleByIdSchema,
     preHandler: [authMiddleware],
     handler: userCohortController.getCohortModuleById,
+  });
+
+  // Certificate info (authenticated)
+  fastify.get('/:id/certificate', {
+    preHandler: [authMiddleware],
+    handler: userCohortController.getCertificateInfo,
   });
 
   // Certificate download (authenticated)

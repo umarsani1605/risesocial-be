@@ -57,12 +57,14 @@ const moduleWithStatusSchema = {
     title: { type: 'string' },
     description: { type: ['string', 'null'] },
     is_published: { type: 'boolean' },
-    session_timestamp: { type: ['string', 'null'] },
+    session_start_time: { type: ['string', 'null'] },
+    session_end_time: { type: ['string', 'null'] },
     meeting_link: { type: ['string', 'null'] },
     attendance_link: { type: ['string', 'null'] },
+    assignment_title: { type: ['string', 'null'] },
     assignment_link: { type: ['string', 'null'] },
+    assignment_deadline: { type: ['string', 'null'] },
     order: { type: 'integer' },
-    computed_status: { type: 'string', enum: ['hidden', 'upcoming', 'live', 'completed'] },
     attachments: {
       type: 'array',
       items: {
@@ -91,6 +93,10 @@ const enrollmentSchema = {
     enrolled_at: { type: ['string', 'null'] },
     completion_date: { type: ['string', 'null'] },
     next_session: { type: ['string', 'null'] },
+    total_modules: { type: 'integer' },
+    completed_modules: { type: 'integer' },
+    has_certificate: { type: 'boolean' },
+    certificate_url: { type: ['string', 'null'] },
     created_at: { type: 'string', format: 'date-time' },
     cohort: {
       type: ['object', 'null'],
@@ -125,6 +131,7 @@ const certificateSchema = {
     student_name: { type: 'string' },
     academy_title: { type: 'string' },
     cohort_name: { type: 'string' },
+    grades_transcript: { type: ['object', 'null'] },
     issued_at: { type: 'string', format: 'date-time' },
     file_url: { type: ['string', 'null'] },
   },
@@ -137,7 +144,7 @@ export const getUserCohortsSchema = {
     type: 'object',
     properties: {
       academy_id: { type: 'integer' },
-      status: { type: 'string', enum: ['not_started', 'on_going', 'completed', 'cancelled'] },
+      status: { type: 'string', enum: ['not_started', 'ongoing', 'completed'] },
       page: { type: 'integer', minimum: 1, default: 1 },
       limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
     },
@@ -288,6 +295,37 @@ export const downloadCertificateSchema = {
     type: 'object',
     required: ['id'],
     properties: { id: { type: 'integer' } },
+  },
+};
+
+const upcomingSessionItemSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'integer' },
+    type: { type: 'string', enum: ['session', 'assignment'] },
+    title: { type: 'string' },
+    link: { type: 'string' },
+    cohort_id: { type: 'integer' },
+    session_start_time: { type: ['string', 'null'], format: 'date-time' },
+    session_end_time: { type: ['string', 'null'], format: 'date-time' },
+    assignment_deadline: { type: ['string', 'null'], format: 'date-time' },
+  },
+};
+
+export const getUpcomingSessionsSchema = {
+  tags: ['User - Cohorts'],
+  summary: 'Get upcoming sessions and assignments across all active enrollments',
+  security: [{ bearerAuth: [] }],
+  querystring: {
+    type: 'object',
+    properties: {
+      limit: { type: 'integer', minimum: 1, maximum: 20, default: 7 },
+    },
+  },
+  response: {
+    200: createSuccessResponseSchema({ type: 'array', items: upcomingSessionItemSchema }, 'Upcoming sessions list'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
 

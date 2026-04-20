@@ -253,6 +253,12 @@ export class UserService {
         accountData.avatar = null;
       }
 
+      // Strip empty strings for optional fields so Prisma doesn't try to assign '' to enum/nullable columns
+      const OPTIONAL_FIELDS = ['phone', 'gender', 'country', 'province', 'city', 'last_education', 'current_job', 'current_company'];
+      for (const field of OPTIONAL_FIELDS) {
+        if (accountData[field] === '') delete accountData[field];
+      }
+
       if (accountData.email) {
         const existingUser = await userRepository.findByEmail(accountData.email);
         if (existingUser && existingUser.id !== userId) {

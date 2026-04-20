@@ -271,7 +271,7 @@ describe('AdminCohortService', () => {
   // ============================================================
   describe('generateCertificates()', () => {
     it('should throw 400 when cohort is not completed', async () => {
-      mockCohortRepository.findByIdWithDetails.mockResolvedValue({ id: 1, status: 'on_going', academy_id: 2 });
+      mockCohortRepository.findByIdWithDetails.mockResolvedValue({ id: 1, status: 'ongoing', academy_id: 2 });
 
       await expect(adminCohortService.generateCertificates(1)).rejects.toMatchObject({
         message: 'Certificates can only be generated when cohort status is completed',

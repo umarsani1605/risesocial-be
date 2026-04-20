@@ -21,7 +21,7 @@ import {
   createMentorSchema,
   updateMentorSchema,
   deleteMentorSchema,
-  generateCertificatesSchema,
+  generateCertificateSchema,
 } from '../../schemas/admin/cohortSchemas.js';
 
 export default async function adminCohortRoutes(fastify) {
@@ -53,5 +53,5 @@ export default async function adminCohortRoutes(fastify) {
   fastify.delete('/:id/mentors/:mentorId', { schema: deleteMentorSchema, handler: adminCohortController.deleteMentor });
 
   // --- Certificate generation ---
-  fastify.post('/:id/certificates/generate', { schema: generateCertificatesSchema, handler: adminCohortController.generateCertificates });
+  fastify.post('/:id/enrollments/:enrollmentId/certificate', { schema: generateCertificateSchema, handler: adminCohortController.generateCertificate });
 }
