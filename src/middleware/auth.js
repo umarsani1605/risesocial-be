@@ -42,6 +42,15 @@ export async function optionalAuthMiddleware(request, reply) {
   }
 }
 
+export async function adminMiddleware(request, reply) {
+  await authMiddleware(request, reply);
+  if (reply.sent) return;
+  const role = request.user?.role;
+  if (!['ADMIN', 'SUPERADMIN'].includes(role)) {
+    return reply.status(403).send(errorResponse('Forbidden', 403));
+  }
+}
+
 export function authorizeRoles(requiredRoles) {
   return async (request, reply) => {
     try {
@@ -54,6 +63,12 @@ export function authorizeRoles(requiredRoles) {
 
       const userRole = request.user.role;
       request.log.debug({ userRole, requiredRoles }, '[authorizeRoles] checking');
+
+      // SUPERADMIN bypasses all role restrictions
+      if (userRole === 'SUPERADMIN') {
+        request.log.info('[authorizeRoles] superadmin bypass');
+        return;
+      }
 
       if (!requiredRoles.includes(userRole)) {
         request.log.warn({ userRole, requiredRoles }, '[authorizeRoles] insufficient permissions');
