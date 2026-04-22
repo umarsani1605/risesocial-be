@@ -11,6 +11,7 @@ import { seedJobs } from './seeders/04-jobs.js';
 import { seedRyls } from './seeders/05-ryls.js';
 import { seedPayments } from './seeders/06-payments.js';
 import { seedTestimonials } from './seeders/07-testimonials.js';
+import { seedPermissions } from './seeders/08-permissions.js';
 import { logSummary, logTestCredentials, logClear } from './utils/logger.js';
 
 const prisma = new PrismaClient();
@@ -81,6 +82,8 @@ async function clearAllData(prisma) {
   await prisma.academy.deleteMany({});
 
   await prisma.fileUpload.deleteMany({});
+  await prisma.userAdminPermission.deleteMany({});
+  await prisma.adminPermission.deleteMany({});
   await prisma.userSetting.deleteMany({});
   await prisma.systemSetting.deleteMany({});
   await prisma.user.deleteMany({});
@@ -149,12 +152,22 @@ async function main(options = {}) {
       Object.assign(summary, stats);
     }
 
+    if (!domain || domain === 'permissions') {
+      const stats = await seedPermissions(prisma);
+      Object.assign(summary, stats);
+    }
+
     // Log summary
     const duration = Date.now() - startTime;
     logSummary(summary, duration);
 
     // Log test credentials
     logTestCredentials([
+      { role: 'Superadmin', email: 'superadmin@risesocial.org', password: 'password' },
+      { role: 'Admin (academy+cohort)', email: 'admin.academy@risesocial.org', password: 'password' },
+      { role: 'Admin (finance)', email: 'admin.finance@risesocial.org', password: 'password' },
+      { role: 'Admin (jobs viewer)', email: 'admin.jobs@risesocial.org', password: 'password' },
+      { role: 'Admin (full viewer)', email: 'admin.viewer@risesocial.org', password: 'password' },
       { role: 'Admin', email: 'admin@risesocial.org', password: 'password' },
       { role: 'User', email: 'user@risesocial.org', password: 'password' },
     ]);
