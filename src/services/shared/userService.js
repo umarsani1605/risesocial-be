@@ -16,6 +16,77 @@ export class UserService {
     return getLogger();
   }
 
+  async exportAllForExcel(params = {}) {
+    this.logger.info('[userService] exportAllForExcel start');
+    try {
+      const result = await userRepository.findManyWithPagination({ ...params, limit: 10000 });
+      result.data = result.data.map((user) => this.excludePassword(user));
+      this.logger.info('[userService] exportAllForExcel success');
+      return result.data;
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] exportAllForExcel error');
+      throw error;
+    }
+  }
+
+  async generateExcelFile(users) {
+    this.logger.info('[userService] generateExcelFile start');
+    try {
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.utils.book_new();
+      const sheetData = this._prepareSheetData(users);
+      const sheet = XLSX.utils.aoa_to_sheet(sheetData);
+      sheet['!cols'] = this._calculateColumnWidths(sheetData);
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Users');
+      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      this.logger.info('[userService] generateExcelFile success');
+      return buffer;
+    } catch (error) {
+      this.logger.error({ err: error }, '[userService] generateExcelFile error');
+      throw new Error('Failed to generate Excel file');
+    }
+  }
+
+  _prepareSheetData(users) {
+    const headers = ['ID', 'Username', 'First Name', 'Last Name', 'Email', 'Phone', 'Role', 'Gender', 'Country', 'Province', 'City', 'Last Education', 'Current Job', 'Current Company', 'Created At'];
+    const rows = [headers];
+    users.forEach((user) => {
+      rows.push([
+        user.id,
+        user.username || '',
+        user.first_name || '',
+        user.last_name || '',
+        user.email || '',
+        user.phone || '',
+        user.role || '',
+        user.gender || '',
+        user.country || '',
+        user.province || '',
+        user.city || '',
+        user.last_education || '',
+        user.current_job || '',
+        user.current_company || '',
+        user.created_at ? new Date(user.created_at).toLocaleString() : '',
+      ]);
+    });
+    return rows;
+  }
+
+  _calculateColumnWidths(sheetData) {
+    if (!sheetData?.length) return [];
+    const numColumns = sheetData[0].length;
+    const columnWidths = [];
+    for (let col = 0; col < numColumns; col++) {
+      let maxWidth = 0;
+      for (const row of sheetData) {
+        if (row?.[col]) maxWidth = Math.max(maxWidth, String(row[col]).length);
+      }
+      const optimalWidth = Math.min(Math.max(maxWidth + 2, 8), 50);
+      columnWidths.push({ width: optimalWidth, wch: optimalWidth });
+    }
+    return columnWidths;
+  }
+
   async getAllUsers(options = {}) {
     this.logger.info('[userService] getAllUsers start');
     try {

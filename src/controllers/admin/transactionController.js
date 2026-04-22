@@ -13,6 +13,23 @@ export class AdminTransactionController {
     }
   };
 
+  exportTransactionsExcel = async (request, reply) => {
+    try {
+      request.log.info('[adminTransactionController] exportTransactionsExcel start');
+      const result = await adminTransactionService.exportAllForExcel(request.query);
+      const buffer = await adminTransactionService.generateExcelFile(result.data);
+      const filename = `transactions-${new Date().toISOString().split('T')[0]}.xlsx`;
+      reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+      reply.header('Content-Length', buffer.length);
+      request.log.info('[adminTransactionController] exportTransactionsExcel success');
+      return reply.send(buffer);
+    } catch (error) {
+      request.log.error({ err: error }, '[adminTransactionController] exportTransactionsExcel error');
+      return reply.status(500).send(errorResponse('Failed to export transactions', 500, error.message));
+    }
+  };
+
   getTransactionById = async (request, reply) => {
     try {
       request.log.info('[adminTransactionController] getTransactionById start');

@@ -6,6 +6,14 @@ export default async function adminUserRoutes(fastify) {
 
   fastify.addHook('preHandler', authMiddleware);
 
+  fastify.get('/export-excel', {
+    schema: {
+      ...userTag,
+      description: 'Export users to Excel (Admin only)',
+    },
+    handler: adminUserController.exportUsersExcel,
+  });
+
   fastify.get(
     '/',
     {

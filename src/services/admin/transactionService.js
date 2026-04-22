@@ -15,6 +15,77 @@ export class AdminTransactionService {
     return await this.repository.findAll(params);
   }
 
+  async exportAllForExcel(params = {}) {
+    this.logger.info('[adminTransactionService] exportAllForExcel start');
+    return await this.repository.findAll({ ...params, page: 1, limit: 10000 });
+  }
+
+  async generateExcelFile(transactions) {
+    this.logger.info('[adminTransactionService] generateExcelFile start');
+    try {
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.utils.book_new();
+      const sheetData = this._prepareSheetData(transactions);
+      const sheet = XLSX.utils.aoa_to_sheet(sheetData);
+      sheet['!cols'] = this._calculateColumnWidths(sheetData);
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Transactions');
+      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      this.logger.info('[adminTransactionService] generateExcelFile success');
+      return buffer;
+    } catch (error) {
+      this.logger.error({ err: error }, '[adminTransactionService] generateExcelFile error');
+      throw new Error('Failed to generate Excel file');
+    }
+  }
+
+  _formatProduct(productType, productName) {
+    const type = (productType || '').toLowerCase();
+    if (type === 'academy_enrollment') {
+      return productName ? `Academy Enrollment - ${productName}` : 'Academy Enrollment';
+    }
+    if (type === 'ryls_registration' || type === 'ryls') {
+      return 'RYLS Registration';
+    }
+    return productName || productType || '';
+  }
+
+  _prepareSheetData(transactions) {
+    const headers = ['ID', 'Transaction Code', 'Customer Name', 'Customer Email', 'Customer Phone', 'Product', 'Amount', 'Currency', 'Status', 'Provider', 'Payment Method', 'Created At'];
+    const rows = [headers];
+    transactions.forEach((tx) => {
+      rows.push([
+        tx.id,
+        tx.transaction_code || '',
+        tx.customer_name || '',
+        tx.customer_email || '',
+        tx.customer_phone || '',
+        this._formatProduct(tx.product_type, tx.product_name),
+        tx.amount ?? '',
+        tx.currency || '',
+        tx.status || '',
+        tx.provider || '',
+        tx.payment_method || '',
+        tx.created_at ? new Date(tx.created_at).toLocaleString() : '',
+      ]);
+    });
+    return rows;
+  }
+
+  _calculateColumnWidths(sheetData) {
+    if (!sheetData?.length) return [];
+    const numColumns = sheetData[0].length;
+    const columnWidths = [];
+    for (let col = 0; col < numColumns; col++) {
+      let maxWidth = 0;
+      for (const row of sheetData) {
+        if (row?.[col]) maxWidth = Math.max(maxWidth, String(row[col]).length);
+      }
+      const optimalWidth = Math.min(Math.max(maxWidth + 2, 8), 50);
+      columnWidths.push({ width: optimalWidth, wch: optimalWidth });
+    }
+    return columnWidths;
+  }
+
   async getTransactionById(id) {
     this.logger.info({ id }, '[adminTransactionService] getTransactionById start');
 

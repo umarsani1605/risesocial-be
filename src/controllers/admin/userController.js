@@ -2,6 +2,23 @@ import { userService } from '../../services/shared/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AdminUserController {
+  exportUsersExcel = async (request, reply) => {
+    try {
+      request.log.info('[adminUserController] exportUsersExcel start');
+      const users = await userService.exportAllForExcel(request.query);
+      const buffer = await userService.generateExcelFile(users);
+      const filename = `users-${new Date().toISOString().split('T')[0]}.xlsx`;
+      reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+      reply.header('Content-Length', buffer.length);
+      request.log.info('[adminUserController] exportUsersExcel success');
+      return reply.send(buffer);
+    } catch (error) {
+      request.log.error({ err: error }, '[adminUserController] exportUsersExcel error');
+      return reply.status(500).send(errorResponse('Failed to export users', 500, error.message));
+    }
+  };
+
   getAllUsers = async (request, reply) => {
     try {
       request.log.info('[adminUserController] getAllUsers start');
