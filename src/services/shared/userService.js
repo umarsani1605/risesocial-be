@@ -4,6 +4,7 @@ import { userSettingsRepository } from '../../repositories/shared/userSettingsRe
 import { fileUploadService } from './fileUploadService.js';
 import { generateToken } from '../../utils/jwt.js';
 import { getLogger } from '../../utils/loggerContext.js';
+import prisma from '../../config/database.js';
 
 export class UserService {
   constructor() {
@@ -170,6 +171,14 @@ export class UserService {
     this.logger.info('[userService] deleteUser success');
   }
 
+  async _fetchPermissions(userId) {
+    const rows = await prisma.userAdminPermission.findMany({
+      where: { user_id: userId },
+      select: { permission_key: true, access_level: true },
+    });
+    return rows.map((r) => ({ key: r.permission_key, access_level: r.access_level }));
+  }
+
   async login(email, password, rememberMe = false, server) {
     this.logger.info('[userService] login start');
     const user = await userRepository.findByEmail(email);
@@ -187,9 +196,15 @@ export class UserService {
     }
 
     const token = generateToken(server, user, rememberMe);
+    const safeUser = this.excludePassword(user);
+
+    if (user.role === 'ADMIN') {
+      safeUser.permissions = await this._fetchPermissions(user.id);
+    }
+
     this.logger.info('[userService] login success');
     return {
-      user: this.excludePassword(user),
+      user: safeUser,
       token,
       expiresIn: rememberMe ? '30 days' : '1 day',
     };
@@ -234,8 +249,14 @@ export class UserService {
     this.logger.info('[userService] getCurrentUser start');
     const user = await userRepository.findById(userId);
     if (!user) throw new Error('User not found');
+    const safeUser = this.excludePassword(user);
+
+    if (user.role === 'ADMIN') {
+      safeUser.permissions = await this._fetchPermissions(userId);
+    }
+
     this.logger.info('[userService] getCurrentUser success');
-    return this.excludePassword(user);
+    return safeUser;
   }
 
   async getUserSettings(userId) {
