@@ -7,3 +7,4 @@ export { default as jobs } from './jobsRoutes.js';
 export { default as testimonials } from './testimonialsRoutes.js';
 export { default as cohort } from './cohortRoutes.js';
 export { default as transaction } from './transactionRoutes.js';
+export { default as permission } from './permissionRoutes.js';

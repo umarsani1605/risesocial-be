@@ -1,5 +1,11 @@
 import { adminUserController } from '../../controllers/admin/userController.js';
-import { authMiddleware } from '../../middleware/auth.js';
+import { adminPermissionController } from '../../controllers/admin/permissionController.js';
+import { authMiddleware, authorizeRoles } from '../../middleware/auth.js';
+import {
+  getUserPermissionsSchema,
+  setUserPermissionsSchema,
+  deleteUserPermissionSchema,
+} from '../../schemas/admin/permissionSchemas.js';
 
 export default async function adminUserRoutes(fastify) {
   const userTag = { tags: ['Admin Users'] };
@@ -219,4 +225,25 @@ export default async function adminUserRoutes(fastify) {
     },
     adminUserController.deleteUser
   );
+
+  const superadminOnly = [authMiddleware, authorizeRoles(['SUPERADMIN'])];
+
+  // --- Permission management (SUPERADMIN only) ---
+  fastify.get('/:id/permissions', {
+    schema: getUserPermissionsSchema,
+    preHandler: superadminOnly,
+    handler: adminPermissionController.getUserPermissions,
+  });
+
+  fastify.put('/:id/permissions', {
+    schema: setUserPermissionsSchema,
+    preHandler: superadminOnly,
+    handler: adminPermissionController.setUserPermissions,
+  });
+
+  fastify.delete('/:id/permissions/:key', {
+    schema: deleteUserPermissionSchema,
+    preHandler: superadminOnly,
+    handler: adminPermissionController.deleteUserPermission,
+  });
 }
