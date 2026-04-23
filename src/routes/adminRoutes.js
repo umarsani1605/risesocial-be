@@ -1,9 +1,10 @@
 import { adminController } from '../controllers/adminController.js';
+import { adminMiddleware } from '../middleware/auth.js';
 import { createUploadMiddleware } from '../middleware/uploadMiddleware.js';
 
 export default async function adminRoutes(fastify) {
   fastify.post('/uploads/image', {
-    preHandler: [createUploadMiddleware('academy_image')],
+    preHandler: [adminMiddleware, createUploadMiddleware('academy_image')],
     handler: adminController.uploadImage.bind(adminController),
     schema: {
       description: 'Upload image for academy, instructor, or testimonial',

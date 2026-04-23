@@ -1,6 +1,7 @@
 import { adminUserController } from '../../controllers/admin/userController.js';
 import { adminPermissionController } from '../../controllers/admin/permissionController.js';
-import { authMiddleware, authorizeRoles } from '../../middleware/auth.js';
+import { adminMiddleware, authorizeRoles } from '../../middleware/auth.js';
+import { requirePermission } from '../../middleware/permissionMiddleware.js';
 import {
   getUserPermissionsSchema,
   setUserPermissionsSchema,
@@ -10,13 +11,11 @@ import {
 export default async function adminUserRoutes(fastify) {
   const userTag = { tags: ['Admin Users'] };
 
-  fastify.addHook('preHandler', authMiddleware);
+  fastify.addHook('preHandler', adminMiddleware);
 
   fastify.get('/export-excel', {
-    schema: {
-      ...userTag,
-      description: 'Export users to Excel (Admin only)',
-    },
+    schema: { ...userTag, description: 'Export users to Excel (Admin only)' },
+    preHandler: requirePermission('admin.users'),
     handler: adminUserController.exportUsersExcel,
   });
 
@@ -52,7 +51,7 @@ export default async function adminUserRoutes(fastify) {
           },
         },
       },
-      preHandler: authMiddleware,
+      preHandler: requirePermission('admin.users'),
     },
     adminUserController.getAllUsers
   );
@@ -65,32 +64,15 @@ export default async function adminUserRoutes(fastify) {
         description: 'Get user by ID (Admin only)',
         params: {
           type: 'object',
-          properties: {
-            id: { type: 'integer', minimum: 1 },
-          },
+          properties: { id: { type: 'integer', minimum: 1 } },
           required: ['id'],
         },
         response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-          404: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              timestamp: { type: 'string' },
-            },
-          },
+          200: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, data: { type: 'object' }, timestamp: { type: 'string' } } },
+          404: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, timestamp: { type: 'string' } } },
         },
       },
-      preHandler: authMiddleware,
+      preHandler: requirePermission('admin.users'),
     },
     adminUserController.getUserById
   );
@@ -114,26 +96,11 @@ export default async function adminUserRoutes(fastify) {
           },
         },
         response: {
-          201: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-          400: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              timestamp: { type: 'string' },
-            },
-          },
+          201: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, data: { type: 'object' }, timestamp: { type: 'string' } } },
+          400: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, timestamp: { type: 'string' } } },
         },
       },
-      preHandler: authMiddleware,
+      preHandler: requirePermission('admin.users', 'EDITOR'),
     },
     adminUserController.createUser
   );
@@ -146,9 +113,7 @@ export default async function adminUserRoutes(fastify) {
         description: 'Update user by ID (Admin only)',
         params: {
           type: 'object',
-          properties: {
-            id: { type: 'integer', minimum: 1 },
-          },
+          properties: { id: { type: 'integer', minimum: 1 } },
           required: ['id'],
         },
         body: {
@@ -164,26 +129,11 @@ export default async function adminUserRoutes(fastify) {
           },
         },
         response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-          404: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              timestamp: { type: 'string' },
-            },
-          },
+          200: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, data: { type: 'object' }, timestamp: { type: 'string' } } },
+          404: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, timestamp: { type: 'string' } } },
         },
       },
-      preHandler: authMiddleware,
+      preHandler: requirePermission('admin.users', 'EDITOR'),
     },
     adminUserController.updateUser
   );
@@ -196,54 +146,36 @@ export default async function adminUserRoutes(fastify) {
         description: 'Delete user by ID (Admin only)',
         params: {
           type: 'object',
-          properties: {
-            id: { type: 'integer', minimum: 1 },
-          },
+          properties: { id: { type: 'integer', minimum: 1 } },
           required: ['id'],
         },
         response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              data: { type: 'null' },
-              timestamp: { type: 'string' },
-            },
-          },
-          404: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              message: { type: 'string' },
-              timestamp: { type: 'string' },
-            },
-          },
+          200: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, data: { type: 'null' }, timestamp: { type: 'string' } } },
+          404: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, timestamp: { type: 'string' } } },
         },
       },
-      preHandler: authMiddleware,
+      preHandler: requirePermission('admin.users', 'EDITOR'),
     },
     adminUserController.deleteUser
   );
 
-  const superadminOnly = [authMiddleware, authorizeRoles(['SUPERADMIN'])];
-
   // --- Permission management (SUPERADMIN only) ---
+  // Global adminMiddleware hook already handles auth; authorizeRoles adds role restriction
   fastify.get('/:id/permissions', {
     schema: getUserPermissionsSchema,
-    preHandler: superadminOnly,
+    preHandler: authorizeRoles(['SUPERADMIN']),
     handler: adminPermissionController.getUserPermissions,
   });
 
   fastify.put('/:id/permissions', {
     schema: setUserPermissionsSchema,
-    preHandler: superadminOnly,
+    preHandler: authorizeRoles(['SUPERADMIN']),
     handler: adminPermissionController.setUserPermissions,
   });
 
   fastify.delete('/:id/permissions/:key', {
     schema: deleteUserPermissionSchema,
-    preHandler: superadminOnly,
+    preHandler: authorizeRoles(['SUPERADMIN']),
     handler: adminPermissionController.deleteUserPermission,
   });
 }

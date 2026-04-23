@@ -1,15 +1,15 @@
 import { adminRylsRegistrationController } from '../../controllers/admin/rylsRegistrationController.js';
-import { authMiddleware } from '../../middleware/auth.js';
-// Schemas imported but not individually used (inline schemas defined per-route)
+import { adminMiddleware } from '../../middleware/auth.js';
+import { requirePermission } from '../../middleware/permissionMiddleware.js';
 
 export default async function adminRylsRegistrationRoutes(fastify) {
-  const adminRegistrationTag = { tags: ['Admin RYLS Registration'] };
+  const tag = { tags: ['Admin RYLS Registration'] };
 
-  fastify.addHook('preHandler', authMiddleware);
+  fastify.addHook('preHandler', adminMiddleware);
 
   fastify.get('/', {
     schema: {
-      ...adminRegistrationTag,
+      ...tag,
       description: 'Get all registrations (Admin only)',
       querystring: {
         type: 'object',
@@ -21,20 +21,19 @@ export default async function adminRylsRegistrationRoutes(fastify) {
         },
       },
     },
+    preHandler: requirePermission('admin.ryls'),
     handler: adminRylsRegistrationController.getRegistrations,
   });
 
   fastify.get('/stats', {
-    schema: {
-      ...adminRegistrationTag,
-      description: 'Get registration statistics (Admin only)',
-    },
+    schema: { ...tag, description: 'Get registration statistics (Admin only)' },
+    preHandler: requirePermission('admin.ryls'),
     handler: adminRylsRegistrationController.getRegistrationStatistics,
   });
 
   fastify.get('/date-range', {
     schema: {
-      ...adminRegistrationTag,
+      ...tag,
       description: 'Get registrations by date range (Admin only)',
       querystring: {
         type: 'object',
@@ -44,52 +43,39 @@ export default async function adminRylsRegistrationRoutes(fastify) {
         },
       },
     },
+    preHandler: requirePermission('admin.ryls'),
     handler: adminRylsRegistrationController.getRegistrationsByDateRange,
   });
 
   fastify.get('/export', {
-    schema: {
-      ...adminRegistrationTag,
-      description: 'Export registrations (Admin only)',
-    },
+    schema: { ...tag, description: 'Export registrations (Admin only)' },
+    preHandler: requirePermission('admin.ryls'),
     handler: adminRylsRegistrationController.exportRegistrations,
   });
 
   fastify.get('/export-excel', {
-    schema: {
-      ...adminRegistrationTag,
-      description: 'Export registrations to Excel (Admin only)',
-    },
+    schema: { ...tag, description: 'Export registrations to Excel (Admin only)' },
+    preHandler: requirePermission('admin.ryls'),
     handler: adminRylsRegistrationController.exportRegistrationsExcel,
   });
 
   fastify.get('/:id', {
     schema: {
-      ...adminRegistrationTag,
+      ...tag,
       description: 'Get registration by ID (Admin only)',
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'integer', minimum: 1 },
-        },
-        required: ['id'],
-      },
+      params: { type: 'object', properties: { id: { type: 'integer', minimum: 1 } }, required: ['id'] },
     },
+    preHandler: requirePermission('admin.ryls'),
     handler: adminRylsRegistrationController.getRegistrationById,
   });
 
   fastify.delete('/:id', {
     schema: {
-      ...adminRegistrationTag,
+      ...tag,
       description: 'Delete registration (Admin only)',
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'integer', minimum: 1 },
-        },
-        required: ['id'],
-      },
+      params: { type: 'object', properties: { id: { type: 'integer', minimum: 1 } }, required: ['id'] },
     },
+    preHandler: requirePermission('admin.ryls', 'EDITOR'),
     handler: adminRylsRegistrationController.deleteRegistration,
   });
 }

@@ -1,9 +1,7 @@
 import { adminAcademyController } from '../../controllers/admin/academyController.js';
-import { authMiddleware } from '../../middleware/auth.js';
+import { adminMiddleware } from '../../middleware/auth.js';
+import { requirePermission } from '../../middleware/permissionMiddleware.js';
 import { createUploadMiddleware } from '../../middleware/uploadMiddleware.js';
-
-const uploadAcademyImage = createUploadMiddleware('academy_image');
-const uploadInstructorAvatar = createUploadMiddleware('instructor_avatar');
 import {
   getAdminAcademiesSchema,
   getAdminAcademyBySlugSchema,
@@ -40,182 +38,61 @@ import {
   deleteFaqSchema,
 } from '../../schemas/shared/academySchemas.js';
 
+const uploadAcademyImage = createUploadMiddleware('academy_image');
+const uploadInstructorAvatar = createUploadMiddleware('instructor_avatar');
+
+const VIEW = requirePermission('admin.academy');
+const EDIT = requirePermission('admin.academy', 'EDITOR');
+
 export default async function adminAcademyRoutes(fastify) {
-  fastify.get('/', {
-    schema: getAdminAcademiesSchema,
-    handler: adminAcademyController.getAllAcademies,
-  });
+  fastify.addHook('preHandler', adminMiddleware);
 
-  fastify.get('/:slug', {
-    schema: getAdminAcademyBySlugSchema,
-    handler: adminAcademyController.getAcademyBySlug,
-  });
+  // Academy CRUD
+  fastify.get('/', { schema: getAdminAcademiesSchema, preHandler: VIEW, handler: adminAcademyController.getAllAcademies });
+  fastify.get('/:slug', { schema: getAdminAcademyBySlugSchema, preHandler: VIEW, handler: adminAcademyController.getAcademyBySlug });
+  fastify.post('/', { schema: createAcademySchema, preValidation: [uploadAcademyImage], preHandler: EDIT, handler: adminAcademyController.createAcademy });
+  fastify.put('/:id', { schema: updateAcademySchema, preValidation: [uploadAcademyImage], preHandler: EDIT, handler: adminAcademyController.updateAcademy });
+  fastify.delete('/:id', { schema: deleteAcademySchema, preHandler: EDIT, handler: adminAcademyController.deleteAcademy });
 
-  fastify.post('/', {
-    schema: createAcademySchema,
-    preValidation: [uploadAcademyImage],
-    handler: adminAcademyController.createAcademy,
-  });
+  // Pricing
+  fastify.get('/:id/pricing', { schema: getAcademyPricingsSchema, preHandler: VIEW, handler: adminAcademyController.getPricings });
+  fastify.post('/:id/pricing', { schema: createPricingSchema, preHandler: EDIT, handler: adminAcademyController.createPricing });
+  fastify.put('/:id/pricing/:pricingId', { schema: updatePricingSchema, preHandler: EDIT, handler: adminAcademyController.updatePricing });
+  fastify.delete('/:id/pricing/:pricingId', { schema: deletePricingSchema, preHandler: EDIT, handler: adminAcademyController.deletePricing });
 
-  fastify.put('/:id', {
-    schema: updateAcademySchema,
-    preValidation: [uploadAcademyImage],
-    handler: adminAcademyController.updateAcademy,
-  });
+  // Features
+  fastify.get('/:id/features', { schema: getAcademyFeaturesSchema, preHandler: VIEW, handler: adminAcademyController.getFeatures });
+  fastify.post('/:id/features', { schema: createFeatureSchema, preHandler: EDIT, handler: adminAcademyController.createFeature });
+  fastify.put('/:id/features/:featureId', { schema: updateFeatureSchema, preHandler: EDIT, handler: adminAcademyController.updateFeature });
+  fastify.delete('/:id/features/:featureId', { schema: deleteFeatureSchema, preHandler: EDIT, handler: adminAcademyController.deleteFeature });
 
-  fastify.delete('/:id', {
-    schema: deleteAcademySchema,
-    handler: adminAcademyController.deleteAcademy,
-  });
+  // Instructors
+  fastify.get('/:id/instructors', { schema: getAcademyInstructorsSchema, preHandler: VIEW, handler: adminAcademyController.getInstructors });
+  fastify.post('/:id/instructors', { schema: createInstructorSchema, preValidation: [uploadInstructorAvatar], preHandler: EDIT, handler: adminAcademyController.createInstructor });
+  fastify.put('/:id/instructors/:instructorId', { schema: updateInstructorSchema, preValidation: [uploadInstructorAvatar], preHandler: EDIT, handler: adminAcademyController.updateInstructor });
+  fastify.delete('/:id/instructors/:instructorId', { schema: deleteInstructorSchema, preHandler: EDIT, handler: adminAcademyController.deleteInstructor });
 
-  // Pricing routes
-  fastify.get('/:id/pricing', {
-    schema: getAcademyPricingsSchema,
-    handler: adminAcademyController.getPricings,
-  });
+  // Themes (Level 1 curriculum)
+  fastify.get('/:id/themes', { schema: getAcademyThemesSchema, preHandler: VIEW, handler: adminAcademyController.getThemes });
+  fastify.post('/:id/themes', { schema: createThemeSchema, preHandler: EDIT, handler: adminAcademyController.createTheme });
+  fastify.put('/:id/themes/:themeId', { schema: updateThemeSchema, preHandler: EDIT, handler: adminAcademyController.updateTheme });
+  fastify.delete('/:id/themes/:themeId', { schema: deleteThemeSchema, preHandler: EDIT, handler: adminAcademyController.deleteTheme });
 
-  fastify.post('/:id/pricing', {
-    schema: createPricingSchema,
-    handler: adminAcademyController.createPricing,
-  });
+  // Topics (Level 2 curriculum)
+  fastify.get('/:id/topics', { schema: getAcademyTopicsSchema, preHandler: VIEW, handler: adminAcademyController.getTopics });
+  fastify.post('/:id/topics', { schema: createTopicSchema, preHandler: EDIT, handler: adminAcademyController.createTopic });
+  fastify.put('/:id/topics/:topicId', { schema: updateTopicSchema, preHandler: EDIT, handler: adminAcademyController.updateTopic });
+  fastify.delete('/:id/topics/:topicId', { schema: deleteTopicSchema, preHandler: EDIT, handler: adminAcademyController.deleteTopic });
 
-  fastify.put('/:id/pricing/:pricingId', {
-    schema: updatePricingSchema,
-    handler: adminAcademyController.updatePricing,
-  });
+  // Testimonials
+  fastify.get('/:id/testimonials', { schema: getAcademyTestimonialsSchema, preHandler: VIEW, handler: adminAcademyController.getTestimonials });
+  fastify.post('/:id/testimonials', { schema: createTestimonialSchema, preValidation: [uploadAcademyImage], preHandler: EDIT, handler: adminAcademyController.createTestimonial });
+  fastify.put('/:id/testimonials/:testimonialId', { schema: updateTestimonialSchema, preValidation: [uploadAcademyImage], preHandler: EDIT, handler: adminAcademyController.updateTestimonial });
+  fastify.delete('/:id/testimonials/:testimonialId', { schema: deleteTestimonialSchema, preHandler: EDIT, handler: adminAcademyController.deleteTestimonial });
 
-  fastify.delete('/:id/pricing/:pricingId', {
-    schema: deletePricingSchema,
-    handler: adminAcademyController.deletePricing,
-  });
-
-  // Feature routes
-  fastify.get('/:id/features', {
-    schema: getAcademyFeaturesSchema,
-    handler: adminAcademyController.getFeatures,
-  });
-
-  fastify.post('/:id/features', {
-    schema: createFeatureSchema,
-    handler: adminAcademyController.createFeature,
-  });
-
-  fastify.put('/:id/features/:featureId', {
-    schema: updateFeatureSchema,
-    handler: adminAcademyController.updateFeature,
-  });
-
-  fastify.delete('/:id/features/:featureId', {
-    schema: deleteFeatureSchema,
-    handler: adminAcademyController.deleteFeature,
-  });
-
-  // Instructor routes
-  fastify.get('/:id/instructors', {
-    schema: getAcademyInstructorsSchema,
-    handler: adminAcademyController.getInstructors,
-  });
-
-  fastify.post('/:id/instructors', {
-    schema: createInstructorSchema,
-    preValidation: [uploadInstructorAvatar],
-    handler: adminAcademyController.createInstructor,
-  });
-
-  fastify.put('/:id/instructors/:instructorId', {
-    schema: updateInstructorSchema,
-    preValidation: [uploadInstructorAvatar],
-    handler: adminAcademyController.updateInstructor,
-  });
-
-  fastify.delete('/:id/instructors/:instructorId', {
-    schema: deleteInstructorSchema,
-    handler: adminAcademyController.deleteInstructor,
-  });
-
-  // Theme routes (Level 1 curriculum)
-  fastify.get('/:id/themes', {
-    schema: getAcademyThemesSchema,
-    handler: adminAcademyController.getThemes,
-  });
-
-  fastify.post('/:id/themes', {
-    schema: createThemeSchema,
-    handler: adminAcademyController.createTheme,
-  });
-
-  fastify.put('/:id/themes/:themeId', {
-    schema: updateThemeSchema,
-    handler: adminAcademyController.updateTheme,
-  });
-
-  fastify.delete('/:id/themes/:themeId', {
-    schema: deleteThemeSchema,
-    handler: adminAcademyController.deleteTheme,
-  });
-
-  // Topic routes (Level 2 curriculum, belongs to a theme)
-  fastify.get('/:id/topics', {
-    schema: getAcademyTopicsSchema,
-    handler: adminAcademyController.getTopics,
-  });
-
-  fastify.post('/:id/topics', {
-    schema: createTopicSchema,
-    handler: adminAcademyController.createTopic,
-  });
-
-  fastify.put('/:id/topics/:topicId', {
-    schema: updateTopicSchema,
-    handler: adminAcademyController.updateTopic,
-  });
-
-  fastify.delete('/:id/topics/:topicId', {
-    schema: deleteTopicSchema,
-    handler: adminAcademyController.deleteTopic,
-  });
-
-  // Testimonial routes
-  fastify.get('/:id/testimonials', {
-    schema: getAcademyTestimonialsSchema,
-    handler: adminAcademyController.getTestimonials,
-  });
-
-  fastify.post('/:id/testimonials', {
-    schema: createTestimonialSchema,
-    preValidation: [uploadAcademyImage],
-    handler: adminAcademyController.createTestimonial,
-  });
-
-  fastify.put('/:id/testimonials/:testimonialId', {
-    schema: updateTestimonialSchema,
-    preValidation: [uploadAcademyImage],
-    handler: adminAcademyController.updateTestimonial,
-  });
-
-  fastify.delete('/:id/testimonials/:testimonialId', {
-    schema: deleteTestimonialSchema,
-    handler: adminAcademyController.deleteTestimonial,
-  });
-
-  // FAQ routes
-  fastify.get('/:id/faqs', {
-    schema: getAcademyFaqsSchema,
-    handler: adminAcademyController.getFaqs,
-  });
-
-  fastify.post('/:id/faqs', {
-    schema: createFaqSchema,
-    handler: adminAcademyController.createFaq,
-  });
-
-  fastify.put('/:id/faqs/:faqId', {
-    schema: updateFaqSchema,
-    handler: adminAcademyController.updateFaq,
-  });
-
-  fastify.delete('/:id/faqs/:faqId', {
-    schema: deleteFaqSchema,
-    handler: adminAcademyController.deleteFaq,
-  });
+  // FAQs
+  fastify.get('/:id/faqs', { schema: getAcademyFaqsSchema, preHandler: VIEW, handler: adminAcademyController.getFaqs });
+  fastify.post('/:id/faqs', { schema: createFaqSchema, preHandler: EDIT, handler: adminAcademyController.createFaq });
+  fastify.put('/:id/faqs/:faqId', { schema: updateFaqSchema, preHandler: EDIT, handler: adminAcademyController.updateFaq });
+  fastify.delete('/:id/faqs/:faqId', { schema: deleteFaqSchema, preHandler: EDIT, handler: adminAcademyController.deleteFaq });
 }

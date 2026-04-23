@@ -1,8 +1,7 @@
 import { adminCohortController } from '../../controllers/admin/cohortController.js';
+import { adminMiddleware } from '../../middleware/auth.js';
+import { requirePermission } from '../../middleware/permissionMiddleware.js';
 import { createUploadMiddleware } from '../../middleware/uploadMiddleware.js';
-
-const uploadInstructorAvatar = createUploadMiddleware('instructor_avatar');
-const uploadCohortAttachment = createUploadMiddleware('cohort_attachment');
 import {
   getAdminCohortsSchema,
   getAdminCohortByIdSchema,
@@ -24,34 +23,42 @@ import {
   generateCertificateSchema,
 } from '../../schemas/admin/cohortSchemas.js';
 
+const uploadInstructorAvatar = createUploadMiddleware('instructor_avatar');
+const uploadCohortAttachment = createUploadMiddleware('cohort_attachment');
+
+const VIEW = requirePermission('admin.cohort');
+const EDIT = requirePermission('admin.cohort', 'EDITOR');
+
 export default async function adminCohortRoutes(fastify) {
-  // --- Cohort CRUD ---
-  fastify.get('/', { schema: getAdminCohortsSchema, handler: adminCohortController.getAllCohorts });
-  fastify.get('/:id', { schema: getAdminCohortByIdSchema, handler: adminCohortController.getCohortById });
-  fastify.post('/', { schema: createCohortSchema, handler: adminCohortController.createCohort });
-  fastify.put('/:id', { schema: updateCohortSchema, handler: adminCohortController.updateCohort });
-  fastify.delete('/:id', { schema: deleteCohortSchema, handler: adminCohortController.deleteCohort });
+  fastify.addHook('preHandler', adminMiddleware);
 
-  // --- Module management ---
-  fastify.post('/:id/modules', { schema: createModuleSchema, handler: adminCohortController.createModule });
-  fastify.put('/:id/modules/:moduleId', { schema: updateModuleSchema, handler: adminCohortController.updateModule });
-  fastify.delete('/:id/modules/:moduleId', { schema: deleteModuleSchema, handler: adminCohortController.deleteModule });
+  // Cohort CRUD
+  fastify.get('/', { schema: getAdminCohortsSchema, preHandler: VIEW, handler: adminCohortController.getAllCohorts });
+  fastify.get('/:id', { schema: getAdminCohortByIdSchema, preHandler: VIEW, handler: adminCohortController.getCohortById });
+  fastify.post('/', { schema: createCohortSchema, preHandler: EDIT, handler: adminCohortController.createCohort });
+  fastify.put('/:id', { schema: updateCohortSchema, preHandler: EDIT, handler: adminCohortController.updateCohort });
+  fastify.delete('/:id', { schema: deleteCohortSchema, preHandler: EDIT, handler: adminCohortController.deleteCohort });
 
-  // --- Attachment management ---
-  fastify.post('/:id/modules/:moduleId/attachments', { schema: createAttachmentSchema, preHandler: [uploadCohortAttachment], handler: adminCohortController.createAttachment });
-  fastify.put('/:id/modules/:moduleId/attachments/:attachmentId', { schema: updateAttachmentSchema, handler: adminCohortController.updateAttachment });
-  fastify.delete('/:id/modules/:moduleId/attachments/:attachmentId', { schema: deleteAttachmentSchema, handler: adminCohortController.deleteAttachment });
+  // Modules
+  fastify.post('/:id/modules', { schema: createModuleSchema, preHandler: EDIT, handler: adminCohortController.createModule });
+  fastify.put('/:id/modules/:moduleId', { schema: updateModuleSchema, preHandler: EDIT, handler: adminCohortController.updateModule });
+  fastify.delete('/:id/modules/:moduleId', { schema: deleteModuleSchema, preHandler: EDIT, handler: adminCohortController.deleteModule });
 
-  // --- Enrollment management ---
-  fastify.get('/:id/enrollments', { schema: getEnrollmentsSchema, handler: adminCohortController.getEnrollments });
-  fastify.post('/:id/enrollments', { schema: manualEnrollSchema, handler: adminCohortController.manualEnroll });
-  fastify.put('/:id/enrollments/:enrollmentId', { schema: updateEnrollmentSchema, handler: adminCohortController.updateEnrollment });
+  // Attachments (permission check runs before upload processing)
+  fastify.post('/:id/modules/:moduleId/attachments', { schema: createAttachmentSchema, preHandler: [EDIT, uploadCohortAttachment], handler: adminCohortController.createAttachment });
+  fastify.put('/:id/modules/:moduleId/attachments/:attachmentId', { schema: updateAttachmentSchema, preHandler: EDIT, handler: adminCohortController.updateAttachment });
+  fastify.delete('/:id/modules/:moduleId/attachments/:attachmentId', { schema: deleteAttachmentSchema, preHandler: EDIT, handler: adminCohortController.deleteAttachment });
 
-  // --- Mentor management ---
-  fastify.post('/:id/mentors', { schema: createMentorSchema, preHandler: [uploadInstructorAvatar], handler: adminCohortController.createMentor });
-  fastify.put('/:id/mentors/:mentorId', { schema: updateMentorSchema, preHandler: [uploadInstructorAvatar], handler: adminCohortController.updateMentor });
-  fastify.delete('/:id/mentors/:mentorId', { schema: deleteMentorSchema, handler: adminCohortController.deleteMentor });
+  // Enrollments
+  fastify.get('/:id/enrollments', { schema: getEnrollmentsSchema, preHandler: VIEW, handler: adminCohortController.getEnrollments });
+  fastify.post('/:id/enrollments', { schema: manualEnrollSchema, preHandler: EDIT, handler: adminCohortController.manualEnroll });
+  fastify.put('/:id/enrollments/:enrollmentId', { schema: updateEnrollmentSchema, preHandler: EDIT, handler: adminCohortController.updateEnrollment });
 
-  // --- Certificate generation ---
-  fastify.post('/:id/enrollments/:enrollmentId/certificate', { schema: generateCertificateSchema, handler: adminCohortController.generateCertificate });
+  // Mentors
+  fastify.post('/:id/mentors', { schema: createMentorSchema, preHandler: [EDIT, uploadInstructorAvatar], handler: adminCohortController.createMentor });
+  fastify.put('/:id/mentors/:mentorId', { schema: updateMentorSchema, preHandler: [EDIT, uploadInstructorAvatar], handler: adminCohortController.updateMentor });
+  fastify.delete('/:id/mentors/:mentorId', { schema: deleteMentorSchema, preHandler: EDIT, handler: adminCohortController.deleteMentor });
+
+  // Certificate generation
+  fastify.post('/:id/enrollments/:enrollmentId/certificate', { schema: generateCertificateSchema, preHandler: EDIT, handler: adminCohortController.generateCertificate });
 }
