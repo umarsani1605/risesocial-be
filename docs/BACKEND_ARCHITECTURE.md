@@ -246,13 +246,24 @@ Entry point aplikasi yang mengatur:
 
 **File**: `src/routes/admin/userRoutes.js`
 
-| Method | Endpoint                | Description      | Auth Required |
-| ------ | ----------------------- | ---------------- | ------------- |
-| GET    | `/admin/users`          | List all users   | Admin         |
-| GET    | `/admin/users/:id`      | Get user by ID   | Admin         |
-| PUT    | `/admin/users/:id`      | Update user      | Admin         |
-| DELETE | `/admin/users/:id`      | Delete user      | Admin         |
-| PUT    | `/admin/users/:id/role` | Update user role | Admin         |
+| Method | Endpoint                           | Description              | Auth Required            |
+| ------ | ---------------------------------- | ------------------------ | ------------------------ |
+| GET    | `/admin/users`                     | List all users           | Admin + admin.users VIEWER |
+| GET    | `/admin/users/:id`                 | Get user by ID           | Admin + admin.users VIEWER |
+| POST   | `/admin/users`                     | Create user              | Admin + admin.users EDITOR |
+| PUT    | `/admin/users/:id`                 | Update user              | Admin + admin.users EDITOR |
+| DELETE | `/admin/users/:id`                 | Delete user              | Admin + admin.users EDITOR |
+| GET    | `/admin/users/:id/permissions`     | Get user permissions     | SUPERADMIN only          |
+| PUT    | `/admin/users/:id/permissions`     | Set user permissions     | SUPERADMIN only          |
+| DELETE | `/admin/users/:id/permissions/:key`| Remove user permission   | SUPERADMIN only          |
+
+#### Admin Permissions (`/admin/permissions`)
+
+**File**: `src/routes/admin/permissionRoutes.js`
+
+| Method | Endpoint             | Description              | Auth Required   |
+| ------ | -------------------- | ------------------------ | --------------- |
+| GET    | `/admin/permissions` | List permission registry | SUPERADMIN only |
 
 #### Admin Academies (`/admin/academies`)
 
@@ -690,13 +701,25 @@ export async function optionalAuthMiddleware(request, reply) {
   }
 }
 
-// Admin role check
+// Admin role check (ADMIN or SUPERADMIN)
 export async function adminMiddleware(request, reply) {
   await authMiddleware(request, reply);
-
-  if (request.user.role !== 'ADMIN') {
+  if (reply.sent) return;
+  if (!['ADMIN', 'SUPERADMIN'].includes(request.user?.role)) {
     reply.status(403).send(errorResponse('Forbidden', 403));
   }
+}
+
+// Resource-level permission check (used after adminMiddleware)
+// File: src/middleware/permissionMiddleware.js
+export function requirePermission(key, requiredLevel = 'VIEWER') {
+  return async function (request, reply) {
+    if (request.user.role === 'SUPERADMIN') return; // bypass
+    const permission = await prisma.userAdminPermission.findUnique({ where: { ... } });
+    if (!permission) return reply.status(403).send(errorResponse('Forbidden: no permission', 403));
+    if (requiredLevel === 'EDITOR' && permission.access_level === 'VIEWER')
+      return reply.status(403).send(errorResponse('Forbidden: read-only access', 403));
+  };
 }
 ```
 
@@ -1422,15 +1445,17 @@ async login(request, reply) {
 
 ```prisma
 enum UserRole {
-  ADMIN
   USER
+  ADMIN
+  SUPERADMIN
 }
 ```
 
 **Access Control**:
 
-- `USER`: Access to user endpoints
-- `ADMIN`: Access to all endpoints including admin panel
+- `USER`: Access to user-facing endpoints only
+- `ADMIN`: Access to admin panel; specific resources controlled by per-user permissions
+- `SUPERADMIN`: Full access to all endpoints and permission management; bypasses all permission checks
 
 **Middleware Usage**:
 
@@ -1439,19 +1464,67 @@ enum UserRole {
 fastify.get('/academies', academyController.getAll);
 
 // User endpoint (auth required)
-fastify.get('/profile', {
-  preHandler: [authMiddleware],
-  handler: userController.getProfile,
+fastify.get('/profile', { preHandler: [authMiddleware], handler: userController.getProfile });
+
+// Admin endpoint with permission check
+fastify.get('/admin/academies', {
+  preHandler: [adminMiddleware, requirePermission('admin.academy')],
+  handler: adminAcademyController.getAll,
 });
 
-// Admin endpoint (admin role required)
-fastify.get('/admin/users', {
-  preHandler: [adminMiddleware],
-  handler: adminUserController.getAll,
+// SUPERADMIN-only endpoint
+fastify.put('/admin/users/:id/permissions', {
+  preHandler: [adminMiddleware, authorizeRoles(['SUPERADMIN'])],
+  handler: adminPermissionController.setUserPermissions,
 });
 ```
 
-### 12.5 JWT Token Structure
+### 12.5 Permission System
+
+Admin access is controlled at resource level via the `AdminPermission` and `UserAdminPermission` tables.
+
+**Permission Registry** (`admin_permissions` table):
+
+| Key | Resource | Available Levels |
+| --- | -------- | ---------------- |
+| `admin.dashboard` | Dashboard | VIEWER |
+| `admin.users` | User Management | VIEWER, EDITOR |
+| `admin.academy` | Academy | VIEWER, EDITOR |
+| `admin.cohort` | Cohort | VIEWER, EDITOR |
+| `admin.transactions` | Transactions | VIEWER, EDITOR |
+| `admin.ryls` | RYLS | VIEWER, EDITOR |
+| `admin.jobs` | Jobs | VIEWER, EDITOR |
+| `admin.statistics` | Statistics | VIEWER |
+| `admin.settings` | System Settings | VIEWER, EDITOR |
+
+**Access Levels**:
+
+- `VIEWER`: Read-only access (GET endpoints)
+- `EDITOR`: Full read+write access (GET + POST/PUT/DELETE endpoints)
+
+**`requirePermission` middleware** (`src/middleware/permissionMiddleware.js`):
+
+```javascript
+// Usage in route definitions
+fastify.get('/', { preHandler: [adminMiddleware, requirePermission('admin.academy')] });          // VIEWER
+fastify.post('/', { preHandler: [adminMiddleware, requirePermission('admin.academy', 'EDITOR')] }); // EDITOR
+```
+
+- SUPERADMIN always bypasses — no DB query, immediate pass
+- ADMIN without assignment → 403 "no permission for this resource"
+- ADMIN with VIEWER attempting EDITOR route → 403 "read-only access"
+- Permission revocation takes effect immediately on next request (no re-login required)
+
+**Permission Management API** (SUPERADMIN only):
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| GET | `/admin/permissions` | List all permission registry entries |
+| GET | `/admin/users/:id/permissions` | Get permissions for an admin user |
+| PUT | `/admin/users/:id/permissions` | Replace all permissions (replace-all semantics) |
+| DELETE | `/admin/users/:id/permissions/:key` | Remove a single permission |
+
+### 12.6 JWT Token Structure
 
 ```json
 {

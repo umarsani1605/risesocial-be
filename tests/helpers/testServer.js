@@ -23,6 +23,7 @@ import userCohortRoutes, { certificateVerifyRoutes } from '../../src/routes/user
 import userRylsRegistrationRoutes from '../../src/routes/user/rylsRegistrationRoutes.js';
 import adminRylsRegistrationRoutes from '../../src/routes/admin/rylsRegistrationRoutes.js';
 import rylsPaymentRoutes from '../../src/routes/payments/rylsPaymentRoutes.js';
+import adminPermissionRoutes from '../../src/routes/admin/permissionRoutes.js';
 
 /**
  * Create a configured Fastify test instance
@@ -77,6 +78,7 @@ export async function createTestApp() {
   await fastify.register(userRylsRegistrationRoutes, { prefix: '/ryls' });
   await fastify.register(adminRylsRegistrationRoutes, { prefix: '/admin/ryls' });
   await fastify.register(rylsPaymentRoutes, { prefix: '/payments' });
+  await fastify.register(adminPermissionRoutes, { prefix: '/admin/permissions' });
 
   await fastify.ready();
 
@@ -157,6 +159,22 @@ export async function generateUserToken(userId = 1, email = 'user@test.com') {
 }
 
 /**
+ * Generate a test superadmin token
+ * @param {number} userId - Superadmin user ID
+ * @param {string} email - Superadmin email
+ * @returns {Promise<string>} JWT token
+ */
+export async function generateSuperadminToken(userId = 1, email = 'superadmin@test.com') {
+  return generateAuthToken({
+    userId,
+    email,
+    role: 'SUPERADMIN',
+    firstName: 'Super',
+    lastName: 'Admin',
+  });
+}
+
+/**
  * Make an authenticated request to the test server
  * @param {FastifyInstance} app - Fastify test instance
  * @param {Object} options - Request options
@@ -184,6 +202,7 @@ export default {
   createTestApp,
   generateAuthToken,
   generateAdminToken,
+  generateSuperadminToken,
   generateUserToken,
   authenticatedRequest,
 };
