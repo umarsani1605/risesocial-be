@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { snap, getServerKey } from '../integrations/midtransClient.js';
 import { RylsPaymentRepository } from '../repositories/rylsPaymentRepository.js';
 import { RylsRegistrationRepository } from '../repositories/rylsRegistrationRepository.js';
+import { emailService } from './emailService.js';
 import {
   generateOrderId,
   getPaymentAmountIdr,
@@ -193,6 +194,19 @@ export class RylsPaymentService {
       if (payment_type === 'credit_card' && fraud_status) {
         const fraudDecision = mapFraudStatus(fraud_status);
         this.logger.info({ fraud_status, fraudDecision }, '[rylsPaymentService] fraud status');
+      }
+
+      // Fire-and-forget payment confirmation email on settlement/capture
+      if (['settlement', 'capture'].includes(transaction_status) && updatedPayment.registration?.email) {
+        emailService
+          .sendPaymentConfirmation({
+            to: updatedPayment.registration.email,
+            name: updatedPayment.registration.full_name,
+            transactionCode: order_id,
+            amount: updatedPayment.gross_amount_idr,
+            currency: updatedPayment.currency || 'IDR',
+          })
+          .catch((err) => this.logger.error({ err }, '[rylsPaymentService] payment email error'));
       }
 
       this.logger.info('[rylsPaymentService] handleWebhookNotification success');
