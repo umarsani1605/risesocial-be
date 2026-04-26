@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { userRepository } from '../repositories/userRepository.js';
 import { userSettingsRepository } from '../repositories/userSettingsRepository.js';
 import { fileUploadService } from './fileUploadService.js';
+import { emailService } from './emailService.js';
 import { generateToken } from '../lib/jwt.js';
 import { getLogger } from '../lib/loggerContext.js';
 
@@ -95,6 +96,14 @@ export class UserService {
 
       // Create user with settings
       const user = await userRepository.createWithSettings(userData);
+
+      // Fire-and-forget: jangan await, jangan block response
+      emailService
+        .sendWelcome({
+          to: user.email,
+          name: `${user.first_name} ${user.last_name}`.trim(),
+        })
+        .catch((err) => this.logger.error({ err }, '[userService] welcome email error'));
 
       this.logger.info('[userService] createUser success');
       return this.excludePassword(user);
