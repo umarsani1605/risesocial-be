@@ -1,6 +1,7 @@
 import { adminCohortRepository } from '../../repositories/admin/cohortRepository.js';
 import { academyRepository } from '../../repositories/shared/academyRepository.js';
 import { fileUploadService } from '../shared/fileUploadService.js';
+import { emailService } from '../shared/emailService.js';
 import { getLogger } from '../../utils/loggerContext.js';
 import { formatCertificateCode, safeFilename, formatIssuedDate } from '../../utils/certificateHelpers.js';
 import { toFileUrl } from '../../utils/response.js';
@@ -517,6 +518,20 @@ export class AdminCohortService {
       });
 
       this.logger.info('[adminCohortService] generateCertificate success');
+
+      // Fire certificate email (fire-and-forget)
+      const verifyUrl = `${process.env.FRONTEND_URL}/certificates/verify/${cert.certificate_code}`;
+      emailService
+        .sendCertificateReady({
+          to: enrollment.user.email,
+          name: studentName,
+          cohortName: cohort.name,
+          academyTitle: academy.title,
+          certCode: cert.certificate_code,
+          verifyUrl,
+        })
+        .catch((err) => this.logger.error({ err }, '[adminCohortService] certificate email error'));
+
       return { ...cert, file_url: toFileUrl(cert.file_path) };
     } catch (error) {
       this.logger.error({ err: error }, '[adminCohortService] generateCertificate error');
