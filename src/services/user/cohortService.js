@@ -1,5 +1,6 @@
 import { userCohortRepository } from '../../repositories/user/cohortRepository.js';
 import { midtransService } from '../shared/MidtransService.js';
+import { emailService } from '../shared/emailService.js';
 import { generateTransactionCode, TRANSACTION_CODE_CONFIG } from '../../constants/paymentHelpers.js';
 import { getLogger } from '../../utils/loggerContext.js';
 import { toFileUrl } from '../../utils/response.js';
@@ -140,6 +141,18 @@ export class UserCohortService {
         redirectUrl: redirectUrl || null,
         snapResponse,
       });
+
+      // Fire enrollment email untuk free cohort (langsung active)
+      if (amount === 0) {
+        emailService
+          .sendCohortEnrollment({
+            to: user.email,
+            name: customerName,
+            cohortName: cohort.name,
+            academyTitle: cohort.academy.title,
+          })
+          .catch((err) => this.logger.error({ err }, '[userCohortService] enrollment email error'));
+      }
 
       this.logger.info('[userCohortService] enrollInCohort success');
       return {
