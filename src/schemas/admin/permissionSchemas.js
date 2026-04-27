@@ -6,6 +6,16 @@ const permissionItem = {
   },
 };
 
+const registryItem = {
+  type: 'object',
+  properties: {
+    key: { type: 'string' },
+    name: { type: 'string' },
+    description: { type: 'string', nullable: true },
+    available_levels: { type: 'array', items: { type: 'string' } },
+  },
+};
+
 const stdResponse = (dataSchema) => ({
   type: 'object',
   properties: {
@@ -20,7 +30,7 @@ export const listRegistrySchema = {
   tags: ['Admin Permissions'],
   description: 'List all available permission keys from registry (SUPERADMIN only)',
   response: {
-    200: stdResponse({ type: 'array', items: { type: 'object' } }),
+    200: stdResponse({ type: 'array', items: registryItem }),
   },
 };
 

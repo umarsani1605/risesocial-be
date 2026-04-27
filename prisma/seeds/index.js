@@ -47,7 +47,8 @@ async function clearAllData(prisma) {
 
   // Delete in reverse dependency order
   await prisma.cohortCertificate.deleteMany({});
-  await prisma.cohortEnrollment.deleteMany({});
+  await prisma.cohortPlacement.deleteMany({});
+  await prisma.academyEnrollment.deleteMany({});
   await prisma.cohortMentor.deleteMany({});
   await prisma.cohortModuleAttachment.deleteMany({});
   await prisma.cohortModule.deleteMany({});

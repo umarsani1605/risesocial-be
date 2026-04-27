@@ -34,8 +34,9 @@ model User {
   transactions        Transaction[]        @relation("UserTransactions")
   saved_jobs          UserSavedJob[]
   user_settings       UserSetting[]
-  cohort_enrollments  CohortEnrollment[]   @relation("UserCohortEnrollments")
-  cohort_certificates CohortCertificate[]  @relation("UserCohortCertificates")
+  academy_enrollments    AcademyEnrollment[]          @relation("UserAcademyEnrollments")
+  cohort_placements      CohortPlacement[]            @relation("UserCohortPlacements")
+  cohort_certificates    CohortCertificate[]          @relation("UserCohortCertificates")
   assignment_completions CohortAssignmentCompletion[] @relation("UserAssignmentCompletions")
   admin_permissions      UserAdminPermission[]
 
@@ -88,7 +89,8 @@ model Academy {
   cohorts                 Cohort[]                  @relation("AcademyCohorts")
   cohort_modules          CohortModule[]            @relation("AcademyCohortModules")
   cohort_attachments      CohortModuleAttachment[]  @relation("AcademyCohortAttachments")
-  cohort_enrollments      CohortEnrollment[]        @relation("AcademyCohortEnrollments")
+  academy_enrollments     AcademyEnrollment[]       @relation("AcademyEnrollments")
+  cohort_placements       CohortPlacement[]         @relation("AcademyCohortPlacements")
   file_uploads            FileUpload[]              @relation("AcademyFiles")
   cohort_mentors          CohortMentor[]            @relation("AcademyCohortMentors")
   cohort_certificates     CohortCertificate[]       @relation("AcademyCohortCertificates")
@@ -565,7 +567,7 @@ model Transaction {
   updated_at            DateTime             @updatedAt
   midtrans_data         MidtransTransaction?
   ryls_payment          RylsPayment?         @relation("TransactionToRylsPayment")
-  cohort_enrollment     CohortEnrollment?    @relation("TransactionToCohortEnrollment")
+  academy_enrollment    AcademyEnrollment?   @relation("TransactionToAcademyEnrollment")
   items                 TransactionItem[]
   user                  User?                @relation("UserTransactions", fields: [user_id], references: [id])
 
@@ -643,7 +645,7 @@ model Cohort {
   academy      Academy                   @relation("AcademyCohorts", fields: [academy_id], references: [id], onDelete: Cascade)
   modules      CohortModule[]           @relation("CohortModules")
   attachments  CohortModuleAttachment[] @relation("CohortAttachments")
-  enrollments  CohortEnrollment[]       @relation("CohortEnrollments")
+  placements   CohortPlacement[]        @relation("CohortPlacements")
   mentors      CohortMentor[]           @relation("CohortMentors")
   certificates CohortCertificate[]      @relation("CohortCertificates")
 
@@ -707,32 +709,6 @@ model CohortModuleAttachment {
   @@map("cohort_module_attachments")
 }
 
-/// CohortEnrollment - student enrollment in a cohort (Layer 3 Payment)
-model CohortEnrollment {
-  id              Int                @id @default(autoincrement())
-  academy_id      Int
-  cohort_id       Int
-  user_id         Int
-  transaction_id  Int?               @unique
-  status          String             @default("pending") @db.VarChar(20)
-  enrolled_at     DateTime?
-  completion_date DateTime?          @db.Date
-  notes           String?
-  created_at      DateTime           @default(now())
-  updated_at      DateTime           @updatedAt
-  academy         Academy            @relation("AcademyCohortEnrollments", fields: [academy_id], references: [id], onDelete: Cascade)
-  cohort          Cohort             @relation("CohortEnrollments", fields: [cohort_id], references: [id], onDelete: Cascade)
-  user            User               @relation("UserCohortEnrollments", fields: [user_id], references: [id], onDelete: Cascade)
-  transaction     Transaction?       @relation("TransactionToCohortEnrollment", fields: [transaction_id], references: [id])
-  certificate     CohortCertificate? @relation("EnrollmentCertificate")
-
-  @@unique([cohort_id, user_id])
-  @@index([user_id])
-  @@index([academy_id])
-  @@index([transaction_id])
-  @@index([status])
-  @@map("cohort_enrollments")
-}
 
 /// CohortMentor - standalone mentor for a cohort (no user account required)
 model CohortMentor {
@@ -754,23 +730,23 @@ model CohortMentor {
 
 /// CohortCertificate - certificate issued to a student upon completion
 model CohortCertificate {
-  id               Int              @id @default(autoincrement())
+  id               Int             @id @default(autoincrement())
   academy_id       Int
   cohort_id        Int
-  enrollment_id    Int              @unique
+  placement_id     Int             @unique
   user_id          Int
-  certificate_code String           @unique @db.VarChar(100)
-  student_name     String           @db.VarChar(255)
-  academy_title    String           @db.VarChar(255)
-  cohort_name      String           @db.VarChar(100)
+  certificate_code String          @unique @db.VarChar(100)
+  student_name     String          @db.VarChar(255)
+  academy_title    String          @db.VarChar(255)
+  cohort_name      String          @db.VarChar(100)
   grades_transcript Json?
-  file_path        String?          @db.VarChar(500)
-  created_at       DateTime         @default(now())
-  updated_at       DateTime         @updatedAt
-  academy          Academy          @relation("AcademyCohortCertificates", fields: [academy_id], references: [id])
-  cohort           Cohort           @relation("CohortCertificates", fields: [cohort_id], references: [id], onDelete: Cascade)
-  enrollment       CohortEnrollment @relation("EnrollmentCertificate", fields: [enrollment_id], references: [id], onDelete: Cascade)
-  user             User             @relation("UserCohortCertificates", fields: [user_id], references: [id], onDelete: Cascade)
+  file_path        String?         @db.VarChar(500)
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+  academy          Academy         @relation("AcademyCohortCertificates", fields: [academy_id], references: [id])
+  cohort           Cohort          @relation("CohortCertificates", fields: [cohort_id], references: [id], onDelete: Cascade)
+  placement        CohortPlacement @relation("PlacementCertificate", fields: [placement_id], references: [id], onDelete: Cascade)
+  user             User            @relation("UserCohortCertificates", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([cohort_id, user_id])
   @@index([user_id])
@@ -882,4 +858,48 @@ enum RylsDiscoverSource {
 enum RylsScholarshipType {
   FULLY_FUNDED
   SELF_FUNDED
+}
+
+/// AcademyEnrollment - Layer 3 Payment: represents purchasing an academy (parent of CohortPlacement)
+model AcademyEnrollment {
+  id             Int              @id @default(autoincrement())
+  academy_id     Int
+  user_id        Int
+  transaction_id Int              @unique
+  status         String           @default("pending") @db.VarChar(20)
+  // pending → active → completed | cancelled
+  completed_at   DateTime?
+  notes          String?
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+  academy        Academy          @relation("AcademyEnrollments", fields: [academy_id], references: [id], onDelete: Cascade)
+  user           User             @relation("UserAcademyEnrollments", fields: [user_id], references: [id], onDelete: Cascade)
+  transaction    Transaction      @relation("TransactionToAcademyEnrollment", fields: [transaction_id], references: [id])
+  placement      CohortPlacement?
+
+  @@index([user_id, academy_id, status])
+  @@index([status])
+  @@map("academy_enrollments")
+}
+
+/// CohortPlacement - admin-assigned placement of a student into a specific cohort (child of AcademyEnrollment)
+model CohortPlacement {
+  id                    Int               @id @default(autoincrement())
+  academy_enrollment_id Int               @unique
+  cohort_id             Int
+  user_id               Int
+  academy_id            Int
+  notes                 String?
+  created_at            DateTime          @default(now())
+  updated_at            DateTime          @updatedAt
+  academy_enrollment    AcademyEnrollment @relation(fields: [academy_enrollment_id], references: [id], onDelete: Cascade)
+  cohort                Cohort            @relation("CohortPlacements", fields: [cohort_id], references: [id], onDelete: Cascade)
+  user                  User              @relation("UserCohortPlacements", fields: [user_id], references: [id], onDelete: Cascade)
+  academy               Academy           @relation("AcademyCohortPlacements", fields: [academy_id], references: [id], onDelete: Cascade)
+  certificate           CohortCertificate? @relation("PlacementCertificate")
+
+  @@unique([cohort_id, user_id])
+  @@index([cohort_id])
+  @@index([academy_id])
+  @@map("cohort_placements")
 }
