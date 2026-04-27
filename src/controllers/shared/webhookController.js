@@ -1,6 +1,7 @@
 import { midtransService } from '../../services/shared/MidtransService.js';
 import { transactionRepository } from '../../repositories/shared/transactionRepository.js';
 import { mapMidtransStatus, mapPaymentMethod } from '../../constants/paymentHelpers.js';
+import { emailService } from '../../services/shared/emailService.js';
 import { getLogger } from '../../utils/loggerContext.js';
 import prisma from '../../config/database.js';
 
@@ -151,6 +152,26 @@ export class WebhookController {
       });
 
       this.logger.info('[WebhookController] all layers updated successfully');
+
+      // Step 4b: Fire payment confirmation email (fire-and-forget)
+      if (genericStatus === 'paid') {
+        const transaction = await prisma.transaction.findUnique({
+          where: { transaction_code: order_id },
+          select: { customer_email: true, customer_name: true, amount: true, currency: true },
+        });
+
+        if (transaction?.customer_email) {
+          emailService
+            .sendPaymentConfirmation({
+              to: transaction.customer_email,
+              name: transaction.customer_name,
+              transactionCode: order_id,
+              amount: transaction.amount,
+              currency: transaction.currency || 'IDR',
+            })
+            .catch((err) => this.logger.error({ err }, '[WebhookController] payment email error'));
+        }
+      }
 
       // Step 5: Return success
       return reply.status(200).send({
