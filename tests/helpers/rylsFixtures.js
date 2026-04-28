@@ -155,6 +155,23 @@ export async function createSelfFundedRegistration(overrides = {}) {
 }
 
 /**
+ * Create a draft registration for partial form submission testing
+ */
+export async function createDraftRegistration(overrides = {}) {
+  const prisma = getTestPrisma();
+  return prisma.rylsDraftRegistration.create({
+    data: {
+      email: overrides.email ?? 'draft@example.com',
+      resume_token: overrides.resume_token ?? `test-token-${Date.now()}`,
+      current_step: overrides.current_step ?? 1,
+      form_data: overrides.form_data ?? { step1: { fullName: 'Draft User', scholarshipType: 'FULLY_FUNDED' } },
+      scholarship_type: overrides.scholarship_type ?? 'FULLY_FUNDED',
+      expires_at: overrides.expires_at ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+}
+
+/**
  * Create a transaction + rylsPayment for a registration
  */
 export async function createRylsPayment(registrationId, scholarshipType = 'SELF_FUNDED', overrides = {}) {
