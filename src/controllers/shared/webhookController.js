@@ -127,27 +127,28 @@ export class WebhookController {
           this.logger.info('[WebhookController] Layer 3 (RYLS) updated');
         }
 
-        // Check if this is a Cohort Enrollment payment (Layer 3)
-        const cohortEnrollment = await tx.cohortEnrollment.findFirst({
+        // Check if this is an Academy Enrollment payment (Layer 3)
+        const academyEnrollment = await tx.academyEnrollment.findFirst({
           where: { transaction_id: transaction.id },
         });
 
-        if (cohortEnrollment) {
-          this.logger.info({ cohort_enrollment_id: cohortEnrollment.id }, '[WebhookController] Cohort enrollment found');
+        if (academyEnrollment) {
+          this.logger.info({ academy_enrollment_id: academyEnrollment.id }, '[WebhookController] Academy enrollment found');
 
           const enrollmentStatus =
-            genericStatus === 'paid' ? 'active' : genericStatus === 'failed' || genericStatus === 'expired' ? 'dropped' : cohortEnrollment.status;
+            genericStatus === 'paid' ? 'active'
+            : genericStatus === 'failed' || genericStatus === 'expired' ? 'cancelled'
+            : academyEnrollment.status;
 
-          await tx.cohortEnrollment.update({
-            where: { id: cohortEnrollment.id },
+          await tx.academyEnrollment.update({
+            where: { id: academyEnrollment.id },
             data: {
               status: enrollmentStatus,
-              ...(genericStatus === 'paid' ? { enrolled_at: new Date() } : {}),
               updated_at: new Date(),
             },
           });
 
-          this.logger.info({ enrollment_status: enrollmentStatus }, '[WebhookController] Layer 3 (CohortEnrollment) updated');
+          this.logger.info({ enrollment_status: enrollmentStatus }, '[WebhookController] Layer 3 (AcademyEnrollment) updated');
         }
       });
 
