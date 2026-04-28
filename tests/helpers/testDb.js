@@ -82,6 +82,7 @@ export async function resetDatabase() {
     'job_locations',
     'companies',
     'cohort_certificates',
+    'cohort_placements',
     'cohort_enrollments',
     'cohort_module_attachments',
     'cohort_modules',

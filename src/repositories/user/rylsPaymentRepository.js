@@ -167,14 +167,16 @@ export class RylsPaymentRepository {
   }
 
   /**
-   * Get next sequence number for transaction code generation
-   * @returns {Promise<number>}
+   * Get next sequence number for transaction code generation atomically within a transaction.
+   * This method must be called within a Prisma transaction context.
+   * @param {Object} tx - Prisma transaction client
+   * @returns {Promise<number>} Next sequence number
    */
-  async getNextSequenceNumber() {
+  async getNextSequenceNumber(tx) {
     this.logger.info('[RylsPaymentRepository] getNextSequenceNumber');
 
     try {
-      const lastPayment = await prisma.rylsPayment.findFirst({
+      const lastPayment = await tx.rylsPayment.findFirst({
         orderBy: { id: 'desc' },
         select: { id: true },
       });

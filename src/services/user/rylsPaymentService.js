@@ -53,19 +53,13 @@ export class RylsPaymentService {
     this.logger.info('[RylsPaymentService] createMidtransTransaction start');
 
     try {
-      // Step 1: Generate transaction code
-      const sequence = await rylsPaymentRepository.getNextSequenceNumber();
-      const transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.RYLS_PREFIX, sequence);
-
-      this.logger.info({ transactionCode }, '[RylsPaymentService] transaction code generated');
-
-      // Step 2: Get amount and item details
+      // Step 1: Get amount and item details
       const amountIdr = await getPaymentAmountIdr(registrationData.scholarshipType);
       const itemTemplate = getItemTemplate(registrationData.scholarshipType);
 
       this.logger.debug({ amountIdr, itemTemplate }, '[RylsPaymentService] payment details');
 
-      // Step 3: Prepare customer details for Midtrans
+      // Step 2: Prepare customer details for Midtrans
       const customerDetails = {
         first_name: registrationData.fullName?.split(' ')[0] || 'Customer',
         last_name: registrationData.fullName?.split(' ').slice(1).join(' ') || '',
@@ -83,26 +77,35 @@ export class RylsPaymentService {
         },
       };
 
-      // Step 4: Create Snap transaction via MidtransService
-      const snapResult = await midtransService.createSnapTransaction({
-        orderId: transactionCode,
-        grossAmount: amountIdr,
-        customerDetails,
-        itemDetails: [
-          {
-            id: itemTemplate.id,
-            name: itemTemplate.name,
-            price: amountIdr,
-            quantity: 1,
-            category: itemTemplate.category,
-          },
-        ],
-      });
+      let transactionCode;
+      let snapResult;
 
-      this.logger.info('[RylsPaymentService] Snap transaction created');
-
-      // Step 5: Save to database (3 layers in transaction)
+      // Step 3: Generate sequence number and create all records atomically
       const result = await prisma.$transaction(async (tx) => {
+        // Generate transaction code atomically within transaction
+        const sequence = await rylsPaymentRepository.getNextSequenceNumber(tx);
+        transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.RYLS_PREFIX, sequence);
+
+        this.logger.info({ transactionCode }, '[RylsPaymentService] transaction code generated');
+
+        // Step 4: Create Snap transaction via MidtransService
+        snapResult = await midtransService.createSnapTransaction({
+          orderId: transactionCode,
+          grossAmount: amountIdr,
+          customerDetails,
+          itemDetails: [
+            {
+              id: itemTemplate.id,
+              name: itemTemplate.name,
+              price: amountIdr,
+              quantity: 1,
+              category: itemTemplate.category,
+            },
+          ],
+        });
+
+        this.logger.info('[RylsPaymentService] Snap transaction created');
+
         // Layer 1: Create transaction
         const transaction = await tx.transaction.create({
           data: {
@@ -184,12 +187,18 @@ export class RylsPaymentService {
     this.logger.info('[RylsPaymentService] createPayPalTransaction start');
 
     try {
-      const sequence = await rylsPaymentRepository.getNextSequenceNumber();
-      const transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.RYLS_PREFIX, sequence);
       const amountIdr = await getPaymentAmountIdr(registrationData.scholarshipType);
       const itemTemplate = getItemTemplate(registrationData.scholarshipType);
 
+      let transactionCode;
+
       const result = await prisma.$transaction(async (tx) => {
+        // Generate transaction code atomically within transaction
+        const sequence = await rylsPaymentRepository.getNextSequenceNumber(tx);
+        transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.RYLS_PREFIX, sequence);
+
+        this.logger.info({ transactionCode }, '[RylsPaymentService] transaction code generated');
+
         // Layer 1: Create transaction
         const transaction = await tx.transaction.create({
           data: {
