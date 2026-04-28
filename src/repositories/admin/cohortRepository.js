@@ -28,14 +28,14 @@ export class AdminCohortRepository extends BaseRepository {
         orderBy: { created_at: 'desc' },
         include: {
           academy: { select: { id: true, title: true, slug: true } },
-          _count: { select: { enrollments: true } },
+          _count: { select: { placements: true } },
         },
       }),
       this.model.count({ where }),
     ]);
 
     return {
-      data: data.map((c) => ({ ...c, enrollment_count: c._count.enrollments, _count: undefined })),
+      data: data.map((c) => ({ ...c, enrollment_count: c._count.placements, _count: undefined })),
       meta: {
         page: Number(page),
         limit: Number(limit),
@@ -61,7 +61,7 @@ export class AdminCohortRepository extends BaseRepository {
           },
         },
         mentors: true,
-        _count: { select: { enrollments: true } },
+        _count: { select: { placements: true } },
       },
     });
   }
