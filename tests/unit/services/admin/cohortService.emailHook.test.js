@@ -42,7 +42,7 @@ vi.mock('fs-extra', () => ({
 
 vi.mock('../../../../src/config/database.js', () => ({
   default: {
-    cohortEnrollment: {
+    cohortPlacement: {
       findUnique: vi.fn().mockResolvedValue({
         id: 5,
         cohort_id: 1,

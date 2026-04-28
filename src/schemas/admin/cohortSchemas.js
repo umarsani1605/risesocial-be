@@ -589,14 +589,14 @@ export const deleteMentorSchema = {
 
 export const generateCertificateSchema = {
   tags: ['Admin - Cohort Certificates'],
-  summary: 'Generate certificate for an enrollment',
+  summary: 'Generate certificate for a placement',
   security: [{ bearerAuth: [] }],
   params: {
     type: 'object',
-    required: ['id', 'enrollmentId'],
+    required: ['id', 'placementId'],
     properties: {
       id: { type: 'integer' },
-      enrollmentId: { type: 'integer' },
+      placementId: { type: 'integer' },
     },
   },
   body: {
