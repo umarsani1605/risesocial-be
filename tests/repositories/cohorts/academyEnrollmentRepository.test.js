@@ -167,7 +167,7 @@ describe('AcademyEnrollmentRepository', () => {
 
   describe('getNextSequenceNumber', () => {
     it('returns 1 when no enrollments exist', async () => {
-      const sequence = await academyEnrollmentRepository.getNextSequenceNumber();
+      const sequence = await academyEnrollmentRepository.getNextSequenceNumber(prisma);
 
       expect(sequence).toBe(1);
     });
@@ -183,7 +183,7 @@ describe('AcademyEnrollmentRepository', () => {
         },
       });
 
-      const sequence = await academyEnrollmentRepository.getNextSequenceNumber();
+      const sequence = await academyEnrollmentRepository.getNextSequenceNumber(prisma);
 
       expect(sequence).toBe(enrollment.id + 1);
     });
