@@ -337,7 +337,6 @@ export class AcademyPaymentService {
             where: { id: enrollment.id },
             data: {
               status: enrollmentStatus,
-              ...(genericStatus === 'paid' ? { enrolled_at: new Date() } : {}),
               updated_at: new Date(),
             },
           });
