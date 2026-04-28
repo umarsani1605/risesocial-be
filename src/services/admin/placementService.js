@@ -115,7 +115,7 @@ export class AdminPlacementService {
     const existingByUserCohort = await cohortPlacementRepository.findByUserCohort(placement.user_id, newCohortId);
     if (existingByUserCohort) throw makeError('User already placed in target cohort', 409);
 
-    const transferred = await cohortPlacementRepository.transferPlacement(placementId, newCohortId);
+    const transferred = await cohortPlacementRepository.transferPlacement(placementId, newCohortId, notes);
 
     this.logger.info({ newPlacementId: transferred.id, adminId }, '[AdminPlacementService] transferPlacement success');
     return transferred;
@@ -141,11 +141,11 @@ export class AdminPlacementService {
   }
 
   async dropPlacement(placementId, { reason, adminId } = {}) {
-    this.logger.info({ placementId, adminId }, '[AdminPlacementService] dropPlacement start');
+    this.logger.info({ placementId, reason, adminId }, '[AdminPlacementService] dropPlacement start');
 
     try {
       const deleted = await cohortPlacementRepository.deletePlacement(placementId);
-      this.logger.info({ placementId, adminId }, '[AdminPlacementService] dropPlacement success');
+      this.logger.info({ placementId, reason, adminId }, '[AdminPlacementService] dropPlacement success');
       return deleted;
     } catch (error) {
       if (error.code === 'P2025') throw makeError('Placement not found', 404);

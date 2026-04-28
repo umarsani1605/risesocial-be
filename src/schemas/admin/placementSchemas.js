@@ -54,6 +54,7 @@ export const listEnrollmentsSchema = {
       academy_id: { type: 'integer' },
       user_id: { type: 'integer' },
     },
+    additionalProperties: false,
   },
   response: {
     200: createPaginatedResponseSchema(enrollmentItemSchema, 'List of enrollments'),
@@ -70,6 +71,7 @@ export const getEnrollmentSchema = {
     type: 'object',
     required: ['id'],
     properties: { id: { type: 'integer' } },
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(enrollmentItemSchema, 'Enrollment detail'),
@@ -87,6 +89,7 @@ export const assignToCohortSchema = {
     type: 'object',
     required: ['id'],
     properties: { id: { type: 'integer' } },
+    additionalProperties: false,
   },
   body: {
     type: 'object',
@@ -95,6 +98,7 @@ export const assignToCohortSchema = {
       cohort_id: { type: 'integer' },
       notes: { type: 'string' },
     },
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(placementSchema, 'Placement created'),
@@ -115,12 +119,14 @@ export const cancelEnrollmentSchema = {
     type: 'object',
     required: ['id'],
     properties: { id: { type: 'integer' } },
+    additionalProperties: false,
   },
   body: {
     type: 'object',
     properties: {
       reason: { type: 'string' },
     },
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object' }, 'Enrollment cancelled'),
@@ -138,6 +144,7 @@ export const transferPlacementSchema = {
     type: 'object',
     required: ['id'],
     properties: { id: { type: 'integer' } },
+    additionalProperties: false,
   },
   body: {
     type: 'object',
@@ -146,6 +153,7 @@ export const transferPlacementSchema = {
       cohort_id: { type: 'integer' },
       notes: { type: 'string' },
     },
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema(placementSchema, 'Placement transferred'),
@@ -166,12 +174,14 @@ export const dropPlacementSchema = {
     type: 'object',
     required: ['id'],
     properties: { id: { type: 'integer' } },
+    additionalProperties: false,
   },
   body: {
     type: 'object',
     properties: {
       reason: { type: 'string' },
     },
+    additionalProperties: false,
   },
   response: {
     200: createSuccessResponseSchema({ type: 'object' }, 'Placement dropped'),
