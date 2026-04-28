@@ -162,7 +162,7 @@ describe('AdminPlacementService', () => {
       const result = await service.transferPlacement(20, 6, { adminId: 1 });
 
       expect(result.cohort_id).toBe(6);
-      expect(mockCohortPlacementRepository.transferPlacement).toHaveBeenCalledWith(20, 6);
+      expect(mockCohortPlacementRepository.transferPlacement).toHaveBeenCalledWith(20, 6, undefined);
     });
 
     it('throws 404 when placement not found', async () => {

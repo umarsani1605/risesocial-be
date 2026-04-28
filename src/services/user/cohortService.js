@@ -1,7 +1,4 @@
 import { userCohortRepository } from '../../repositories/user/cohortRepository.js';
-import { midtransService } from '../shared/MidtransService.js';
-import { emailService } from '../shared/emailService.js';
-import { generateTransactionCode, TRANSACTION_CODE_CONFIG } from '../../constants/paymentHelpers.js';
 import { getLogger } from '../../utils/loggerContext.js';
 import { toFileUrl } from '../../utils/response.js';
 import prisma from '../../config/database.js';
@@ -15,7 +12,6 @@ const __dirname = path.dirname(__filename);
 export class UserCohortService {
   constructor() {
     this.repository = userCohortRepository;
-    this.midtransService = midtransService;
   }
 
   get logger() {
@@ -54,115 +50,11 @@ export class UserCohortService {
   async getCohortStudents(cohortId) {
     this.logger.info('[userCohortService] getCohortStudents start');
     try {
-      const students = await this.repository.findStudentsByCohortId(cohortId);
+      const students = await this.repository.findStudentsByCohort(cohortId);
       this.logger.info('[userCohortService] getCohortStudents success');
       return students;
     } catch (error) {
       this.logger.error({ err: error }, '[userCohortService] getCohortStudents error');
-      throw error;
-    }
-  }
-
-  async enrollInCohort(cohortId, userId) {
-    this.logger.info('[userCohortService] enrollInCohort start');
-    try {
-      const cohort = await prisma.cohort.findUnique({
-        where: { id: cohortId },
-        include: { academy: { select: { id: true, title: true } } },
-      });
-
-      if (!cohort) {
-        const err = new Error('Cohort not found');
-        err.statusCode = 404;
-        throw err;
-      }
-
-      // Check duplicate enrollment
-      const existing = await this.repository.findEnrollmentByUserAndCohort(userId, cohortId);
-      if (existing) {
-        const err = new Error('You are already enrolled in this cohort');
-        err.statusCode = 400;
-        throw err;
-      }
-
-      // Get user details for payment
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { first_name: true, last_name: true, email: true, phone: true },
-      });
-
-      const customerName = `${user.first_name} ${user.last_name}`.trim();
-
-      // Generate transaction code
-      const latestTx = await prisma.transaction.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
-      const sequence = (latestTx?.id || 0) + 1;
-      const transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.ACADEMY_PREFIX, sequence);
-
-      // For now use 0 amount (cohort price to be added later)
-      const amount = 0;
-
-      let snapToken = null;
-      let redirectUrl = null;
-      let snapResponse = null;
-
-      if (amount > 0) {
-        const snapResult = await this.midtransService.createSnapTransaction({
-          orderId: transactionCode,
-          grossAmount: amount,
-          customerDetails: {
-            first_name: user.first_name,
-            last_name: user.last_name,
-            email: user.email,
-            phone: user.phone || '',
-          },
-          itemDetails: [
-            {
-              id: `COHORT-${cohortId}`,
-              name: `${cohort.academy.title} - ${cohort.name}`,
-              price: amount,
-              quantity: 1,
-              category: 'Education',
-            },
-          ],
-        });
-
-        snapToken = snapResult.token;
-        redirectUrl = snapResult.redirectUrl;
-        snapResponse = snapResult;
-      }
-
-      const result = await this.repository.createEnrollmentWithPayment(cohortId, cohort.academy_id, userId, {
-        transactionCode,
-        amount,
-        customerName,
-        customerEmail: user.email,
-        customerPhone: user.phone,
-        snapToken: snapToken || 'FREE',
-        redirectUrl: redirectUrl || null,
-        snapResponse,
-      });
-
-      // Fire enrollment email untuk free cohort (langsung active)
-      if (amount === 0) {
-        emailService
-          .sendCohortEnrollment({
-            to: user.email,
-            name: customerName,
-            cohortName: cohort.name,
-            academyTitle: cohort.academy.title,
-          })
-          .catch((err) => this.logger.error({ err }, '[userCohortService] enrollment email error'));
-      }
-
-      this.logger.info('[userCohortService] enrollInCohort success');
-      return {
-        enrollment_id: result.enrollment.id,
-        snap_token: snapToken,
-        redirect_url: redirectUrl,
-        transaction_code: transactionCode,
-      };
-    } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] enrollInCohort error');
       throw error;
     }
   }
@@ -172,34 +64,48 @@ export class UserCohortService {
     try {
       const result = await this.repository.findUserEnrollments(userId, params);
 
-      // Compute next_session and module progress for each enrollment
       const now = new Date();
       result.data = await Promise.all(
         result.data.map(async (enrollment) => {
+          const cohort = enrollment.placement?.cohort ?? null;
+          const cohortId = enrollment.placement?.cohort_id ?? null;
+
           const [nextModule, completedModules, certificate] = await Promise.all([
-            prisma.cohortModule.findFirst({
-              where: {
-                cohort_id: enrollment.cohort_id,
-                is_published: true,
-                session_start_time: { gt: now },
-              },
-              orderBy: { session_start_time: 'asc' },
-              select: { session_start_time: true },
-            }),
-            this.repository.countCompletedModules(enrollment.cohort_id),
-            prisma.cohortCertificate.findFirst({
-              where: { enrollment_id: enrollment.id },
-              select: { id: true, file_path: true },
-            }),
+            cohortId
+              ? prisma.cohortModule.findFirst({
+                  where: { cohort_id: cohortId, is_published: true, session_start_time: { gt: now } },
+                  orderBy: { session_start_time: 'asc' },
+                  select: { session_start_time: true },
+                })
+              : Promise.resolve(null),
+            cohortId ? this.repository.countCompletedModules(cohortId) : Promise.resolve(0),
+            cohortId
+              ? prisma.cohortCertificate.findFirst({
+                  where: { cohort_id: cohortId, user_id: enrollment.user_id },
+                  select: { id: true, file_path: true },
+                })
+              : Promise.resolve(null),
           ]);
 
-          const { _count, ...cohortWithoutCount } = enrollment.cohort;
+          if (!cohort) {
+            return {
+              ...enrollment,
+              cohort: null,
+              next_session: null,
+              total_modules: 0,
+              completed_modules: 0,
+              has_certificate: false,
+              certificate_url: null,
+            };
+          }
+
+          const { _count, ...cohortWithoutCount } = cohort;
 
           return {
             ...enrollment,
             cohort: cohortWithoutCount,
             next_session: nextModule?.session_start_time?.toISOString() || null,
-            total_modules: _count.modules,
+            total_modules: _count?.modules ?? 0,
             completed_modules: completedModules,
             has_certificate: !!certificate,
             certificate_url: toFileUrl(certificate?.file_path) ?? null,
@@ -218,9 +124,8 @@ export class UserCohortService {
   async getCohortModules(cohortId, userId) {
     this.logger.info('[userCohortService] getCohortModules start');
     try {
-      // Verify enrollment
-      const enrollment = await this.repository.findActiveEnrollment(userId, cohortId);
-      if (!enrollment) {
+      const placement = await this.repository.findPlacementByUserCohort(userId, cohortId);
+      if (!placement) {
         const err = new Error('You are not enrolled in this cohort');
         err.statusCode = 403;
         throw err;
@@ -239,8 +144,8 @@ export class UserCohortService {
   async getCohortModuleById(cohortId, moduleId, userId) {
     this.logger.info('[userCohortService] getCohortModuleById start');
     try {
-      const enrollment = await this.repository.findActiveEnrollment(userId, cohortId);
-      if (!enrollment) {
+      const placement = await this.repository.findPlacementByUserCohort(userId, cohortId);
+      if (!placement) {
         const err = new Error('You are not enrolled in this cohort');
         err.statusCode = 403;
         throw err;

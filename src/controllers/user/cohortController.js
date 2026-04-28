@@ -38,25 +38,6 @@ export class UserCohortController {
     }
   }
 
-  async enrollInCohort(request, reply) {
-    try {
-      request.log.info('[userCohortController] enrollInCohort start');
-
-      const { id } = request.params;
-      const userId = request.user.userId;
-      const result = await userCohortService.enrollInCohort(Number(id), userId);
-
-      request.log.info('[userCohortController] enrollInCohort success');
-      return reply.status(201).send(successResponse(result, 'Enrollment created successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[userCohortController] enrollInCohort error');
-
-      if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      if (error.statusCode === 400) return reply.status(400).send(errorResponse(error.message, 400));
-      return reply.status(500).send(errorResponse('Failed to enroll', 500, error.message));
-    }
-  }
-
   async getMyEnrollments(request, reply) {
     try {
       request.log.info('[userCohortController] getMyEnrollments start');

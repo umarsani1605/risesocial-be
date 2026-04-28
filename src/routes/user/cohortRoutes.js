@@ -3,7 +3,6 @@ import { authMiddleware } from '../../middleware/auth.js';
 import {
   getUserCohortsSchema,
   getUserCohortByIdSchema,
-  enrollInCohortSchema,
   getMyEnrollmentsSchema,
   getUpcomingSessionsSchema,
   getCohortModulesSchema,
@@ -17,13 +16,6 @@ export default async function userCohortRoutes(fastify) {
   // Public cohort listing
   fastify.get('/', { schema: getUserCohortsSchema, handler: userCohortController.getAllCohorts });
   fastify.get('/:id', { schema: getUserCohortByIdSchema, handler: userCohortController.getCohortById });
-
-  // Authenticated enrollment
-  fastify.post('/:id/enroll', {
-    schema: enrollInCohortSchema,
-    preHandler: [authMiddleware],
-    handler: userCohortController.enrollInCohort,
-  });
 
   // My enrollments
   fastify.get('/upcoming', {
