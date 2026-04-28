@@ -53,6 +53,8 @@ export async function registerRoutes(fastify) {
   fastify.register(adminRoutes.cohort, { prefix: '/admin/cohorts' });
   fastify.register(adminRoutes.transaction, { prefix: '/admin/transactions' });
   fastify.register(adminRoutes.permission, { prefix: '/admin/permissions' });
+  fastify.register(adminRoutes.placement, { prefix: '/admin/academy-enrollments' });
+  fastify.register(adminRoutes.cohortPlacement, { prefix: '/admin/cohort-placements' });
 
   fastify.register(userRoutes.cohort, { prefix: '/cohorts' });
   fastify.register(userRoutes.certificateVerify, { prefix: '/certificates' });

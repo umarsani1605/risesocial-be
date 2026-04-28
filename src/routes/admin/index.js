@@ -8,3 +8,5 @@ export { default as testimonials } from './testimonialsRoutes.js';
 export { default as cohort } from './cohortRoutes.js';
 export { default as transaction } from './transactionRoutes.js';
 export { default as permission } from './permissionRoutes.js';
+export { default as placement } from './placementRoutes.js';
+export { default as cohortPlacement } from './cohortPlacementRoutes.js';
