@@ -137,36 +137,6 @@ export const cancelEnrollmentSchema = {
   },
 };
 
-export const transferPlacementSchema = {
-  tags: ['Admin - Placements'],
-  summary: 'Transfer placement to new cohort',
-  params: {
-    type: 'object',
-    required: ['id'],
-    properties: { id: { type: 'integer' } },
-    additionalProperties: false,
-  },
-  body: {
-    type: 'object',
-    required: ['cohort_id'],
-    properties: {
-      cohort_id: { type: 'integer' },
-      notes: { type: 'string' },
-    },
-    additionalProperties: false,
-  },
-  response: {
-    200: createSuccessResponseSchema(placementSchema, 'Placement transferred'),
-    400: createErrorResponseSchema(400, 'Bad Request'),
-    401: createErrorResponseSchema(401, 'Unauthorized'),
-    403: createErrorResponseSchema(403, 'Forbidden'),
-    404: createErrorResponseSchema(404, 'Not Found'),
-    409: createErrorResponseSchema(409, 'Conflict'),
-    422: createErrorResponseSchema(422, 'Unprocessable Entity'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
 export const dropPlacementSchema = {
   tags: ['Admin - Placements'],
   summary: 'Drop placement (enrollment stays active)',

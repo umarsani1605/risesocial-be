@@ -78,47 +78,33 @@ export class AdminPlacementService {
       throw makeError(`Cannot assign to cohort with status '${cohort.status}'`, 422);
     }
 
-    const existingByEnrollment = await cohortPlacementRepository.findByEnrollmentId(enrollmentId);
-    if (existingByEnrollment) throw makeError('Enrollment already has a placement', 409);
-
     const existingByUserCohort = await cohortPlacementRepository.findByUserCohort(enrollment.user_id, cohortId);
     if (existingByUserCohort) throw makeError('User already placed in this cohort', 409);
 
-    const placement = await cohortPlacementRepository.createPlacement({
-      academyEnrollmentId: enrollmentId,
-      cohortId,
-      userId: enrollment.user_id,
-      academyId: enrollment.academy_id,
-      notes: notes ?? null,
-    });
+    const existingPlacement = await cohortPlacementRepository.findByEnrollmentId(enrollmentId);
+
+    let placement;
+    if (existingPlacement) {
+      // Re-assign: atomically move to the new cohort
+      placement = await cohortPlacementRepository.replacePlacement(existingPlacement.id, {
+        cohortId,
+        userId: enrollment.user_id,
+        academyId: enrollment.academy_id,
+        academyEnrollmentId: enrollmentId,
+        notes: notes ?? null,
+      });
+    } else {
+      placement = await cohortPlacementRepository.createPlacement({
+        academyEnrollmentId: enrollmentId,
+        cohortId,
+        userId: enrollment.user_id,
+        academyId: enrollment.academy_id,
+        notes: notes ?? null,
+      });
+    }
 
     this.logger.info({ placementId: placement.id, adminId }, '[AdminPlacementService] assignToCohort success');
     return placement;
-  }
-
-  async transferPlacement(placementId, newCohortId, { notes, adminId } = {}) {
-    this.logger.info({ placementId, newCohortId, adminId }, '[AdminPlacementService] transferPlacement start');
-
-    // Find placement by looking up enrollment that has this placement id
-    const placement = await prisma.cohortPlacement.findUnique({ where: { id: placementId } });
-    if (!placement) throw makeError('Placement not found', 404);
-
-    const newCohort = await prisma.cohort.findUnique({ where: { id: newCohortId } });
-    if (!newCohort) throw makeError('Target cohort not found', 404);
-    if (newCohort.academy_id !== placement.academy_id) {
-      throw makeError('Target cohort belongs to a different academy', 422);
-    }
-    if (!VALID_COHORT_STATUSES.includes(newCohort.status)) {
-      throw makeError(`Cannot transfer to cohort with status '${newCohort.status}'`, 422);
-    }
-
-    const existingByUserCohort = await cohortPlacementRepository.findByUserCohort(placement.user_id, newCohortId);
-    if (existingByUserCohort) throw makeError('User already placed in target cohort', 409);
-
-    const transferred = await cohortPlacementRepository.transferPlacement(placementId, newCohortId, notes);
-
-    this.logger.info({ newPlacementId: transferred.id, adminId }, '[AdminPlacementService] transferPlacement success');
-    return transferred;
   }
 
   async cancelEnrollment(enrollmentId, { reason, adminId } = {}) {

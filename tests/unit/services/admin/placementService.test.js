@@ -7,7 +7,7 @@ const mockCohortPlacementRepository = {
   findByUserCohort: vi.fn(),
   findByCohort: vi.fn(),
   deletePlacement: vi.fn(),
-  transferPlacement: vi.fn(),
+  replacePlacement: vi.fn(),
 };
 
 const mockAcademyEnrollmentRepository = {
@@ -89,13 +89,29 @@ describe('AdminPlacementService', () => {
       mockCohortPlacementRepository.createPlacement.mockResolvedValue(basePlacement);
     });
 
-    it('creates placement for active enrollment', async () => {
+    it('creates placement for active enrollment with no prior placement', async () => {
       const result = await service.assignToCohort(10, 5, { notes: 'Late join', adminId: 1 });
 
       expect(result).toMatchObject({ id: 20, cohort_id: 5, academy_enrollment_id: 10 });
       expect(mockCohortPlacementRepository.createPlacement).toHaveBeenCalledWith(
         expect.objectContaining({ academyEnrollmentId: 10, cohortId: 5, userId: 100, academyId: 1 }),
       );
+      expect(mockCohortPlacementRepository.replacePlacement).not.toHaveBeenCalled();
+    });
+
+    it('re-assigns (replaces) placement when enrollment already has one', async () => {
+      const newCohortPlacement = { ...basePlacement, id: 21, cohort_id: 6 };
+      mockCohortPlacementRepository.findByEnrollmentId.mockResolvedValue(basePlacement);
+      mockCohortPlacementRepository.replacePlacement.mockResolvedValue(newCohortPlacement);
+
+      const result = await service.assignToCohort(10, 6, { adminId: 1 });
+
+      expect(result.cohort_id).toBe(6);
+      expect(mockCohortPlacementRepository.replacePlacement).toHaveBeenCalledWith(
+        basePlacement.id,
+        expect.objectContaining({ cohortId: 6, userId: 100, academyId: 1, academyEnrollmentId: 10 }),
+      );
+      expect(mockCohortPlacementRepository.createPlacement).not.toHaveBeenCalled();
     });
 
     it('throws 404 when enrollment not found', async () => {
@@ -134,53 +150,10 @@ describe('AdminPlacementService', () => {
       await expect(service.assignToCohort(10, 5, { adminId: 1 })).rejects.toMatchObject({ statusCode: 422 });
     });
 
-    it('throws 409 when placement already exists for this enrollment', async () => {
-      mockCohortPlacementRepository.findByEnrollmentId.mockResolvedValue(basePlacement);
-
-      await expect(service.assignToCohort(10, 5, { adminId: 1 })).rejects.toMatchObject({ statusCode: 409 });
-    });
-
-    it('throws 409 when user already placed in target cohort (race condition guard)', async () => {
+    it('throws 409 when user already placed in target cohort', async () => {
       mockCohortPlacementRepository.findByUserCohort.mockResolvedValue(basePlacement);
 
       await expect(service.assignToCohort(10, 5, { adminId: 1 })).rejects.toMatchObject({ statusCode: 409 });
-    });
-  });
-
-  // ----------------------------------------------------------
-  describe('transferPlacement', () => {
-    const newCohort = { id: 6, academy_id: 1, name: 'Cohort B', status: 'not_started' };
-
-    beforeEach(() => {
-      mockCohortPlacementRepository.findByUserCohort.mockResolvedValue(null);
-      mockCohortPlacementRepository.transferPlacement.mockResolvedValue({ ...basePlacement, cohort_id: 6 });
-      mockPrisma.cohortPlacement.findUnique.mockResolvedValue(basePlacement);
-      mockPrisma.cohort.findUnique.mockResolvedValue(newCohort);
-    });
-
-    it('transfers placement to new cohort atomically', async () => {
-      const result = await service.transferPlacement(20, 6, { adminId: 1 });
-
-      expect(result.cohort_id).toBe(6);
-      expect(mockCohortPlacementRepository.transferPlacement).toHaveBeenCalledWith(20, 6, undefined);
-    });
-
-    it('throws 404 when placement not found', async () => {
-      mockPrisma.cohortPlacement.findUnique.mockResolvedValue(null);
-
-      await expect(service.transferPlacement(999, 6, { adminId: 1 })).rejects.toMatchObject({ statusCode: 404 });
-    });
-
-    it('throws 422 when new cohort belongs to different academy', async () => {
-      mockPrisma.cohort.findUnique.mockResolvedValue({ ...newCohort, academy_id: 99 });
-
-      await expect(service.transferPlacement(20, 6, { adminId: 1 })).rejects.toMatchObject({ statusCode: 422 });
-    });
-
-    it('throws 409 when user already in target cohort', async () => {
-      mockCohortPlacementRepository.findByUserCohort.mockResolvedValue({ id: 99 });
-
-      await expect(service.transferPlacement(20, 6, { adminId: 1 })).rejects.toMatchObject({ statusCode: 409 });
     });
   });
 

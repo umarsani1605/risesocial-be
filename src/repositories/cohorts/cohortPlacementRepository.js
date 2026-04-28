@@ -88,29 +88,25 @@ export class CohortPlacementRepository {
     }
   }
 
-  async transferPlacement(currentId, newCohortId, notes) {
-    this.logger.info({ currentId, newCohortId }, '[CohortPlacementRepository] transferPlacement start');
+  async replacePlacement(currentId, { cohortId, userId, academyId, academyEnrollmentId, notes }) {
+    this.logger.info({ currentId, cohortId }, '[CohortPlacementRepository] replacePlacement start');
     try {
-      const transferred = await prisma.$transaction(async (tx) => {
-        const current = await tx.cohortPlacement.findUnique({ where: { id: currentId } });
-        if (!current) {
-          throw new Error(`CohortPlacement ${currentId} not found`);
-        }
+      const result = await prisma.$transaction(async (tx) => {
         await tx.cohortPlacement.delete({ where: { id: currentId } });
         return tx.cohortPlacement.create({
           data: {
-            academy_enrollment_id: current.academy_enrollment_id,
-            cohort_id: newCohortId,
-            user_id: current.user_id,
-            academy_id: current.academy_id,
-            notes: notes !== undefined ? notes : current.notes,
+            academy_enrollment_id: academyEnrollmentId,
+            cohort_id: cohortId,
+            user_id: userId,
+            academy_id: academyId,
+            notes: notes ?? null,
           },
         });
       });
-      this.logger.info({ id: transferred.id }, '[CohortPlacementRepository] transferPlacement success');
-      return transferred;
+      this.logger.info({ id: result.id }, '[CohortPlacementRepository] replacePlacement success');
+      return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[CohortPlacementRepository] transferPlacement error');
+      this.logger.error({ err: error }, '[CohortPlacementRepository] replacePlacement error');
       throw error;
     }
   }

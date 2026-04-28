@@ -70,26 +70,6 @@ export class AdminPlacementController {
     }
   };
 
-  transferPlacement = async (request, reply) => {
-    try {
-      request.log.info('[AdminPlacementController] transferPlacement start');
-      const { cohort_id, notes } = request.body;
-      const placement = await adminPlacementService.transferPlacement(
-        Number(request.params.id),
-        Number(cohort_id),
-        { notes, adminId: request.user?.userId },
-      );
-      return reply.send(successResponse(placement, 'Placement transferred successfully'));
-    } catch (error) {
-      request.log.error({ err: error }, '[AdminPlacementController] transferPlacement error');
-      const code = error.statusCode;
-      if (code === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      if (code === 409) return reply.status(409).send(errorResponse(error.message, 409));
-      if (code === 422) return reply.status(422).send(errorResponse(error.message, 422));
-      return reply.status(500).send(errorResponse('Failed to transfer placement', 500, error.message));
-    }
-  };
-
   dropPlacement = async (request, reply) => {
     try {
       request.log.info('[AdminPlacementController] dropPlacement start');
