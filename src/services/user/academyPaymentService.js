@@ -75,15 +75,10 @@ export class AcademyPaymentService {
         throw new Error('User not found');
       }
 
-      // Step 6: Generate transaction code
-      const sequence = await academyPaymentRepository.getNextSequenceNumber();
-      const transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.ACADEMY_PREFIX, sequence);
-      this.logger.info({ transactionCode }, '[AcademyPaymentService] transaction code generated');
-
-      // Step 7: Determine amount (use discount_price if available, otherwise original_price)
+      // Step 6: Determine amount (use discount_price if available, otherwise original_price)
       const amount = pricing.discount_price > 0 ? pricing.discount_price : pricing.original_price;
 
-      // Step 8: Prepare customer details
+      // Step 7: Prepare customer details
       const customerName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Customer';
       const customerDetails = {
         first_name: user.first_name || 'Customer',
@@ -93,31 +88,39 @@ export class AcademyPaymentService {
       };
 
       // Midtrans enforces a 50-character max on item_details.name
-      const itemName = `${academy.title} - ${pricing.name}`.substring(0, 50)
-
-      // Step 9: Create Snap transaction
-      const snapResult = await midtransService.createSnapTransaction({
-        orderId: transactionCode,
-        grossAmount: amount,
-        customerDetails,
-        itemDetails: [
-          {
-            id: `academy-${academy.id}-pricing-${pricing.id}`,
-            name: itemName,
-            price: amount,
-            quantity: 1,
-            category: 'academy_course',
-          },
-        ],
-      });
-
-      this.logger.info('[AcademyPaymentService] Snap transaction created');
+      const itemName = `${academy.title} - ${pricing.name}`.substring(0, 50);
 
       let enrollmentId;
+      let transactionCode;
+      let snapResult;
 
       if (existingEnrollment) {
         // Reset expired pending enrollment with new transaction
+        // Generate sequence and create transaction atomically
         await prisma.$transaction(async (tx) => {
+          // Step 8a: Generate transaction code atomically within transaction
+          const sequence = await academyPaymentRepository.getNextSequenceNumber(tx);
+          transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.ACADEMY_PREFIX, sequence);
+          this.logger.info({ transactionCode }, '[AcademyPaymentService] transaction code generated');
+
+          // Step 9a: Create Snap transaction
+          snapResult = await midtransService.createSnapTransaction({
+            orderId: transactionCode,
+            grossAmount: amount,
+            customerDetails,
+            itemDetails: [
+              {
+                id: `academy-${academy.id}-pricing-${pricing.id}`,
+                name: itemName,
+                price: amount,
+                quantity: 1,
+                category: 'academy_course',
+              },
+            ],
+          });
+
+          this.logger.info('[AcademyPaymentService] Snap transaction created');
+
           const newTransaction = await tx.transaction.create({
             data: {
               transaction_code: transactionCode,
@@ -166,25 +169,88 @@ export class AcademyPaymentService {
         enrollmentId = existingEnrollment.id;
         this.logger.info('[AcademyPaymentService] expired enrollment reset with new transaction');
       } else {
-        // Step 10: Save 3 layers using existing repository method
-        const result = await userCohortRepository.createEnrollmentWithPayment(
-          cohort.id,
-          academyId,
-          userId,
-          {
-            transactionCode,
-            amount,
-            customerName,
-            customerEmail: user.email,
-            customerPhone: user.phone || null,
-            snapToken: snapResult.token,
-            redirectUrl: snapResult.redirectUrl,
-            snapResponse: snapResult,
-            itemProductCode: `academy-${academy.id}-pricing-${pricing.id}`,
-            itemProductName: itemName,
-          },
-        );
-        enrollmentId = result.enrollment.id;
+        // Step 8b: Generate transaction code and create enrollment atomically
+        await prisma.$transaction(async (tx) => {
+          const sequence = await academyPaymentRepository.getNextSequenceNumber(tx);
+          transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.ACADEMY_PREFIX, sequence);
+          this.logger.info({ transactionCode }, '[AcademyPaymentService] transaction code generated');
+
+          // Step 9b: Create Snap transaction
+          snapResult = await midtransService.createSnapTransaction({
+            orderId: transactionCode,
+            grossAmount: amount,
+            customerDetails,
+            itemDetails: [
+              {
+                id: `academy-${academy.id}-pricing-${pricing.id}`,
+                name: itemName,
+                price: amount,
+                quantity: 1,
+                category: 'academy_course',
+              },
+            ],
+          });
+
+          this.logger.info('[AcademyPaymentService] Snap transaction created');
+
+          // Step 10: Save 3 layers
+          const newTransaction = await tx.transaction.create({
+            data: {
+              transaction_code: transactionCode,
+              amount,
+              currency: 'IDR',
+              status: 'pending',
+              provider: 'midtrans',
+              customer_name: customerName,
+              customer_email: user.email,
+              customer_phone: user.phone || null,
+              user_id: userId,
+              product_type: 'academy_enrollment',
+              expired_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            },
+          });
+
+          await tx.transactionItem.create({
+            data: {
+              transaction_id: newTransaction.id,
+              product_code: `academy-${academy.id}-pricing-${pricing.id}`,
+              product_name: itemName,
+              product_category: 'academy_enrollment',
+              quantity: 1,
+              unit_price: amount,
+              total_price: amount,
+            },
+          });
+
+          await tx.midtransTransaction.create({
+            data: {
+              transaction_id: newTransaction.id,
+              snap_token: snapResult.token,
+              redirect_url: snapResult.redirectUrl,
+              midtrans_order_id: transactionCode,
+              create_response: snapResult,
+            },
+          });
+
+          const enrollment = await tx.cohortEnrollment.create({
+            data: {
+              cohort_id: cohort.id,
+              academy_id: academyId,
+              user_id: userId,
+              transaction_id: newTransaction.id,
+              status: 'pending',
+            },
+          });
+
+          enrollmentId = enrollment.id;
+
+          // Update product_type_id with actual enrollment id
+          await tx.transaction.update({
+            where: { id: newTransaction.id },
+            data: { product_type_id: enrollment.id },
+          });
+        });
+
         this.logger.info('[AcademyPaymentService] all 3 layers saved');
       }
 

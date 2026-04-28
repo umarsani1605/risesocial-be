@@ -6,10 +6,16 @@ export class AcademyPaymentRepository {
     return getLogger();
   }
 
-  async getNextSequenceNumber() {
+  /**
+   * Get next sequence number atomically within a transaction.
+   * This method must be called within a Prisma transaction context.
+   * @param {Object} tx - Prisma transaction client
+   * @returns {Promise<number>} Next sequence number
+   */
+  async getNextSequenceNumber(tx) {
     this.logger.info('[AcademyPaymentRepository] getNextSequenceNumber');
     try {
-      const lastEnrollment = await prisma.cohortEnrollment.findFirst({
+      const lastEnrollment = await tx.cohortEnrollment.findFirst({
         orderBy: { id: 'desc' },
         select: { id: true },
       });
