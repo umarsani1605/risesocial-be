@@ -1,8 +1,9 @@
 # Cohort Placement Refactor — Design Document
 
-**Status:** Draft
+**Status:** ✅ Implemented (RS-24 through RS-32)
 **Author:** Umar Sani
 **Created:** 2026-04-27
+**Completed:** 2026-04-28
 **Linear Project:** [Cohort Placement Refactor](https://linear.app/umarsani1602/project/cohort-placement-refactor-41a2343751a9)
 
 ---
@@ -573,9 +574,21 @@ RS-25 [Repository Layer (TDD)]
 
 ### 15.2 Related docs
 
-- [Rise_LMS_Database_Schema_Cohort_v3.md](./Rise_LMS_Database_Schema_Cohort_v3.md) — to be updated in RS-32
-- [Rise_LMS_Cohort_Implementation_Guide.md](./Rise_LMS_Cohort_Implementation_Guide.md) — to be updated in RS-32
+- [Rise_LMS_Database_Schema_Cohort_v3.md](./Rise_LMS_Database_Schema_Cohort_v3.md) — updated in RS-32
+- [Rise_LMS_Cohort_Implementation_Guide.md](./Rise_LMS_Cohort_Implementation_Guide.md) — created in RS-32
 - [BACKEND_ARCHITECTURE.md](./BACKEND_ARCHITECTURE.md) — base architecture
+
+### 15.4 Implementation Deviations
+
+Minor deviations from the original design during implementation:
+
+1. **`Transaction.product_type_id` requires placeholder** — The schema marks this field non-nullable, but the enrollment ID doesn't exist when the Transaction is first created. Fix: use `product_type_id: 0` as a placeholder, then update immediately after enrollment creation. This is consistent with the existing pattern.
+
+2. **`updateCohortSchema` requires `start_date` + `end_date`** — The Fastify schema for `PUT /admin/cohorts/:id` marks both dates as required. Setting `status: 'completed'` via the API requires passing the existing dates in the body.
+
+3. **`cohort_enrollments` table retained** — The old table is not dropped during the migration. It remains as a legacy artifact. No services reference it. Can be dropped in a future migration.
+
+4. **Certificate generation mock in e2e** — The `completeCohort` service generates a PDF using `pdf-lib`. In e2e tests, the `AdminCohortService._generatePDF` method is mocked to prevent filesystem writes.
 
 ### 15.3 Linear
 
