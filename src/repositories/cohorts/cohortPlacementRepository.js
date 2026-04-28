@@ -88,7 +88,7 @@ export class CohortPlacementRepository {
     }
   }
 
-  async transferPlacement(currentId, newCohortId) {
+  async transferPlacement(currentId, newCohortId, notes) {
     this.logger.info({ currentId, newCohortId }, '[CohortPlacementRepository] transferPlacement start');
     try {
       const transferred = await prisma.$transaction(async (tx) => {
@@ -103,7 +103,7 @@ export class CohortPlacementRepository {
             cohort_id: newCohortId,
             user_id: current.user_id,
             academy_id: current.academy_id,
-            notes: current.notes,
+            notes: notes !== undefined ? notes : current.notes,
           },
         });
       });
