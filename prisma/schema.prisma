@@ -474,7 +474,6 @@ model RylsDraftRegistration {
   updated_at       DateTime @updatedAt
 
   @@index([email])
-  @@index([resume_token])
   @@index([expires_at])
   @@map("ryls_draft_registrations")
 }

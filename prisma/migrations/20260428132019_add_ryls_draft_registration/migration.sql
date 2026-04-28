@@ -20,7 +20,4 @@ CREATE UNIQUE INDEX "ryls_draft_registrations_resume_token_key" ON "ryls_draft_r
 CREATE INDEX "ryls_draft_registrations_email_idx" ON "ryls_draft_registrations"("email");
 
 -- CreateIndex
-CREATE INDEX "ryls_draft_registrations_resume_token_idx" ON "ryls_draft_registrations"("resume_token");
-
--- CreateIndex
 CREATE INDEX "ryls_draft_registrations_expires_at_idx" ON "ryls_draft_registrations"("expires_at");
