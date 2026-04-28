@@ -70,6 +70,7 @@ export async function resetDatabase() {
 
   // Tables in order to respect foreign key constraints
   const tablesToTruncate = [
+    'ryls_draft_registrations',
     'ryls_payments',
     'ryls_self_funded_submissions',
     'ryls_fully_funded_submissions',

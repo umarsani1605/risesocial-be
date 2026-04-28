@@ -115,7 +115,7 @@ export const timestampFieldsSchema = {
   },
 };
 
-export function createSuccessResponseSchema(dataSchema, description = 'Successful response') {
+export function createSuccessResponseSchema(dataSchema, description = 'Successful response', statusCode) {
   return {
     description,
     type: 'object',
