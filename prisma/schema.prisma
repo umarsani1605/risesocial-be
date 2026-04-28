@@ -461,6 +461,24 @@ model RylsRegistration {
   @@map("ryls_registrations")
 }
 
+/// Draft registration for partial form submission
+model RylsDraftRegistration {
+  id               Int      @id @default(autoincrement())
+  email            String   @db.VarChar(255)
+  resume_token     String   @unique @db.VarChar(64)
+  current_step     Int      @default(1)
+  form_data        Json
+  scholarship_type String?  @db.VarChar(50)
+  expires_at       DateTime
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([email])
+  @@index([resume_token])
+  @@index([expires_at])
+  @@map("ryls_draft_registrations")
+}
+
 /// File upload metadata
 model FileUpload {
   id                    Int                        @id @default(autoincrement())
