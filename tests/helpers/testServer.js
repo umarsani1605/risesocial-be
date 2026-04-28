@@ -23,7 +23,10 @@ import userCohortRoutes, { certificateVerifyRoutes } from '../../src/routes/user
 import userRylsRegistrationRoutes from '../../src/routes/user/rylsRegistrationRoutes.js';
 import adminRylsRegistrationRoutes from '../../src/routes/admin/rylsRegistrationRoutes.js';
 import rylsPaymentRoutes from '../../src/routes/payments/rylsPaymentRoutes.js';
+import academyPaymentRoutes from '../../src/routes/payments/academyPaymentRoutes.js';
 import adminPermissionRoutes from '../../src/routes/admin/permissionRoutes.js';
+import adminPlacementRoutes from '../../src/routes/admin/placementRoutes.js';
+import adminCohortPlacementRoutes from '../../src/routes/admin/cohortPlacementRoutes.js';
 
 /**
  * Create a configured Fastify test instance
@@ -78,7 +81,10 @@ export async function createTestApp() {
   await fastify.register(userRylsRegistrationRoutes, { prefix: '/ryls' });
   await fastify.register(adminRylsRegistrationRoutes, { prefix: '/admin/ryls' });
   await fastify.register(rylsPaymentRoutes, { prefix: '/payments' });
+  await fastify.register(academyPaymentRoutes, { prefix: '/payments' });
   await fastify.register(adminPermissionRoutes, { prefix: '/admin/permissions' });
+  await fastify.register(adminPlacementRoutes, { prefix: '/admin/academy-enrollments' });
+  await fastify.register(adminCohortPlacementRoutes, { prefix: '/admin/cohort-placements' });
 
   await fastify.ready();
 

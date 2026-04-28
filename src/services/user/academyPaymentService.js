@@ -182,7 +182,8 @@ export class AcademyPaymentService {
 
           this.logger.info('[AcademyPaymentService] Snap transaction created');
 
-          // Layer 1: Transaction (product_type_id will be updated after enrollment is created)
+          // Layer 1: Transaction — product_type_id is a placeholder (0) updated below
+          // after the enrollment is created (circular dependency: tx needs enrollment id)
           const newTransaction = await tx.transaction.create({
             data: {
               transaction_code: transactionCode,
@@ -195,6 +196,7 @@ export class AcademyPaymentService {
               customer_phone: user.phone || null,
               user_id: userId,
               product_type: 'academy_enrollment',
+              product_type_id: 0,
               expired_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
             },
           });
