@@ -15,11 +15,11 @@ export class AcademyPaymentRepository {
   async getNextSequenceNumber(tx) {
     this.logger.info('[AcademyPaymentRepository] getNextSequenceNumber');
     try {
-      const lastEnrollment = await tx.cohortEnrollment.findFirst({
+      const last = await tx.academyEnrollment.findFirst({
         orderBy: { id: 'desc' },
         select: { id: true },
       });
-      const sequence = lastEnrollment ? lastEnrollment.id + 1 : 1;
+      const sequence = last ? last.id + 1 : 1;
       this.logger.info({ sequence }, '[AcademyPaymentRepository] sequence number');
       return sequence;
     } catch (error) {
@@ -28,69 +28,16 @@ export class AcademyPaymentRepository {
     }
   }
 
-  /** Cohort target untuk enrollment pembayaran academy: hanya status `not_started`, yang paling baru dibuat (by `created_at`, lalu `id`). */
-  async findLatestCohortByAcademyId(academyId) {
-    this.logger.info({ academyId }, '[AcademyPaymentRepository] findLatestCohortByAcademyId');
-    try {
-      const cohort = await prisma.cohort.findFirst({
-        where: { academy_id: academyId, status: 'not_started' },
-        orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
-      });
-      this.logger.info({ found: !!cohort }, '[AcademyPaymentRepository] cohort found');
-      return cohort;
-    } catch (error) {
-      this.logger.error({ err: error }, '[AcademyPaymentRepository] findLatestCohortByAcademyId error');
-      throw error;
-    }
-  }
-
-  async findExistingEnrollment(userId, academyId) {
-    this.logger.info({ userId, academyId }, '[AcademyPaymentRepository] findExistingEnrollment');
-    try {
-      const enrollment = await prisma.cohortEnrollment.findFirst({
-        where: {
-          user_id: userId,
-          academy_id: academyId,
-          status: { in: ['pending', 'active'] },
-        },
-        orderBy: { created_at: 'desc' },
-        include: {
-          transaction: {
-            select: {
-              id: true,
-              status: true,
-              transaction_code: true,
-              amount: true,
-              expired_at: true,
-              midtrans_data: { select: { snap_token: true, redirect_url: true } },
-            },
-          },
-        },
-      });
-      this.logger.info({ found: !!enrollment }, '[AcademyPaymentRepository] enrollment found');
-      return enrollment;
-    } catch (error) {
-      this.logger.error({ err: error }, '[AcademyPaymentRepository] findExistingEnrollment error');
-      throw error;
-    }
-  }
-
   async findEnrollmentWithTransaction(enrollmentId, userId) {
     this.logger.info({ enrollmentId, userId }, '[AcademyPaymentRepository] findEnrollmentWithTransaction');
     try {
-      const enrollment = await prisma.cohortEnrollment.findFirst({
+      const enrollment = await prisma.academyEnrollment.findFirst({
         where: { id: enrollmentId, user_id: userId },
         include: {
           transaction: {
             include: { items: true, midtrans_data: true },
           },
-          cohort: {
-            select: {
-              id: true,
-              name: true,
-              academy: { select: { id: true, title: true } },
-            },
-          },
+          academy: { select: { id: true, title: true, slug: true } },
         },
       });
       this.logger.info({ found: !!enrollment }, '[AcademyPaymentRepository] enrollment found');
