@@ -59,9 +59,9 @@ export const saveDraftSchema = {
   tags: ['RYLS Draft'],
   body: saveDraftBodySchema,
   response: {
-    200: createSuccessResponseSchema(saveDraftResponseDataSchema, 'Draft saved'),
-    400: createErrorResponseSchema('Validation failed'),
-    500: createErrorResponseSchema('Internal server error'),
+    200: createSuccessResponseSchema(saveDraftResponseDataSchema, 'Draft saved', 200),
+    400: createErrorResponseSchema(400, 'Validation failed'),
+    500: createErrorResponseSchema(500, 'Internal server error'),
   },
 };
 
@@ -74,9 +74,9 @@ export const getDraftSchema = {
     required: ['token'],
   },
   response: {
-    200: createSuccessResponseSchema(draftResponseDataSchema, 'Draft retrieved'),
-    404: createErrorResponseSchema('Draft not found'),
-    500: createErrorResponseSchema('Internal server error'),
+    200: createSuccessResponseSchema(draftResponseDataSchema, 'Draft retrieved', 200),
+    404: createErrorResponseSchema(404, 'Draft not found'),
+    500: createErrorResponseSchema(500, 'Internal server error'),
   },
 };
 
@@ -89,8 +89,8 @@ export const deleteDraftSchema = {
     required: ['token'],
   },
   response: {
-    200: createSuccessResponseSchema({ type: 'object' }, 'Draft deleted'),
-    500: createErrorResponseSchema('Internal server error'),
+    200: createSuccessResponseSchema({ type: 'object' }, 'Draft deleted', 200),
+    500: createErrorResponseSchema(500, 'Internal server error'),
   },
 };
 
@@ -105,8 +105,8 @@ export const adminGetDraftsSchema = {
     },
   },
   response: {
-    200: createSuccessResponseSchema(draftsListResponseDataSchema, 'Drafts retrieved'),
-    500: createErrorResponseSchema('Internal server error'),
+    200: createSuccessResponseSchema(draftsListResponseDataSchema, 'Drafts retrieved', 200),
+    500: createErrorResponseSchema(500, 'Internal server error'),
   },
 };
 
@@ -114,8 +114,8 @@ export const adminGetDraftStatsSchema = {
   description: 'Admin: get draft registration statistics',
   tags: ['Admin RYLS Draft'],
   response: {
-    200: createSuccessResponseSchema(statsResponseDataSchema, 'Stats retrieved'),
-    500: createErrorResponseSchema('Internal server error'),
+    200: createSuccessResponseSchema(statsResponseDataSchema, 'Stats retrieved', 200),
+    500: createErrorResponseSchema(500, 'Internal server error'),
   },
 };
 
@@ -123,7 +123,7 @@ export const adminCleanupDraftsSchema = {
   description: 'Admin: delete all expired draft registrations',
   tags: ['Admin RYLS Draft'],
   response: {
-    200: createSuccessResponseSchema(statsResponseDataSchema, 'Cleanup complete'),
-    500: createErrorResponseSchema('Internal server error'),
+    200: createSuccessResponseSchema(statsResponseDataSchema, 'Cleanup complete', 200),
+    500: createErrorResponseSchema(500, 'Internal server error'),
   },
 };
