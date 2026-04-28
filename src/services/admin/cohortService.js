@@ -87,13 +87,12 @@ export class AdminCohortService {
 
       let cohort;
       if (updateData.status === 'completed') {
-        await prisma.$transaction(async (tx) => {
-          cohort = await tx.cohort.update({ where: { id }, data: updateData });
-          await tx.cohortEnrollment.updateMany({
-            where: { cohort_id: id, status: 'active' },
-            data: { status: 'completed', completion_date: new Date(), updated_at: new Date() },
-          });
-        });
+        const { status, ...otherFields } = updateData;
+        if (Object.keys(otherFields).length > 0) {
+          await this.repository.update(id, otherFields);
+        }
+        const result = await this.completeCohort(id);
+        cohort = result.cohort;
       } else {
         cohort = await this.repository.update(id, updateData);
       }
@@ -101,6 +100,105 @@ export class AdminCohortService {
       return cohort;
     } catch (error) {
       this.logger.error({ err: error }, '[adminCohortService] updateCohort error');
+      throw error;
+    }
+  }
+
+  async completeCohort(cohortId) {
+    this.logger.info('[adminCohortService] completeCohort start');
+    try {
+      const cohort = await this.repository.findByIdWithDetails(cohortId);
+      if (!cohort) {
+        const err = new Error('Cohort not found');
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const placements = await prisma.cohortPlacement.findMany({
+        where: { cohort_id: cohortId },
+        include: {
+          user: { select: { id: true, first_name: true, last_name: true, email: true } },
+        },
+      });
+
+      this.logger.info(
+        { cohortId, placementCount: placements.length },
+        '[AdminCohortService] completeCohort start',
+      );
+
+      const now = new Date();
+      const academy = await this.academyRepository.findById(cohort.academy_id);
+      const certRecords = [];
+
+      const updatedCohort = await prisma.$transaction(async (tx) => {
+        const updated = await tx.cohort.update({
+          where: { id: cohortId },
+          data: {
+            status: 'completed',
+            ...(cohort.end_date ? {} : { end_date: now }),
+          },
+        });
+
+        for (const placement of placements) {
+          await tx.academyEnrollment.update({
+            where: { id: placement.academy_enrollment_id },
+            data: { status: 'completed', completed_at: now },
+          });
+
+          const existingCert = await tx.cohortCertificate.findFirst({
+            where: { placement_id: placement.id },
+          });
+
+          if (!existingCert) {
+            const studentName = `${placement.user.first_name} ${placement.user.last_name}`.trim();
+            const record = await tx.cohortCertificate.create({
+              data: {
+                academy_id: cohort.academy_id,
+                cohort_id: cohortId,
+                placement_id: placement.id,
+                user_id: placement.user_id,
+                certificate_code: `PENDING-${Date.now()}-${placement.id}`,
+                student_name: studentName,
+                academy_title: academy.title,
+                cohort_name: cohort.name,
+                grades_transcript: null,
+              },
+            });
+            certRecords.push({ record, placement });
+          }
+        }
+
+        return updated;
+      });
+
+      // Generate PDFs and finalize certificate codes outside the transaction
+      const certDir = path.join(__dirname, `../../../uploads/certificates/${cohortId}`);
+      await fs.ensureDir(certDir);
+
+      for (const { record } of certRecords) {
+        const certCode = formatCertificateCode(record.id, record.created_at);
+        const filename = safeFilename(certCode);
+        const absolutePath = path.join(certDir, filename);
+        const relPath = `certificates/${cohortId}/${filename}`;
+
+        await this._generatePDF(absolutePath, {
+          studentName: record.student_name,
+          certCode,
+          academyName: academy.title,
+          issuedDate: formatIssuedDate(record.created_at),
+          grades: {},
+        });
+
+        await prisma.cohortCertificate.update({
+          where: { id: record.id },
+          data: { certificate_code: certCode, file_path: relPath },
+        });
+      }
+
+      this.logger.info('[adminCohortService] completeCohort success');
+      return { cohort: updatedCohort, certificatesGenerated: certRecords.length };
+    } catch (error) {
+      this.logger.error({ err: error }, '[adminCohortService] completeCohort error');
       throw error;
     }
   }
@@ -145,7 +243,7 @@ export class AdminCohortService {
         throw err;
       }
 
-      const result = { ...cohort, enrollment_count: cohort._count?.enrollments, _count: undefined };
+      const result = { ...cohort, enrollment_count: cohort._count?.placements, _count: undefined };
       this.logger.info('[adminCohortService] getCohortById success');
       return result;
     } catch (error) {
@@ -447,7 +545,7 @@ export class AdminCohortService {
 
   // --- Certificate generation ---
 
-  async generateCertificate(cohortId, enrollmentId, grades = {}) {
+  async generateCertificate(cohortId, placementId, grades = {}) {
     this.logger.info('[adminCohortService] generateCertificate start');
     try {
       const cohort = await this.repository.findByIdWithDetails(cohortId);
@@ -457,19 +555,19 @@ export class AdminCohortService {
         throw err;
       }
 
-      const enrollment = await prisma.cohortEnrollment.findUnique({
-        where: { id: enrollmentId },
+      const placement = await prisma.cohortPlacement.findUnique({
+        where: { id: placementId },
         include: { user: { select: { first_name: true, last_name: true, email: true } } },
       });
 
-      if (!enrollment || enrollment.cohort_id !== cohortId) {
-        const err = new Error('Enrollment not found');
+      if (!placement || placement.cohort_id !== cohortId) {
+        const err = new Error('Placement not found');
         err.statusCode = 404;
         throw err;
       }
 
       const academy = await this.academyRepository.findById(cohort.academy_id);
-      const studentName = `${enrollment.user.first_name} ${enrollment.user.last_name}`.trim();
+      const studentName = `${placement.user.first_name} ${placement.user.last_name}`.trim();
       const gradesTranscript = {
         assignments: grades.assignments ?? null,
         case_study: grades.case_study ?? null,
@@ -481,15 +579,15 @@ export class AdminCohortService {
       await fs.ensureDir(certDir);
 
       const cert = await prisma.$transaction(async (tx) => {
-        await tx.cohortCertificate.deleteMany({ where: { enrollment_id: enrollmentId } });
+        await tx.cohortCertificate.deleteMany({ where: { placement_id: placementId } });
 
         // Insert without code/path first to get the id
         const record = await tx.cohortCertificate.create({
           data: {
             academy_id: cohort.academy_id,
             cohort_id: cohortId,
-            enrollment_id: enrollmentId,
-            user_id: enrollment.user_id,
+            placement_id: placementId,
+            user_id: placement.user_id,
             certificate_code: `PENDING-${Date.now()}`,
             student_name: studentName,
             academy_title: academy.title,
@@ -523,7 +621,7 @@ export class AdminCohortService {
       const verifyUrl = `${process.env.FRONTEND_URL}/certificates/verify/${cert.certificate_code}`;
       emailService
         .sendCertificateReady({
-          to: enrollment.user.email,
+          to: placement.user.email,
           name: studentName,
           cohortName: cohort.name,
           academyTitle: academy.title,

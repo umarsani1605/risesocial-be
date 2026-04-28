@@ -353,9 +353,9 @@ export class AdminCohortController {
     try {
       request.log.info('[adminCohortController] generateCertificate start');
 
-      const { id, enrollmentId } = request.params;
+      const { id, placementId } = request.params;
       const grades = request.body?.grades ?? {};
-      const cert = await adminCohortService.generateCertificate(Number(id), Number(enrollmentId), grades);
+      const cert = await adminCohortService.generateCertificate(Number(id), Number(placementId), grades);
 
       request.log.info('[adminCohortController] generateCertificate success');
       return reply.status(201).send(successResponse(cert, 'Certificate generated successfully'));

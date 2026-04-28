@@ -51,7 +51,9 @@ vi.mock('../../../../src/services/shared/fileUploadService.js', () => ({
 const mockPrisma = {
   academyTopic: { findFirst: vi.fn() },
   cohortEnrollment: { findFirst: vi.fn() },
-  cohortCertificate: { findFirst: vi.fn(), create: vi.fn() },
+  cohortPlacement: { findUnique: vi.fn() },
+  cohortCertificate: { findFirst: vi.fn(), create: vi.fn(), deleteMany: vi.fn(), update: vi.fn() },
+  $transaction: vi.fn(),
 };
 
 vi.mock('../../../../src/config/database.js', () => ({
@@ -267,24 +269,76 @@ describe('AdminCohortService', () => {
   });
 
   // ============================================================
-  // generateCertificates()
+  // generateCertificate()
   // ============================================================
-  describe('generateCertificates()', () => {
-    it('should throw 400 when cohort is not completed', async () => {
-      mockCohortRepository.findByIdWithDetails.mockResolvedValue({ id: 1, status: 'ongoing', academy_id: 2 });
+  describe('generateCertificate()', () => {
+    const mockCohort = { id: 1, academy_id: 2, name: 'Batch 1', status: 'completed' };
+    const mockAcademy = { id: 2, title: 'Web Dev Bootcamp' };
+    const mockPlacement = {
+      id: 20,
+      cohort_id: 1,
+      user_id: 5,
+      user: { first_name: 'Budi', last_name: 'Santoso', email: 'budi@test.com' },
+    };
+    const mockCertRecord = {
+      id: 100,
+      certificate_code: 'PENDING-123',
+      student_name: 'Budi Santoso',
+      file_path: 'certificates/1/RISE-2026-000100.pdf',
+      created_at: new Date('2026-04-28'),
+    };
 
-      await expect(adminCohortService.generateCertificates(1)).rejects.toMatchObject({
-        message: 'Certificates can only be generated when cohort status is completed',
-        statusCode: 400,
+    beforeEach(() => {
+      mockCohortRepository.findByIdWithDetails.mockResolvedValue(mockCohort);
+      mockAcademyRepository.findById.mockResolvedValue(mockAcademy);
+      mockPrisma.cohortPlacement.findUnique.mockResolvedValue(mockPlacement);
+      mockPrisma.$transaction.mockImplementation(async (cb) => {
+        const tx = {
+          cohortCertificate: {
+            deleteMany: vi.fn().mockResolvedValue({}),
+            create: vi.fn().mockResolvedValue(mockCertRecord),
+            update: vi.fn().mockResolvedValue({ ...mockCertRecord, certificate_code: 'RISE-2026-000100' }),
+          },
+        };
+        return cb(tx);
       });
+      vi.spyOn(adminCohortService, '_generatePDF').mockResolvedValue(undefined);
     });
 
     it('should throw 404 when cohort does not exist', async () => {
       mockCohortRepository.findByIdWithDetails.mockResolvedValue(null);
 
-      await expect(adminCohortService.generateCertificates(999)).rejects.toMatchObject({
+      await expect(adminCohortService.generateCertificate(999, 20, {})).rejects.toMatchObject({
         statusCode: 404,
+        message: 'Cohort not found',
       });
+    });
+
+    it('should throw 404 when placement does not exist', async () => {
+      mockPrisma.cohortPlacement.findUnique.mockResolvedValue(null);
+
+      await expect(adminCohortService.generateCertificate(1, 999, {})).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Placement not found',
+      });
+    });
+
+    it('should throw 404 when placement belongs to a different cohort', async () => {
+      mockPrisma.cohortPlacement.findUnique.mockResolvedValue({ ...mockPlacement, cohort_id: 99 });
+
+      await expect(adminCohortService.generateCertificate(1, 20, {})).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Placement not found',
+      });
+    });
+
+    it('should generate certificate with placement_id and return cert with file_url', async () => {
+      const result = await adminCohortService.generateCertificate(1, 20, {});
+
+      expect(mockPrisma.cohortPlacement.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 20 } }),
+      );
+      expect(result).toHaveProperty('file_url');
     });
   });
 });
