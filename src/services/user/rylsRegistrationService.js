@@ -1,5 +1,6 @@
 import { rylsRegistrationRepository } from '../../repositories/user/rylsRegistrationRepository.js';
 import { fileUploadService } from '../shared/fileUploadService.js';
+import { rylsDraftService } from '../rylsDraftService.js';
 import { getLogger } from '../../utils/loggerContext.js';
 
 export class RylsRegistrationService {
@@ -20,16 +21,15 @@ export class RylsRegistrationService {
     this.logger.info('[rylsRegistrationService] submitRegistration start');
     const scholarshipType = formData.step1?.scholarshipType;
 
+    let result;
     // FULLY_FUNDED validation and routing
     if (scholarshipType === 'FULLY_FUNDED') {
       if (!formData.essayFileId) {
         throw new Error('essayFileId is required for FULLY_FUNDED scholarship type');
       }
-      return await this.submitFullyFundedRegistration(formData);
-    }
-
-    // SELF_FUNDED validation and routing
-    if (scholarshipType === 'SELF_FUNDED') {
+      result = await this.submitFullyFundedRegistration(formData);
+    } else if (scholarshipType === 'SELF_FUNDED') {
+      // SELF_FUNDED validation and routing
       const missingFields = [];
       if (!formData.passportNumber) missingFields.push('passportNumber');
       if (!formData.needVisa) missingFields.push('needVisa');
@@ -40,11 +40,21 @@ export class RylsRegistrationService {
         throw new Error(`Missing required fields for SELF_FUNDED scholarship type: ${missingFields.join(', ')}`);
       }
 
-      return await this.submitSelfFundedRegistration(formData);
+      result = await this.submitSelfFundedRegistration(formData);
+    } else {
+      throw new Error(`Invalid scholarshipType: ${scholarshipType}`);
     }
 
-    // Invalid scholarshipType handling
-    throw new Error(`Invalid scholarshipType: ${scholarshipType}`);
+    if (formData.resumeToken) {
+      try {
+        await rylsDraftService.deleteDraft(formData.resumeToken);
+        this.logger.info('[rylsRegistrationService] submitRegistration draft cleaned up');
+      } catch (err) {
+        this.logger.warn({ err }, '[rylsRegistrationService] submitRegistration draft cleanup failed (non-blocking)');
+      }
+    }
+
+    return result;
   }
 
   async submitFullyFundedRegistration(formData) {

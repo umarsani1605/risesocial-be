@@ -95,6 +95,8 @@ export const submitRegistrationBodySchema = {
     needVisa: { type: 'string', enum: ['YES', 'NO'] },
     headshotFileId: { type: 'integer', minimum: 1 },
     readPolicies: { type: 'string', enum: ['YES', 'NO'] },
+    // Draft cleanup optional field
+    resumeToken: { type: 'string', minLength: 1, maxLength: 64, description: 'Draft resume token to delete on successful submit' },
   },
   additionalProperties: false,
 };

@@ -59,6 +59,34 @@ export default async function adminRylsRegistrationRoutes(fastify) {
     handler: adminRylsRegistrationController.exportRegistrationsExcel,
   });
 
+  fastify.get('/drafts', {
+    schema: {
+      ...tag,
+      description: 'List draft registrations (Admin only)',
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'integer', minimum: 1, default: 1 },
+          limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+        },
+      },
+    },
+    preHandler: requirePermission('admin.ryls'),
+    handler: adminRylsRegistrationController.getDrafts,
+  });
+
+  fastify.get('/drafts/stats', {
+    schema: { ...tag, description: 'Get draft registration statistics (Admin only)' },
+    preHandler: requirePermission('admin.ryls'),
+    handler: adminRylsRegistrationController.getDraftStats,
+  });
+
+  fastify.delete('/drafts/cleanup', {
+    schema: { ...tag, description: 'Delete all expired draft registrations (Admin only)' },
+    preHandler: requirePermission('admin.ryls'),
+    handler: adminRylsRegistrationController.cleanupExpiredDrafts,
+  });
+
   fastify.get('/:id', {
     schema: {
       ...tag,
