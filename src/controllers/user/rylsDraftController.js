@@ -44,6 +44,11 @@ export class UserRylsDraftController {
       request.log.info('[userRylsDraftController] deleteDraft start');
       const { token } = request.params;
 
+      const existing = await this.service.getDraft(token);
+      if (!existing) {
+        return reply.status(404).send(errorResponse('Draft not found or expired', 404));
+      }
+
       await this.service.deleteDraft(token);
 
       request.log.info('[userRylsDraftController] deleteDraft success');
