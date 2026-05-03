@@ -90,6 +90,8 @@ export class UserCohortService {
           if (!cohort) {
             return {
               ...enrollment,
+              placement: undefined,
+              academy: enrollment.academy,
               cohort: null,
               next_session: null,
               total_modules: 0,
@@ -103,6 +105,8 @@ export class UserCohortService {
 
           return {
             ...enrollment,
+            placement: undefined,
+            academy: enrollment.academy,
             cohort: cohortWithoutCount,
             next_session: nextModule?.session_start_time?.toISOString() || null,
             total_modules: _count?.modules ?? 0,

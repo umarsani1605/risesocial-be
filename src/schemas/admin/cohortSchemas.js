@@ -148,7 +148,10 @@ export const getAdminCohortsSchema = {
     properties: {
       id: { type: 'integer' },
       academy_id: { type: 'integer' },
-      status: { type: 'string', enum: ['not_started', 'ongoing', 'completed'] },
+      status: {
+        type: 'array',
+        items: { type: 'string', enum: ['not_started', 'ongoing', 'completed'] },
+      },
       page: { type: 'integer', minimum: 1, default: 1 },
       limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
     },
@@ -435,9 +438,42 @@ export const deleteAttachmentSchema = {
 
 // --- Enrollment Management ---
 
+const cohortPlacementItemSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'integer' },
+    academy_enrollment_id: { type: ['integer', 'null'] },
+    cohort_id: { type: 'integer' },
+    academy_id: { type: 'integer' },
+    user_id: { type: 'integer' },
+    status: { type: 'string' },
+    placed_at: { type: ['string', 'null'], format: 'date-time' },
+    user: {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'integer' },
+        first_name: { type: ['string', 'null'] },
+        last_name: { type: ['string', 'null'] },
+        email: { type: 'string' },
+        phone: { type: ['string', 'null'] },
+        avatar: { type: ['string', 'null'] },
+      },
+    },
+    certificate: {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'integer' },
+        certificate_code: { type: 'string' },
+        file_path: { type: ['string', 'null'] },
+        file_url: { type: ['string', 'null'] },
+      },
+    },
+  },
+};
+
 export const getEnrollmentsSchema = {
   tags: ['Admin - Cohort Enrollments'],
-  summary: 'List cohort enrollments',
+  summary: 'List cohort placements for a cohort',
   security: [{ bearerAuth: [] }],
   params: {
     type: 'object',
@@ -447,13 +483,11 @@ export const getEnrollmentsSchema = {
   querystring: {
     type: 'object',
     properties: {
-      status: { type: 'string', enum: ['pending', 'active', 'completed', 'dropped'] },
-      page: { type: 'integer', minimum: 1, default: 1 },
-      limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
+      status: { type: 'string', enum: ['active', 'dropped'] },
     },
   },
   response: {
-    200: createPaginatedResponseSchema(cohortEnrollmentEntitySchema, 'List of enrollments'),
+    200: createSuccessResponseSchema({ type: 'array', items: cohortPlacementItemSchema }, 'List of placements'),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },

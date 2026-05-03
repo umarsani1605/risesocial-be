@@ -18,7 +18,7 @@ export class AdminCohortRepository extends BaseRepository {
     const where = {};
     if (id) where.id = Number(id);
     if (academy_id) where.academy_id = Number(academy_id);
-    if (status) where.status = status;
+    if (status) where.status = Array.isArray(status) ? { in: status } : status;
 
     const [data, total] = await Promise.all([
       this.model.findMany({
@@ -264,38 +264,23 @@ export class AdminCohortRepository extends BaseRepository {
 
   // --- Enrollment management ---
 
-  async findEnrollments(cohortId, { page = 1, limit = 10, status } = {}) {
-    this.logger.info({ cohortId, page, limit, status }, '[adminCohortRepository] findEnrollments called');
+  async findEnrollments(cohortId, { status } = {}) {
+    this.logger.info({ cohortId, status }, '[adminCohortRepository] findEnrollments called');
 
-    const skip = (page - 1) * limit;
     const where = { cohort_id: cohortId };
     if (status) where.status = status;
 
-    const [data, total] = await Promise.all([
-      prisma.cohortEnrollment.findMany({
-        where,
-        skip,
-        take: Number(limit),
-        orderBy: { created_at: 'desc' },
-        include: {
-          user: { select: { id: true, first_name: true, last_name: true, email: true, avatar: true } },
-          certificate: { select: { id: true, certificate_code: true, file_path: true } },
-        },
-      }),
-      prisma.cohortEnrollment.count({ where }),
-    ]);
-
-    return {
-      data,
-      meta: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
+    const data = await prisma.cohortPlacement.findMany({
+      where,
+      include: {
+        user: { select: { id: true, first_name: true, last_name: true, email: true, phone: true, avatar: true } },
+        certificate: { select: { id: true, certificate_code: true, file_path: true } },
+        academy_enrollment: { select: { id: true, academy_id: true } },
       },
-    };
+      orderBy: { created_at: 'desc' },
+    });
+
+    return { data };
   }
 
   async createEnrollment(cohortId, academyId, userId, notes = null) {

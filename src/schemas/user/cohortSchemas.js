@@ -88,7 +88,7 @@ const enrollmentSchema = {
   type: 'object',
   properties: {
     id: { type: 'integer' },
-    cohort_id: { type: 'integer' },
+    cohort_id: { type: ['integer', 'null'] },
     status: { type: 'string' },
     enrolled_at: { type: ['string', 'null'] },
     completion_date: { type: ['string', 'null'] },
@@ -98,6 +98,19 @@ const enrollmentSchema = {
     has_certificate: { type: 'boolean' },
     certificate_url: { type: ['string', 'null'] },
     created_at: { type: 'string', format: 'date-time' },
+    academy: {
+      type: 'object',
+      properties: {
+        id: { type: 'integer' },
+        title: { type: 'string' },
+        slug: { type: ['string', 'null'] },
+        image_url: { type: ['string', 'null'] },
+        duration: { type: ['string', 'null'] },
+        format: { type: ['string', 'null'] },
+        certificate: { type: ['boolean', 'null'] },
+        description: { type: ['string', 'null'] },
+      },
+    },
     cohort: {
       type: ['object', 'null'],
       properties: {
@@ -106,19 +119,6 @@ const enrollmentSchema = {
         status: { type: 'string' },
         start_date: { type: ['string', 'null'] },
         end_date: { type: ['string', 'null'] },
-        academy: {
-          type: ['object', 'null'],
-          properties: {
-            id: { type: 'integer' },
-            title: { type: 'string' },
-            slug: { type: ['string', 'null'] },
-            image_url: { type: ['string', 'null'] },
-            duration: { type: ['string', 'null'] },
-            format: { type: ['string', 'null'] },
-            certificate: { type: ['boolean', 'null'] },
-            description: { type: ['string', 'null'] },
-          },
-        },
       },
     },
   },

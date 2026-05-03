@@ -239,7 +239,7 @@ export class AdminCohortController {
       const result = await adminCohortService.getEnrollments(Number(id), request.query);
 
       request.log.info('[adminCohortController] getEnrollments success');
-      return reply.send(successResponse(result.data, 'Enrollments retrieved successfully', result.meta));
+      return reply.send(successResponse(result.data, 'Enrollments retrieved successfully'));
     } catch (error) {
       request.log.error({ err: error }, '[adminCohortController] getEnrollments error');
       return reply.status(500).send(errorResponse('Failed to retrieve enrollments', 500, error.message));
