@@ -14,7 +14,6 @@ export class AcademyEnrollmentRepository {
           user_id: userId,
           academy_id: academyId,
           transaction_id: transactionId,
-          status: 'pending',
         },
       });
       this.logger.info({ id: enrollment.id }, '[AcademyEnrollmentRepository] createPendingEnrollment success');
@@ -32,7 +31,8 @@ export class AcademyEnrollmentRepository {
         where: {
           user_id: userId,
           academy_id: academyId,
-          status: { in: ['pending', 'active'] },
+          completed_at: null,
+          transaction: { status: { notIn: ['failed', 'expired', 'cancelled'] } },
         },
         orderBy: { created_at: 'desc' },
         include: {
@@ -98,21 +98,20 @@ export class AcademyEnrollmentRepository {
     }
   }
 
-  async updateStatus(id, status, extra = {}) {
-    this.logger.info({ id, status }, '[AcademyEnrollmentRepository] updateStatus start');
+  async markCompleted(id, { notes } = {}) {
+    this.logger.info({ id }, '[AcademyEnrollmentRepository] markCompleted start');
     try {
-      const data = { status, ...extra };
-      if (status === 'completed' && !data.completed_at) {
-        data.completed_at = new Date();
-      }
       const updated = await prisma.academyEnrollment.update({
         where: { id },
-        data,
+        data: {
+          completed_at: new Date(),
+          ...(notes !== undefined && { notes }),
+        },
       });
-      this.logger.info({ id: updated.id, status: updated.status }, '[AcademyEnrollmentRepository] updateStatus success');
+      this.logger.info({ id: updated.id }, '[AcademyEnrollmentRepository] markCompleted success');
       return updated;
     } catch (error) {
-      this.logger.error({ err: error }, '[AcademyEnrollmentRepository] updateStatus error');
+      this.logger.error({ err: error }, '[AcademyEnrollmentRepository] markCompleted error');
       throw error;
     }
   }

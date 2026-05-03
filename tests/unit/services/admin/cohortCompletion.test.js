@@ -134,10 +134,10 @@ describe('AdminCohortService.completeCohort', () => {
     );
     expect(mockTx.academyEnrollment.update).toHaveBeenCalledTimes(2);
     expect(mockTx.academyEnrollment.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 1001 }, data: expect.objectContaining({ status: 'completed' }) }),
+      expect.objectContaining({ where: { id: 1001 }, data: expect.objectContaining({ completed_at: expect.any(Date) }) }),
     );
     expect(mockTx.academyEnrollment.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 1002 }, data: expect.objectContaining({ status: 'completed' }) }),
+      expect.objectContaining({ where: { id: 1002 }, data: expect.objectContaining({ completed_at: expect.any(Date) }) }),
     );
     expect(result.certificatesGenerated).toBe(2);
   });

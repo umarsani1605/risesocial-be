@@ -169,71 +169,6 @@ describe('Cohort E2E Tests', () => {
   });
 
   // ============================================================
-  // POST /cohorts/:id/enroll
-  // ============================================================
-  describe('POST /cohorts/:id/enroll', () => {
-    let cohort;
-
-    beforeEach(async () => {
-      cohort = await prisma.cohort.create({
-        data: { academy_id: academy.id, name: 'Batch 1', status: 'not_going' },
-      });
-    });
-
-    it('should enroll user successfully', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: `/cohorts/${cohort.id}/enroll`,
-        headers: { authorization: `Bearer ${userToken}` },
-      });
-
-      expect(response.statusCode).toBe(201);
-      const body = JSON.parse(response.body);
-      expect(body.success).toBe(true);
-      expect(body.data).toHaveProperty('enrollment_id');
-
-      // Verify in DB
-      const enrollment = await prisma.cohortEnrollment.findFirst({
-        where: { cohort_id: cohort.id, user_id: regularUser.id },
-      });
-      expect(enrollment).toBeTruthy();
-      expect(enrollment.status).toBe('pending');
-    });
-
-    it('should return 400 when user tries to enroll twice', async () => {
-      // Enroll first time
-      await prisma.cohortEnrollment.create({
-        data: {
-          cohort_id: cohort.id,
-          academy_id: academy.id,
-          user_id: regularUser.id,
-          status: 'pending',
-        },
-      });
-
-      // Try to enroll again
-      const response = await app.inject({
-        method: 'POST',
-        url: `/cohorts/${cohort.id}/enroll`,
-        headers: { authorization: `Bearer ${userToken}` },
-      });
-
-      expect(response.statusCode).toBe(400);
-      const body = JSON.parse(response.body);
-      expect(body.success).toBe(false);
-    });
-
-    it('should return 401 without auth token', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: `/cohorts/${cohort.id}/enroll`,
-      });
-
-      expect(response.statusCode).toBe(401);
-    });
-  });
-
-  // ============================================================
   // GET /cohorts/:id/modules
   // ============================================================
   describe('GET /cohorts/:id/modules', () => {
@@ -258,15 +193,26 @@ describe('Cohort E2E Tests', () => {
     });
 
     it('should return modules with computed_status when enrolled', async () => {
-      // Enroll user
-      await prisma.cohortEnrollment.create({
+      // Create paid transaction + AcademyEnrollment + CohortPlacement for user
+      const tx = await prisma.transaction.create({
         data: {
-          cohort_id: cohort.id,
-          academy_id: academy.id,
+          transaction_code: `TEST${Date.now()}`,
+          amount: 1500000,
+          currency: 'IDR',
+          status: 'paid',
+          provider: 'midtrans',
+          customer_name: 'Regular User',
+          customer_email: regularUser.email,
+          product_type: 'academy_enrollment',
+          product_type_id: 0,
           user_id: regularUser.id,
-          status: 'active',
-          enrolled_at: new Date(),
         },
+      });
+      const enrollment = await prisma.academyEnrollment.create({
+        data: { user_id: regularUser.id, academy_id: academy.id, transaction_id: tx.id },
+      });
+      await prisma.cohortPlacement.create({
+        data: { academy_enrollment_id: enrollment.id, cohort_id: cohort.id, user_id: regularUser.id, academy_id: academy.id },
       });
 
       // Create a published module
@@ -316,21 +262,33 @@ describe('Cohort E2E Tests', () => {
         data: { academy_id: academy.id, name: 'Batch 1', status: 'completed' },
       });
 
-      const enrollment = await prisma.cohortEnrollment.create({
+      // Create paid transaction + AcademyEnrollment + CohortPlacement for certificate
+      const tx = await prisma.transaction.create({
         data: {
-          cohort_id: cohort.id,
-          academy_id: academy.id,
+          transaction_code: `CERT${Date.now()}`,
+          amount: 1500000,
+          currency: 'IDR',
+          status: 'paid',
+          provider: 'midtrans',
+          customer_name: 'Regular User',
+          customer_email: regularUser.email,
+          product_type: 'academy_enrollment',
+          product_type_id: 0,
           user_id: regularUser.id,
-          status: 'completed',
-          enrolled_at: new Date(),
         },
+      });
+      const academyEnrollment = await prisma.academyEnrollment.create({
+        data: { user_id: regularUser.id, academy_id: academy.id, transaction_id: tx.id, completed_at: new Date() },
+      });
+      const placement = await prisma.cohortPlacement.create({
+        data: { academy_enrollment_id: academyEnrollment.id, cohort_id: cohort.id, user_id: regularUser.id, academy_id: academy.id },
       });
 
       await prisma.cohortCertificate.create({
         data: {
           academy_id: academy.id,
           cohort_id: cohort.id,
-          enrollment_id: enrollment.id,
+          placement_id: placement.id,
           user_id: regularUser.id,
           certificate_code: 'CERT-CARB-2026-0001',
           student_name: 'Regular User',

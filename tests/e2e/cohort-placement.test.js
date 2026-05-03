@@ -148,9 +148,13 @@ describe('Skenario 1 — Happy Path: Buy → Assign → Access', () => {
     const { enrollment_id, transaction_code } = JSON.parse(txRes.body).data;
     expect(enrollment_id).toBeDefined();
 
-    // Step 2: Verify enrollment is pending (before webhook)
-    let enrollment = await prisma.academyEnrollment.findUnique({ where: { id: enrollment_id } });
-    expect(enrollment.status).toBe('pending');
+    // Step 2: Verify enrollment exists and transaction is pending (before webhook)
+    let enrollment = await prisma.academyEnrollment.findUnique({
+      where: { id: enrollment_id },
+      include: { transaction: { select: { status: true } } },
+    });
+    expect(enrollment).not.toBeNull();
+    expect(enrollment.transaction.status).toBe('pending');
 
     // Step 3: Confirm no placement yet
     const placement = await prisma.cohortPlacement.findFirst({ where: { academy_enrollment_id: enrollment_id } });
@@ -160,9 +164,12 @@ describe('Skenario 1 — Happy Path: Buy → Assign → Access', () => {
     const webhookRes = await simulatePaidWebhook(transaction_code);
     expect(webhookRes.statusCode).toBe(200);
 
-    // Step 5: Verify enrollment is now active
-    enrollment = await prisma.academyEnrollment.findUnique({ where: { id: enrollment_id } });
-    expect(enrollment.status).toBe('active');
+    // Step 5: Verify transaction is now paid (enrollment is active)
+    enrollment = await prisma.academyEnrollment.findUnique({
+      where: { id: enrollment_id },
+      include: { transaction: { select: { status: true } } },
+    });
+    expect(enrollment.transaction.status).toBe('paid');
 
     // Step 6: User cannot access cohort modules without placement → 403
     let modulesRes = await getModules(cohortA.id);
@@ -207,13 +214,13 @@ describe('Skenario 2 — Re-purchase setelah completed', () => {
     });
     expect(enrollments).toHaveLength(2);
 
-    // New one is pending
+    // New one has no completed_at
     const newEnrollment = enrollments.find((e) => e.id === enrollment_id);
-    expect(newEnrollment.status).toBe('pending');
+    expect(newEnrollment.completed_at).toBeNull();
 
-    // Completed one is still there
+    // Completed one has completed_at set
     const completedEnrollment = enrollments.find((e) => e.id !== enrollment_id);
-    expect(completedEnrollment.status).toBe('completed');
+    expect(completedEnrollment.completed_at).toBeInstanceOf(Date);
   });
 });
 
@@ -285,9 +292,9 @@ describe('Skenario 4 — Transfer student antar cohort', () => {
 
 describe('Skenario 5 — Cancel pre-placement', () => {
   it('cancels an active enrollment with no placement, allows re-purchase', async () => {
-    // Setup: active enrollment, no placement
+    // Setup: active enrollment (paid transaction), no placement
     const { enrollment } = await createActiveEnrollment(regularUser.id, academy.id);
-    expect(enrollment.status).toBe('active');
+    expect(enrollment).not.toBeNull();
 
     // Admin cancels
     const cancelRes = await app.inject({
@@ -298,9 +305,9 @@ describe('Skenario 5 — Cancel pre-placement', () => {
     });
     expect(cancelRes.statusCode).toBe(200);
 
-    // Enrollment is now cancelled
-    const updated = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
-    expect(updated.status).toBe('cancelled');
+    // Enrollment record is deleted after cancel
+    const deleted = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
+    expect(deleted).toBeNull();
 
     // User can repurchase
     const txRes = await createTransaction(userToken, academy.id, pricing.id);
@@ -331,11 +338,11 @@ describe('Skenario 6 — Cancel post-placement', () => {
     });
     expect(cancelRes.statusCode).toBe(200);
 
-    // Enrollment cancelled
-    const updated = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
-    expect(updated.status).toBe('cancelled');
+    // Enrollment record is deleted after cancel
+    const deleted = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
+    expect(deleted).toBeNull();
 
-    // Placement removed
+    // Placement also removed
     const placement = await prisma.cohortPlacement.findFirst({
       where: { academy_enrollment_id: enrollment.id },
     });
@@ -392,11 +399,11 @@ describe('Skenario 7 — Cohort completion → archive access + certificate', ()
     });
     expect(placement).not.toBeNull();
 
-    // AcademyEnrollment marked completed with completed_at
+    // AcademyEnrollment has completed_at set after cohort completion
     const updatedEnrollment = await prisma.academyEnrollment.findUnique({
       where: { id: enrollment.id },
     });
-    expect(updatedEnrollment.status).toBe('completed');
+    expect(updatedEnrollment.completed_at).toBeInstanceOf(Date);
     expect(updatedEnrollment.completed_at).toBeDefined();
 
     // CohortCertificate created with placement_id

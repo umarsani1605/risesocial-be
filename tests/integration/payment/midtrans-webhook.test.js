@@ -82,7 +82,6 @@ async function createAcademyEnrollment(transactionId, overrides = {}) {
       user_id: user.id,
       academy_id: academy.id,
       transaction_id: transactionId,
-      status: 'pending',
       ...overrides,
     },
   });
@@ -142,7 +141,7 @@ describe('WebhookController — handleMidtransWebhook (RS-27)', () => {
 
   // ----------------------------------------------------------
   describe('AcademyEnrollment Layer 3 update', () => {
-    it('sets AcademyEnrollment status to active when payment is paid (settlement)', async () => {
+    it('enrollment record persists when payment is paid (settlement)', async () => {
       const tx = await createTransaction();
       await createMidtransTransaction(tx.id, { midtrans_order_id: tx.transaction_code });
       const enrollment = await createAcademyEnrollment(tx.id);
@@ -151,10 +150,11 @@ describe('WebhookController — handleMidtransWebhook (RS-27)', () => {
       await controller.handleMidtransWebhook(req, makeReply());
 
       const updated = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
-      expect(updated.status).toBe('active');
+      expect(updated).not.toBeNull();
+      expect(updated.completed_at).toBeNull();
     });
 
-    it('sets AcademyEnrollment status to cancelled when payment expired', async () => {
+    it('enrollment record persists when payment expired', async () => {
       const tx = await createTransaction();
       await createMidtransTransaction(tx.id, { midtrans_order_id: tx.transaction_code });
       const enrollment = await createAcademyEnrollment(tx.id);
@@ -163,10 +163,10 @@ describe('WebhookController — handleMidtransWebhook (RS-27)', () => {
       await controller.handleMidtransWebhook(req, makeReply());
 
       const updated = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
-      expect(updated.status).toBe('cancelled');
+      expect(updated).not.toBeNull();
     });
 
-    it('sets AcademyEnrollment status to cancelled when payment failed', async () => {
+    it('enrollment record persists when payment failed', async () => {
       const tx = await createTransaction();
       await createMidtransTransaction(tx.id, { midtrans_order_id: tx.transaction_code });
       const enrollment = await createAcademyEnrollment(tx.id);
@@ -175,7 +175,7 @@ describe('WebhookController — handleMidtransWebhook (RS-27)', () => {
       await controller.handleMidtransWebhook(req, makeReply());
 
       const updated = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
-      expect(updated.status).toBe('cancelled');
+      expect(updated).not.toBeNull();
     });
 
     it('also updates Layer 1 (Transaction) status', async () => {
@@ -245,7 +245,7 @@ describe('WebhookController — handleMidtransWebhook (RS-27)', () => {
 
       // Unrelated enrollment untouched
       const stillPending = await prisma.academyEnrollment.findUnique({ where: { id: unrelatedEnrollment.id } });
-      expect(stillPending.status).toBe('pending');
+      expect(stillPending).not.toBeNull();
     });
   });
 

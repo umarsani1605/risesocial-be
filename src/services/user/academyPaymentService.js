@@ -32,11 +32,11 @@ export class AcademyPaymentService {
       // Step 3: Check for existing pending or active enrollment
       const existingEnrollment = await academyEnrollmentRepository.findActiveByUserAcademy(userId, academyId);
       if (existingEnrollment) {
-        if (existingEnrollment.status === 'active') {
+        if (existingEnrollment.transaction?.status === 'paid') {
           throw new Error('You are already enrolled in this academy');
         }
 
-        // status === 'pending': check if snap token is still valid
+        // transaction pending: check if snap token is still valid
         const tokenExpired =
           !existingEnrollment.transaction?.expired_at || existingEnrollment.transaction.expired_at < new Date();
 
@@ -152,7 +152,7 @@ export class AcademyPaymentService {
 
           await tx.academyEnrollment.update({
             where: { id: existingEnrollment.id },
-            data: { transaction_id: newTransaction.id, status: 'pending', updated_at: new Date() },
+            data: { transaction_id: newTransaction.id, updated_at: new Date() },
           });
         });
 
@@ -230,7 +230,6 @@ export class AcademyPaymentService {
               user_id: userId,
               academy_id: academyId,
               transaction_id: newTransaction.id,
-              status: 'pending',
             },
           });
 
@@ -272,7 +271,7 @@ export class AcademyPaymentService {
 
       return {
         hasPayment: !!enrollment.transaction,
-        status: enrollment.transaction?.status || enrollment.status,
+        status: enrollment.transaction?.status || null,
         transaction_code: enrollment.transaction?.transaction_code || null,
         amount: enrollment.transaction?.amount || null,
         currency: enrollment.transaction?.currency || 'IDR',
@@ -327,22 +326,6 @@ export class AcademyPaymentService {
           },
         });
 
-        const enrollment = await tx.academyEnrollment.findFirst({
-          where: { transaction_id: transaction.id },
-        });
-        if (enrollment) {
-          const enrollmentStatus =
-            genericStatus === 'paid' ? 'active'
-            : genericStatus === 'failed' || genericStatus === 'expired' ? 'cancelled'
-            : enrollment.status;
-          await tx.academyEnrollment.update({
-            where: { id: enrollment.id },
-            data: {
-              status: enrollmentStatus,
-              updated_at: new Date(),
-            },
-          });
-        }
       });
 
       this.logger.info({ genericStatus }, '[AcademyPaymentService] syncTransactionStatus success');
@@ -363,17 +346,19 @@ export class AcademyPaymentService {
         return { enrolled: false };
       }
 
-      const isActive = enrollment.status === 'active';
-      const isPending = enrollment.status === 'pending';
+      const txStatus = enrollment.transaction?.status ?? null;
+      const isPaid = txStatus === 'paid';
+      const isPending = txStatus === 'pending';
+      const enrollmentStatus = enrollment.completed_at ? 'completed' : isPaid ? 'active' : 'pending';
       const tokenExpired =
         !enrollment.transaction?.expired_at || enrollment.transaction.expired_at < new Date();
 
       return {
-        enrolled: isActive,
+        enrolled: isPaid,
         hasPendingPayment: isPending,
         enrollment_id: enrollment.id,
-        status: enrollment.status,
-        payment_status: enrollment.transaction?.status || null,
+        status: enrollmentStatus,
+        payment_status: txStatus,
         snap_token: isPending && !tokenExpired ? enrollment.transaction?.midtrans_data?.snap_token : null,
         transaction_code: isPending && !tokenExpired ? enrollment.transaction?.transaction_code : null,
       };

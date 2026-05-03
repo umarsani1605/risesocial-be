@@ -48,7 +48,6 @@ async function createEnrollment(overrides = {}) {
       user_id: user.id,
       academy_id: academy.id,
       transaction_id: transaction.id,
-      status: 'active',
       ...overrides,
     },
   });

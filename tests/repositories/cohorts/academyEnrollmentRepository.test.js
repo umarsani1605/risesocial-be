@@ -44,7 +44,7 @@ describe('AcademyEnrollmentRepository', () => {
   });
 
   describe('createPendingEnrollment', () => {
-    it('creates enrollment with status pending', async () => {
+    it('creates enrollment without status field', async () => {
       const transaction = await createTransaction();
 
       const enrollment = await academyEnrollmentRepository.createPendingEnrollment(
@@ -57,55 +57,44 @@ describe('AcademyEnrollmentRepository', () => {
       expect(enrollment.user_id).toBe(user.id);
       expect(enrollment.academy_id).toBe(academy.id);
       expect(enrollment.transaction_id).toBe(transaction.id);
-      expect(enrollment.status).toBe('pending');
       expect(enrollment.completed_at).toBeNull();
       expect(enrollment.notes).toBeNull();
     });
   });
 
   describe('findActiveByUserAcademy', () => {
-    it('returns enrollment with status pending', async () => {
-      const transaction = await createTransaction();
+    it('returns enrollment when transaction is pending', async () => {
+      const transaction = await createTransaction({ status: 'pending' });
       await prisma.academyEnrollment.create({
-        data: {
-          user_id: user.id,
-          academy_id: academy.id,
-          transaction_id: transaction.id,
-          status: 'pending',
-        },
+        data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
       });
 
       const found = await academyEnrollmentRepository.findActiveByUserAcademy(user.id, academy.id);
 
       expect(found).not.toBeNull();
-      expect(found.status).toBe('pending');
+      expect(found.transaction.status).toBe('pending');
     });
 
-    it('returns enrollment with status active', async () => {
-      const transaction = await createTransaction();
+    it('returns enrollment when transaction is paid and not completed', async () => {
+      const transaction = await createTransaction({ status: 'paid' });
       await prisma.academyEnrollment.create({
-        data: {
-          user_id: user.id,
-          academy_id: academy.id,
-          transaction_id: transaction.id,
-          status: 'active',
-        },
+        data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
       });
 
       const found = await academyEnrollmentRepository.findActiveByUserAcademy(user.id, academy.id);
 
       expect(found).not.toBeNull();
-      expect(found.status).toBe('active');
+      expect(found.transaction.status).toBe('paid');
     });
 
-    it('returns null when only completed enrollments exist', async () => {
-      const transaction = await createTransaction();
+    it('returns null when enrollment is completed (completed_at set)', async () => {
+      const transaction = await createTransaction({ status: 'paid' });
       await prisma.academyEnrollment.create({
         data: {
           user_id: user.id,
           academy_id: academy.id,
           transaction_id: transaction.id,
-          status: 'completed',
+          completed_at: new Date(),
         },
       });
 
@@ -114,15 +103,21 @@ describe('AcademyEnrollmentRepository', () => {
       expect(found).toBeNull();
     });
 
-    it('returns null when only cancelled enrollments exist', async () => {
-      const transaction = await createTransaction();
+    it('returns null when transaction is failed', async () => {
+      const transaction = await createTransaction({ status: 'failed' });
       await prisma.academyEnrollment.create({
-        data: {
-          user_id: user.id,
-          academy_id: academy.id,
-          transaction_id: transaction.id,
-          status: 'cancelled',
-        },
+        data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
+      });
+
+      const found = await academyEnrollmentRepository.findActiveByUserAcademy(user.id, academy.id);
+
+      expect(found).toBeNull();
+    });
+
+    it('returns null when transaction is cancelled', async () => {
+      const transaction = await createTransaction({ status: 'cancelled' });
+      await prisma.academyEnrollment.create({
+        data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
       });
 
       const found = await academyEnrollmentRepository.findActiveByUserAcademy(user.id, academy.id);
@@ -141,12 +136,7 @@ describe('AcademyEnrollmentRepository', () => {
     it('returns enrollment with transaction relation', async () => {
       const transaction = await createTransaction();
       const enrollment = await prisma.academyEnrollment.create({
-        data: {
-          user_id: user.id,
-          academy_id: academy.id,
-          transaction_id: transaction.id,
-          status: 'active',
-        },
+        data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
       });
 
       const found = await academyEnrollmentRepository.findById(enrollment.id);
@@ -175,12 +165,7 @@ describe('AcademyEnrollmentRepository', () => {
     it('returns last id + 1 when enrollments exist', async () => {
       const transaction = await createTransaction();
       const enrollment = await prisma.academyEnrollment.create({
-        data: {
-          user_id: user.id,
-          academy_id: academy.id,
-          transaction_id: transaction.id,
-          status: 'pending',
-        },
+        data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
       });
 
       const sequence = await academyEnrollmentRepository.getNextSequenceNumber(prisma);
@@ -189,58 +174,28 @@ describe('AcademyEnrollmentRepository', () => {
     });
   });
 
-  describe('updateStatus', () => {
-    it('updates status to active', async () => {
-      const transaction = await createTransaction();
+  describe('markCompleted', () => {
+    it('sets completed_at timestamp', async () => {
+      const transaction = await createTransaction({ status: 'paid' });
       const enrollment = await prisma.academyEnrollment.create({
-        data: {
-          user_id: user.id,
-          academy_id: academy.id,
-          transaction_id: transaction.id,
-          status: 'pending',
-        },
+        data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
       });
 
-      const updated = await academyEnrollmentRepository.updateStatus(enrollment.id, 'active');
+      const updated = await academyEnrollmentRepository.markCompleted(enrollment.id);
 
-      expect(updated.status).toBe('active');
-      expect(updated.completed_at).toBeNull();
-    });
-
-    it('sets completed_at when status is completed', async () => {
-      const transaction = await createTransaction();
-      const enrollment = await prisma.academyEnrollment.create({
-        data: {
-          user_id: user.id,
-          academy_id: academy.id,
-          transaction_id: transaction.id,
-          status: 'active',
-        },
-      });
-
-      const updated = await academyEnrollmentRepository.updateStatus(enrollment.id, 'completed');
-
-      expect(updated.status).toBe('completed');
       expect(updated.completed_at).toBeInstanceOf(Date);
     });
 
-    it('accepts extra fields to update', async () => {
-      const transaction = await createTransaction();
+    it('accepts notes when completing', async () => {
+      const transaction = await createTransaction({ status: 'paid' });
       const enrollment = await prisma.academyEnrollment.create({
-        data: {
-          user_id: user.id,
-          academy_id: academy.id,
-          transaction_id: transaction.id,
-          status: 'active',
-        },
+        data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
       });
 
-      const updated = await academyEnrollmentRepository.updateStatus(enrollment.id, 'cancelled', {
-        notes: 'Admin cancelled',
-      });
+      const updated = await academyEnrollmentRepository.markCompleted(enrollment.id, { notes: 'Course finished' });
 
-      expect(updated.status).toBe('cancelled');
-      expect(updated.notes).toBe('Admin cancelled');
+      expect(updated.completed_at).toBeInstanceOf(Date);
+      expect(updated.notes).toBe('Course finished');
     });
   });
 
@@ -248,22 +203,12 @@ describe('AcademyEnrollmentRepository', () => {
     it('rejects duplicate transaction_id', async () => {
       const transaction = await createTransaction();
       await prisma.academyEnrollment.create({
-        data: {
-          user_id: user.id,
-          academy_id: academy.id,
-          transaction_id: transaction.id,
-          status: 'pending',
-        },
+        data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
       });
 
       await expect(
         prisma.academyEnrollment.create({
-          data: {
-            user_id: user.id,
-            academy_id: academy.id,
-            transaction_id: transaction.id,
-            status: 'pending',
-          },
+          data: { user_id: user.id, academy_id: academy.id, transaction_id: transaction.id },
         }),
       ).rejects.toThrow();
     });

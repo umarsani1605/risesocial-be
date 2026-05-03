@@ -65,13 +65,25 @@ export class CohortPlacementRepository {
         orderBy: { created_at: 'asc' },
         include: {
           user: { select: { id: true, first_name: true, last_name: true, email: true, avatar: true } },
-          academy_enrollment: { select: { id: true, status: true, completed_at: true } },
+          academy_enrollment: { select: { id: true, completed_at: true } },
         },
       });
       this.logger.info({ count: placements.length }, '[CohortPlacementRepository] findByCohort success');
       return placements;
     } catch (error) {
       this.logger.error({ err: error }, '[CohortPlacementRepository] findByCohort error');
+      throw error;
+    }
+  }
+
+  async findById(id) {
+    this.logger.info({ id }, '[CohortPlacementRepository] findById start');
+    try {
+      const placement = await prisma.cohortPlacement.findUnique({ where: { id } });
+      this.logger.info({ found: !!placement }, '[CohortPlacementRepository] findById success');
+      return placement;
+    } catch (error) {
+      this.logger.error({ err: error }, '[CohortPlacementRepository] findById error');
       throw error;
     }
   }
@@ -86,6 +98,23 @@ export class CohortPlacementRepository {
       this.logger.error({ err: error }, '[CohortPlacementRepository] deletePlacement error');
       throw error;
     }
+  }
+
+  async transferPlacement(placementId, newCohortId) {
+    this.logger.info({ placementId, newCohortId }, '[CohortPlacementRepository] transferPlacement start');
+    const current = await this.findById(placementId);
+    if (!current) {
+      const err = new Error('Placement not found');
+      err.code = 'P2025';
+      throw err;
+    }
+    return this.replacePlacement(placementId, {
+      cohortId: newCohortId,
+      userId: current.user_id,
+      academyId: current.academy_id,
+      academyEnrollmentId: current.academy_enrollment_id,
+      notes: current.notes,
+    });
   }
 
   async replacePlacement(currentId, { cohortId, userId, academyId, academyEnrollmentId, notes }) {

@@ -142,7 +142,7 @@ export class AdminCohortService {
         for (const placement of placements) {
           await tx.academyEnrollment.update({
             where: { id: placement.academy_enrollment_id },
-            data: { status: 'completed', completed_at: now },
+            data: { completed_at: now },
           });
 
           const existingCert = await tx.cohortCertificate.findFirst({
@@ -418,6 +418,9 @@ export class AdminCohortService {
       const result = await this.repository.findEnrollments(cohortId, params);
       result.data = result.data.map((e) => ({
         ...e,
+        academy_enrollment_id: e.academy_enrollment?.id ?? null,
+        academy_id: e.academy_enrollment?.academy_id ?? e.academy_id,
+        academy_enrollment: undefined,
         certificate: e.certificate
           ? { ...e.certificate, file_url: toFileUrl(e.certificate.file_path) }
           : null,

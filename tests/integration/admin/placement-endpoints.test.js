@@ -32,14 +32,14 @@ let adminToken;
 let user;
 let academy;
 
-async function createTransaction() {
+async function createTransaction(status = 'paid') {
   const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
   return prisma.transaction.create({
     data: {
       transaction_code: `AE01${rand}`,
       amount: 3000000,
       currency: 'IDR',
-      status: 'paid',
+      status,
       provider: 'midtrans',
       customer_name: 'Test User',
       customer_email: 'test@test.com',
@@ -50,14 +50,13 @@ async function createTransaction() {
   });
 }
 
-async function createEnrollment(status = 'active') {
-  const tx = await createTransaction();
+async function createEnrollment(txStatus = 'paid') {
+  const tx = await createTransaction(txStatus);
   const enrollment = await prisma.academyEnrollment.create({
     data: {
       user_id: user.id,
       academy_id: academy.id,
       transaction_id: tx.id,
-      status,
     },
   });
   await prisma.transaction.update({ where: { id: tx.id }, data: { product_type_id: enrollment.id } });
@@ -110,7 +109,7 @@ describe('Admin Placement Endpoints (RS-28)', () => {
     });
 
     it('returns paginated enrollments for admin', async () => {
-      await createEnrollment('active');
+      await createEnrollment('paid');
 
       const res = await app.inject({
         method: 'GET', url: '/admin/academy-enrollments',
@@ -123,19 +122,30 @@ describe('Admin Placement Endpoints (RS-28)', () => {
       expect(body.data).toHaveLength(1);
     });
 
-    it('filters by status', async () => {
-      await createEnrollment('active');
-      await createEnrollment('cancelled');
+    it('filters by placed=false returns unplaced enrollments', async () => {
+      await createEnrollment('paid');
 
       const res = await app.inject({
-        method: 'GET', url: '/admin/academy-enrollments?status=active',
+        method: 'GET', url: '/admin/academy-enrollments?placed=false',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
       expect(res.statusCode).toBe(200);
       const body = res.json();
       expect(body.data).toHaveLength(1);
-      expect(body.data[0].status).toBe('active');
+    });
+
+    it('filters by placed=true returns empty when no placements exist', async () => {
+      await createEnrollment('paid');
+
+      const res = await app.inject({
+        method: 'GET', url: '/admin/academy-enrollments?placed=true',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.data).toHaveLength(0);
     });
   });
 
@@ -166,7 +176,7 @@ describe('Admin Placement Endpoints (RS-28)', () => {
   // ----------------------------------------------------------
   describe('POST /admin/academy-enrollments/:id/assign', () => {
     it('creates placement for active enrollment', async () => {
-      const enrollment = await createEnrollment('active');
+      const enrollment = await createEnrollment('paid');
       const cohort = await createCohort('not_started');
 
       const res = await app.inject({
@@ -184,7 +194,7 @@ describe('Admin Placement Endpoints (RS-28)', () => {
     });
 
     it('returns 400 when cohort_id is missing', async () => {
-      const enrollment = await createEnrollment('active');
+      const enrollment = await createEnrollment('paid');
 
       const res = await app.inject({
         method: 'POST',
@@ -196,22 +206,8 @@ describe('Admin Placement Endpoints (RS-28)', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('returns 422 when enrollment is not active', async () => {
-      const enrollment = await createEnrollment('pending');
-      const cohort = await createCohort();
-
-      const res = await app.inject({
-        method: 'POST',
-        url: `/admin/academy-enrollments/${enrollment.id}/assign`,
-        headers: { authorization: `Bearer ${adminToken}`, 'content-type': 'application/json' },
-        payload: { cohort_id: cohort.id },
-      });
-
-      expect(res.statusCode).toBe(422);
-    });
-
     it('returns 422 when cohort is completed', async () => {
-      const enrollment = await createEnrollment('active');
+      const enrollment = await createEnrollment('paid');
       const cohort = await createCohort('completed');
 
       const res = await app.inject({
@@ -227,8 +223,8 @@ describe('Admin Placement Endpoints (RS-28)', () => {
 
   // ----------------------------------------------------------
   describe('POST /admin/academy-enrollments/:id/cancel', () => {
-    it('cancels enrollment without placement', async () => {
-      const enrollment = await createEnrollment('active');
+    it('cancels enrollment (deletes record) without placement', async () => {
+      const enrollment = await createEnrollment('paid');
 
       const res = await app.inject({
         method: 'POST',
@@ -238,12 +234,12 @@ describe('Admin Placement Endpoints (RS-28)', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      const updated = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
-      expect(updated.status).toBe('cancelled');
+      const deleted = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
+      expect(deleted).toBeNull();
     });
 
     it('cancels enrollment and deletes placement atomically', async () => {
-      const enrollment = await createEnrollment('active');
+      const enrollment = await createEnrollment('paid');
       const cohort = await createCohort();
       const placement = await prisma.cohortPlacement.create({
         data: { academy_enrollment_id: enrollment.id, cohort_id: cohort.id, user_id: user.id, academy_id: academy.id },
@@ -259,13 +255,15 @@ describe('Admin Placement Endpoints (RS-28)', () => {
       expect(res.statusCode).toBe(200);
       const deletedPlacement = await prisma.cohortPlacement.findUnique({ where: { id: placement.id } });
       expect(deletedPlacement).toBeNull();
+      const deletedEnrollment = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
+      expect(deletedEnrollment).toBeNull();
     });
   });
 
   // ----------------------------------------------------------
   describe('POST /admin/cohort-placements/:id/transfer', () => {
     it('transfers placement to new cohort', async () => {
-      const enrollment = await createEnrollment('active');
+      const enrollment = await createEnrollment('paid');
       const cohortA = await createCohort();
       const cohortB = await createCohort();
       const placement = await prisma.cohortPlacement.create({
@@ -291,8 +289,8 @@ describe('Admin Placement Endpoints (RS-28)', () => {
 
   // ----------------------------------------------------------
   describe('POST /admin/cohort-placements/:id/drop', () => {
-    it('drops placement, enrollment stays active', async () => {
-      const enrollment = await createEnrollment('active');
+    it('drops placement, enrollment record remains', async () => {
+      const enrollment = await createEnrollment('paid');
       const cohort = await createCohort();
       const placement = await prisma.cohortPlacement.create({
         data: { academy_enrollment_id: enrollment.id, cohort_id: cohort.id, user_id: user.id, academy_id: academy.id },
@@ -310,8 +308,8 @@ describe('Admin Placement Endpoints (RS-28)', () => {
       const deletedPlacement = await prisma.cohortPlacement.findUnique({ where: { id: placement.id } });
       expect(deletedPlacement).toBeNull();
 
-      const stillActive = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
-      expect(stillActive.status).toBe('active');
+      const stillExists = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
+      expect(stillExists).not.toBeNull();
     });
   });
 });

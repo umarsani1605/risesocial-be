@@ -134,7 +134,6 @@ export async function createActiveEnrollment(userId, academyId, overrides = {}) 
       user_id: userId,
       academy_id: academyId,
       transaction_id: transaction.id,
-      status: 'active',
       ...overrides,
     },
   });
@@ -161,7 +160,6 @@ export async function createActiveEnrollment(userId, academyId, overrides = {}) 
  */
 export async function createCompletedEnrollment(userId, academyId) {
   return createActiveEnrollment(userId, academyId, {
-    status: 'completed',
     completed_at: new Date(),
   });
 }

@@ -127,28 +127,14 @@ export class WebhookController {
           this.logger.info('[WebhookController] Layer 3 (RYLS) updated');
         }
 
-        // Check if this is an Academy Enrollment payment (Layer 3)
+        // Log academy enrollment association (status is now derived from transaction)
         const academyEnrollment = await tx.academyEnrollment.findFirst({
           where: { transaction_id: transaction.id },
+          select: { id: true },
         });
 
         if (academyEnrollment) {
-          this.logger.info({ academy_enrollment_id: academyEnrollment.id }, '[WebhookController] Academy enrollment found');
-
-          const enrollmentStatus =
-            genericStatus === 'paid' ? 'active'
-            : genericStatus === 'failed' || genericStatus === 'expired' ? 'cancelled'
-            : academyEnrollment.status;
-
-          await tx.academyEnrollment.update({
-            where: { id: academyEnrollment.id },
-            data: {
-              status: enrollmentStatus,
-              updated_at: new Date(),
-            },
-          });
-
-          this.logger.info({ enrollment_status: enrollmentStatus }, '[WebhookController] Layer 3 (AcademyEnrollment) updated');
+          this.logger.info({ academy_enrollment_id: academyEnrollment.id, generic_status: genericStatus }, '[WebhookController] Layer 3 (AcademyEnrollment) linked');
         }
       });
 

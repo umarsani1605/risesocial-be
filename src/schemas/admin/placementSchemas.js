@@ -28,6 +28,8 @@ const enrollmentItemSchema = {
         first_name: { type: ['string', 'null'] },
         last_name: { type: ['string', 'null'] },
         email: { type: 'string' },
+        avatar: { type: ['string', 'null'] },
+        phone: { type: ['string', 'null'] },
       },
     },
     academy: {
@@ -37,7 +39,30 @@ const enrollmentItemSchema = {
         title: { type: 'string' },
       },
     },
-    placement: { type: ['object', 'null'] },
+    transaction: {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'integer' },
+        paid_at: { type: ['string', 'null'], format: 'date-time' },
+        status: { type: 'string' },
+        transaction_code: { type: ['string', 'null'] },
+      },
+    },
+    placement: {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'integer' },
+        cohort_id: { type: 'integer' },
+        cohort: {
+          type: ['object', 'null'],
+          properties: {
+            id: { type: 'integer' },
+            name: { type: 'string' },
+            status: { type: 'string' },
+          },
+        },
+      },
+    },
   },
 };
 
@@ -48,8 +73,7 @@ export const listEnrollmentsSchema = {
     type: 'object',
     properties: {
       page: { type: 'integer', minimum: 1, default: 1 },
-      limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-      status: { type: 'string', enum: ['pending', 'active', 'completed', 'cancelled'] },
+      limit: { type: 'integer', minimum: 1, maximum: 500, default: 20 },
       placed: { type: 'boolean' },
       academy_id: { type: 'integer' },
       user_id: { type: 'integer' },
@@ -137,6 +161,35 @@ export const cancelEnrollmentSchema = {
   },
 };
 
+export const transferPlacementSchema = {
+  tags: ['Admin - Placements'],
+  summary: 'Transfer placement to a different cohort',
+  params: {
+    type: 'object',
+    required: ['id'],
+    properties: { id: { type: 'integer' } },
+    additionalProperties: false,
+  },
+  body: {
+    type: 'object',
+    required: ['cohort_id'],
+    properties: {
+      cohort_id: { type: 'integer' },
+      notes: { type: 'string' },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: createSuccessResponseSchema(placementSchema, 'Placement transferred'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    403: createErrorResponseSchema(403, 'Forbidden'),
+    404: createErrorResponseSchema(404, 'Not Found'),
+    409: createErrorResponseSchema(409, 'Conflict'),
+    422: createErrorResponseSchema(422, 'Unprocessable Entity'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
 export const dropPlacementSchema = {
   tags: ['Admin - Placements'],
   summary: 'Drop placement (enrollment stays active)',
@@ -147,7 +200,7 @@ export const dropPlacementSchema = {
     additionalProperties: false,
   },
   body: {
-    type: 'object',
+    type: ['object', 'null'],
     properties: {
       reason: { type: 'string' },
     },

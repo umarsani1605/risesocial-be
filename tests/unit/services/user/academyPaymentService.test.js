@@ -252,14 +252,14 @@ describe('AcademyPaymentService', () => {
       });
     });
 
-    it('updates AcademyEnrollment status to active when payment is paid', async () => {
+    it('updates Transaction and MidtransTransaction when payment is paid (no enrollment status update)', async () => {
       let capturedTx;
       mockPrisma.$transaction.mockImplementation(async (fn) => {
         const tx = {
           transaction: { update: vi.fn().mockResolvedValue({}) },
           midtransTransaction: { update: vi.fn().mockResolvedValue({}) },
           academyEnrollment: {
-            findFirst: vi.fn().mockResolvedValue({ id: 50, status: 'pending' }),
+            findFirst: vi.fn().mockResolvedValue({ id: 50 }),
             update: vi.fn().mockResolvedValue({}),
           },
         };
@@ -269,12 +269,12 @@ describe('AcademyPaymentService', () => {
 
       await service.syncTransactionStatus('AE01ABCD1234', 100);
 
-      expect(capturedTx.academyEnrollment.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ status: 'active' }) }),
-      );
+      expect(capturedTx.transaction.update).toHaveBeenCalled();
+      expect(capturedTx.midtransTransaction.update).toHaveBeenCalled();
+      expect(capturedTx.academyEnrollment.update).not.toHaveBeenCalled();
     });
 
-    it('updates AcademyEnrollment status to cancelled when payment expired', async () => {
+    it('updates Transaction when payment expired (no enrollment status update)', async () => {
       mockMidtransService.getTransactionStatus.mockResolvedValue({
         transaction_status: 'expire',
         transaction_id: 'mid-txn-002',
@@ -287,7 +287,7 @@ describe('AcademyPaymentService', () => {
           transaction: { update: vi.fn().mockResolvedValue({}) },
           midtransTransaction: { update: vi.fn().mockResolvedValue({}) },
           academyEnrollment: {
-            findFirst: vi.fn().mockResolvedValue({ id: 50, status: 'pending' }),
+            findFirst: vi.fn().mockResolvedValue({ id: 50 }),
             update: vi.fn().mockResolvedValue({}),
           },
         };
@@ -297,9 +297,8 @@ describe('AcademyPaymentService', () => {
 
       await service.syncTransactionStatus('AE01ABCD1234', 100);
 
-      expect(capturedTx.academyEnrollment.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ status: 'cancelled' }) }),
-      );
+      expect(capturedTx.transaction.update).toHaveBeenCalled();
+      expect(capturedTx.academyEnrollment.update).not.toHaveBeenCalled();
     });
 
     it('throws when transaction not found or not owned by user', async () => {
@@ -314,7 +313,6 @@ describe('AcademyPaymentService', () => {
     it('returns enrollment status when enrollment exists', async () => {
       mockAcademyPaymentRepository.findEnrollmentWithTransaction.mockResolvedValue({
         id: 50,
-        status: 'pending',
         created_at: new Date(),
         transaction: {
           status: 'pending',
@@ -346,11 +344,17 @@ describe('AcademyPaymentService', () => {
 
   // ----------------------------------------------------------
   describe('checkEnrollment', () => {
-    it('returns enrolled=true when status is active', async () => {
+    it('returns enrolled=true when transaction is paid', async () => {
       mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
         id: 50,
-        status: 'active',
-        transaction: null,
+        completed_at: null,
+        transaction: {
+          id: 5,
+          status: 'paid',
+          transaction_code: 'AE01ABCD1234',
+          expired_at: null,
+          midtrans_data: null,
+        },
       });
 
       const result = await service.checkEnrollment(100, 1);
@@ -377,7 +381,7 @@ describe('AcademyPaymentService', () => {
     it('returns hasPendingPayment=true with snap_token when pending and token valid', async () => {
       mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
         id: 50,
-        status: 'pending',
+        completed_at: null,
         transaction: {
           id: 5,
           status: 'pending',
@@ -396,7 +400,7 @@ describe('AcademyPaymentService', () => {
     it('returns hasPendingPayment=true but no snap_token when token expired', async () => {
       mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
         id: 50,
-        status: 'pending',
+        completed_at: null,
         transaction: {
           id: 5,
           status: 'pending',

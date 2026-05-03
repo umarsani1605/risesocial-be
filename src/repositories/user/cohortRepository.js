@@ -91,7 +91,7 @@ export class UserCohortRepository extends BaseRepository {
     const skip = (page - 1) * limit;
     const where = {
       user_id: userId,
-      status: { in: ['active', 'completed'] },
+      transaction: { status: 'paid' },
     };
 
     const [data, total] = await Promise.all([
@@ -101,6 +101,9 @@ export class UserCohortRepository extends BaseRepository {
         take: Number(limit),
         orderBy: { created_at: 'desc' },
         include: {
+          academy: {
+            select: { id: true, title: true, slug: true, image_url: true, duration: true, format: true, certificate: true, description: true },
+          },
           transaction: {
             select: {
               id: true,
@@ -122,7 +125,6 @@ export class UserCohortRepository extends BaseRepository {
                   start_date: true,
                   end_date: true,
                   _count: { select: { modules: { where: { is_published: true } } } },
-                  academy: { select: { id: true, title: true, slug: true, image_url: true, duration: true, format: true, certificate: true, description: true } },
                 },
               },
             },

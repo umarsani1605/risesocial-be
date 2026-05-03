@@ -9,18 +9,17 @@ function makeError(message, statusCode) {
   return err;
 }
 
-const VALID_COHORT_STATUSES = ['not_started', 'in_progress'];
+const VALID_COHORT_STATUSES = ['not_started', 'ongoing'];
 
 export class AdminPlacementService {
   get logger() {
     return getLogger();
   }
 
-  async listAcademyEnrollments({ page = 1, limit = 20, status, placed, academy_id, user_id } = {}) {
+  async listAcademyEnrollments({ page = 1, limit = 20, placed, academy_id, user_id } = {}) {
     this.logger.info('[AdminPlacementService] listAcademyEnrollments start');
 
     const where = {};
-    if (status) where.status = status;
     if (academy_id) where.academy_id = Number(academy_id);
     if (user_id) where.user_id = Number(user_id);
     if (placed === true) where.placement = { isNot: null };
@@ -35,7 +34,7 @@ export class AdminPlacementService {
         take: limit,
         orderBy: { created_at: 'desc' },
         include: {
-          user: { select: { id: true, first_name: true, last_name: true, email: true, avatar: true } },
+          user: { select: { id: true, first_name: true, last_name: true, email: true, avatar: true, phone: true } },
           academy: { select: { id: true, title: true, slug: true } },
           transaction: { select: { id: true, status: true, paid_at: true, transaction_code: true } },
           placement: {
@@ -65,9 +64,6 @@ export class AdminPlacementService {
 
     const enrollment = await academyEnrollmentRepository.findById(enrollmentId);
     if (!enrollment) throw makeError('Enrollment not found', 404);
-    if (enrollment.status !== 'active') {
-      throw makeError(`Cannot assign placement: enrollment status is '${enrollment.status}' (must be active)`, 422);
-    }
 
     const cohort = await prisma.cohort.findUnique({ where: { id: cohortId } });
     if (!cohort) throw makeError('Cohort not found', 404);
@@ -118,12 +114,23 @@ export class AdminPlacementService {
       this.logger.info({ placementId: enrollment.placement.id }, '[AdminPlacementService] placement deleted before cancel');
     }
 
-    const updated = await academyEnrollmentRepository.updateStatus(enrollmentId, 'cancelled', {
-      notes: reason ?? null,
-    });
+    await prisma.academyEnrollment.delete({ where: { id: enrollmentId } });
 
-    this.logger.info({ enrollmentId, adminId }, '[AdminPlacementService] cancelEnrollment success');
-    return updated;
+    this.logger.info({ enrollmentId, adminId, reason }, '[AdminPlacementService] cancelEnrollment success');
+    return { message: 'Enrollment cancelled' };
+  }
+
+  async transferPlacement(placementId, cohortId, { notes, adminId } = {}) {
+    this.logger.info({ placementId, cohortId, adminId }, '[AdminPlacementService] transferPlacement start');
+
+    try {
+      const transferred = await cohortPlacementRepository.transferPlacement(placementId, cohortId);
+      this.logger.info({ placementId: transferred.id, adminId }, '[AdminPlacementService] transferPlacement success');
+      return transferred;
+    } catch (error) {
+      if (error.code === 'P2025') throw makeError('Placement not found', 404);
+      throw error;
+    }
   }
 
   async dropPlacement(placementId, { reason, adminId } = {}) {
