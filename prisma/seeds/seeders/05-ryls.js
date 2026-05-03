@@ -6,6 +6,7 @@ import { PrismaClient } from '@prisma/client';
 import { logSeedStart, logSeedSuccess, logSeedError } from '../utils/logger.js';
 import { validateEmail, validatePhone } from '../utils/validation.js';
 import { rylsRegistrations } from '../data/ryls.js';
+import { rylsDrafts } from '../data/rylsDrafts.js';
 
 /**
  * Seed RYLS registrations
@@ -17,6 +18,7 @@ export async function seedRyls(prisma) {
     logSeedStart('RYLS');
 
     // Clear existing RYLS data in dependency order
+    await prisma.rylsDraftRegistration.deleteMany({});
     await prisma.rylsPayment.deleteMany({});
     await prisma.transaction.deleteMany({ where: { product_type: 'RYLS' } });
     await prisma.rylsFullyFundedSubmission.deleteMany({});
@@ -147,12 +149,20 @@ export async function seedRyls(prisma) {
       }
     }
 
+    // Seed draft registrations
+    let draftCount = 0;
+    for (const draft of rylsDrafts) {
+      await prisma.rylsDraftRegistration.create({ data: draft });
+      draftCount++;
+    }
+
     const stats = {
       registrationCount: rylsRegistrations.length,
       fullyFundedCount,
       selfFundedCount,
       fileUploadCount,
       paymentCount,
+      draftCount,
     };
 
     logSeedSuccess('RYLS', stats);

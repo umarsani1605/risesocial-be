@@ -150,13 +150,12 @@ export async function seedPayments(prisma) {
         },
       });
 
-      // Layer 3: AcademyEnrollment
+      // Layer 3: AcademyEnrollment (temporary: still created for pending TX until RS-42/RS-44; no `status` column)
       const enrollment = await prisma.academyEnrollment.create({
         data: {
           academy_id: cohort.academy.id,
           user_id: user.id,
           transaction_id: transaction.id,
-          status: enrollStatus,
           completed_at: enrollStatus === 'completed' ? cohort.end_date ?? new Date() : null,
         },
       });

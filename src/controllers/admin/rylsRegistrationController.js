@@ -232,6 +232,44 @@ export class AdminRylsRegistrationController {
       return reply.status(500).send(errorResponse('Failed to cleanup expired drafts', 500, error.message));
     }
   };
+  getAnalyticsSummary = async (request, reply) => {
+    try {
+      request.log.info('[adminRylsRegistrationController] getAnalyticsSummary start');
+      const { period, startDate, endDate } = request.query;
+      const result = await this.registrationService.getAnalyticsSummary({ period, startDate, endDate });
+      request.log.info('[adminRylsRegistrationController] getAnalyticsSummary success');
+      return reply.send(successResponse(result, 'Summary retrieved'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminRylsRegistrationController] getAnalyticsSummary error');
+      return reply.status(500).send(errorResponse('Failed to retrieve analytics summary', 500, error.message));
+    }
+  };
+
+  getAnalyticsTrend = async (request, reply) => {
+    try {
+      request.log.info('[adminRylsRegistrationController] getAnalyticsTrend start');
+      const { period, startDate, endDate } = request.query;
+      const result = await this.registrationService.getAnalyticsTrend({ period, startDate, endDate });
+      request.log.info('[adminRylsRegistrationController] getAnalyticsTrend success');
+      return reply.send(successResponse(result, 'Trend retrieved'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminRylsRegistrationController] getAnalyticsTrend error');
+      return reply.status(500).send(errorResponse('Failed to retrieve analytics trend', 500, error.message));
+    }
+  };
+
+  getAnalyticsDemographics = async (request, reply) => {
+    try {
+      request.log.info('[adminRylsRegistrationController] getAnalyticsDemographics start');
+      const { period, startDate, endDate } = request.query;
+      const result = await this.registrationService.getAnalyticsDemographics({ period, startDate, endDate });
+      request.log.info('[adminRylsRegistrationController] getAnalyticsDemographics success');
+      return reply.send(successResponse(result, 'Demographics retrieved'));
+    } catch (error) {
+      request.log.error({ err: error }, '[adminRylsRegistrationController] getAnalyticsDemographics error');
+      return reply.status(500).send(errorResponse('Failed to retrieve analytics demographics', 500, error.message));
+    }
+  };
 }
 
 export const adminRylsRegistrationController = new AdminRylsRegistrationController();

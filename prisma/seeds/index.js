@@ -59,6 +59,7 @@ async function clearAllData(prisma) {
   await prisma.transactionItem.deleteMany({});
   await prisma.transaction.deleteMany({});
 
+  await prisma.rylsDraftRegistration.deleteMany({});
   await prisma.rylsFullyFundedSubmission.deleteMany({});
   await prisma.rylsSelfFundedSubmission.deleteMany({});
   await prisma.rylsRegistration.deleteMany({});

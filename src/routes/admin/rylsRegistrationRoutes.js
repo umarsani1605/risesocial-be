@@ -87,6 +87,33 @@ export default async function adminRylsRegistrationRoutes(fastify) {
     handler: adminRylsRegistrationController.cleanupExpiredDrafts,
   });
 
+  const analyticsPeriodQuerystring = {
+    type: 'object',
+    properties: {
+      period: { type: 'string', enum: ['all-time', 'today', 'yesterday', '7d', '1m', '3m', 'custom'] },
+      startDate: { type: 'string', format: 'date' },
+      endDate: { type: 'string', format: 'date' },
+    },
+  };
+
+  fastify.get('/analytics/summary', {
+    schema: { ...tag, description: 'Get submission + draft counts (Admin only)', querystring: analyticsPeriodQuerystring },
+    preHandler: requirePermission('admin.ryls'),
+    handler: adminRylsRegistrationController.getAnalyticsSummary,
+  });
+
+  fastify.get('/analytics/trend', {
+    schema: { ...tag, description: 'Get submission trend over time (Admin only)', querystring: analyticsPeriodQuerystring },
+    preHandler: requirePermission('admin.ryls'),
+    handler: adminRylsRegistrationController.getAnalyticsTrend,
+  });
+
+  fastify.get('/analytics/demographics', {
+    schema: { ...tag, description: 'Get demographic breakdowns (Admin only)', querystring: analyticsPeriodQuerystring },
+    preHandler: requirePermission('admin.ryls'),
+    handler: adminRylsRegistrationController.getAnalyticsDemographics,
+  });
+
   fastify.get('/:id', {
     schema: {
       ...tag,

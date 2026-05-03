@@ -2,6 +2,7 @@ import { rylsRegistrationRepository } from '../../repositories/user/rylsRegistra
 import { fileUploadService } from '../shared/fileUploadService.js';
 import { rylsDraftService } from '../rylsDraftService.js';
 import { getLogger } from '../../utils/loggerContext.js';
+import { periodToDateRange } from '../../utils/periodToDateRange.js';
 
 export class RylsRegistrationService {
   constructor() {
@@ -464,6 +465,113 @@ export class RylsRegistrationService {
       columnWidths.push({ width: optimalWidth, wch: optimalWidth });
     }
     return columnWidths;
+  }
+
+  async getAnalyticsSummary({ period, startDate, endDate } = {}) {
+    this.logger.info('[rylsRegistrationService] getAnalyticsSummary start');
+    try {
+      const range = periodToDateRange(period, startDate, endDate);
+      const whereClause = range.start ? { created_at: { gte: range.start, lte: range.end } } : {};
+
+      const [submitted, drafts] = await Promise.all([
+        this.registrationRepository.model.count({ where: whereClause }),
+        rylsDraftService.repo.model.count({ where: { expires_at: { gte: new Date() } } }),
+      ]);
+
+      this.logger.info('[rylsRegistrationService] getAnalyticsSummary success');
+      return { submitted, drafts };
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsRegistrationService] getAnalyticsSummary error');
+      throw new Error('Failed to retrieve analytics summary');
+    }
+  }
+
+  async getAnalyticsTrend({ period, startDate, endDate } = {}) {
+    this.logger.info('[rylsRegistrationService] getAnalyticsTrend start');
+    try {
+      const effectivePeriod = period ?? '1m';
+      const range = periodToDateRange(effectivePeriod, startDate, endDate);
+      const whereClause = range.start ? { created_at: { gte: range.start, lte: range.end } } : {};
+
+      const regs = await this.registrationRepository.model.findMany({
+        where: whereClause,
+        select: { created_at: true },
+        orderBy: { created_at: 'asc' },
+      });
+
+      const byDate = {};
+      for (const r of regs) {
+        const day = r.created_at.toISOString().split('T')[0];
+        byDate[day] = (byDate[day] ?? 0) + 1;
+      }
+
+      this.logger.info('[rylsRegistrationService] getAnalyticsTrend success');
+      return Object.entries(byDate).map(([date, count]) => ({ date, count }));
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsRegistrationService] getAnalyticsTrend error');
+      throw new Error('Failed to retrieve analytics trend');
+    }
+  }
+
+  async getAnalyticsDemographics({ period, startDate, endDate } = {}) {
+    this.logger.info('[rylsRegistrationService] getAnalyticsDemographics start');
+    try {
+      const range = periodToDateRange(period, startDate, endDate);
+      const whereClause = range.start ? { created_at: { gte: range.start, lte: range.end } } : {};
+
+      const [nationalityGroups, sourceGroups, genderGroups, scholarshipGroups, allDobs] = await Promise.all([
+        this.registrationRepository.model.groupBy({
+          by: ['nationality'],
+          where: whereClause,
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+        }),
+        this.registrationRepository.model.groupBy({
+          by: ['discover_source'],
+          where: whereClause,
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+        }),
+        this.registrationRepository.model.groupBy({
+          by: ['gender'],
+          where: whereClause,
+          _count: { id: true },
+        }),
+        this.registrationRepository.model.groupBy({
+          by: ['scholarship_type'],
+          where: whereClause,
+          _count: { id: true },
+        }),
+        this.registrationRepository.model.findMany({
+          where: whereClause,
+          select: { date_of_birth: true },
+        }),
+      ]);
+
+      const AGE_RANGES = ['<18', '18-22', '23-26', '27-30', '30+'];
+      const ageBuckets = Object.fromEntries(AGE_RANGES.map((r) => [r, 0]));
+      const now = new Date();
+      for (const { date_of_birth } of allDobs) {
+        const age = Math.floor((now - new Date(date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000));
+        if (age < 18) ageBuckets['<18']++;
+        else if (age <= 22) ageBuckets['18-22']++;
+        else if (age <= 26) ageBuckets['23-26']++;
+        else if (age <= 30) ageBuckets['27-30']++;
+        else ageBuckets['30+']++;
+      }
+
+      this.logger.info('[rylsRegistrationService] getAnalyticsDemographics success');
+      return {
+        byNationality: nationalityGroups.slice(0, 10).map((n) => ({ name: n.nationality, count: n._count.id })),
+        byDiscoverSource: sourceGroups.map((s) => ({ name: s.discover_source, count: s._count.id })),
+        byGender: genderGroups.map((g) => ({ name: g.gender, count: g._count.id })),
+        byAgeRange: AGE_RANGES.map((r) => ({ name: r, count: ageBuckets[r] })),
+        byScholarshipType: scholarshipGroups.map((s) => ({ name: s.scholarship_type, count: s._count.id })),
+      };
+    } catch (error) {
+      this.logger.error({ err: error }, '[rylsRegistrationService] getAnalyticsDemographics error');
+      throw new Error('Failed to retrieve analytics demographics');
+    }
   }
 }
 
