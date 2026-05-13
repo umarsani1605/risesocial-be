@@ -17,10 +17,8 @@ export function generateToken(fastify, user, rememberMe = false) {
 
 export async function verifyToken(fastify, token) {
   try {
-    const decoded = await fastify.jwt.verify(token);
-    return decoded;
-  } catch (error) {
-    console.error('JWT verification failed:', error.message);
+    return await fastify.jwt.verify(token);
+  } catch {
     return null;
   }
 }

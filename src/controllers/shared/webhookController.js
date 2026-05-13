@@ -3,7 +3,7 @@ import { transactionRepository } from '../../repositories/shared/transactionRepo
 import { mapMidtransStatus, mapPaymentMethod } from '../../constants/paymentHelpers.js';
 import { emailService } from '../../services/shared/emailService.js';
 import prisma from '../../config/database.js';
-import { captureEvent } from '../../config/posthog.js';
+import posthog, { captureEvent } from '../../config/posthog.js';
 
 /**
  * WebhookController - Simplified webhook handler
@@ -166,6 +166,14 @@ export class WebhookController {
         status: transaction_status,
       });
     } catch (error) {
+      if (process.env.NODE_ENV === 'production') {
+        posthog.captureException(error, undefined, {
+          path: '/webhooks/midtrans',
+          method: 'POST',
+          status_code: 500,
+          order_id: request.body?.order_id,
+        });
+      }
 
       // Return 500 so Midtrans will retry
       return reply.status(500).send({

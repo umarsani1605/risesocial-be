@@ -102,17 +102,11 @@ export const mapTransactionStatus = (transactionStatus) => {
 };
 
 export const getPaymentAmountIdr = async (scholarshipType, fastify) => {
-  console.log('[Payments] getPaymentAmountIdr called');
-  console.log('[Payments] Scholarship type:', scholarshipType);
   const usd = getPaymentAmountUsd(scholarshipType);
-  console.log('[Payments] USD amount:', usd);
   const conv = await convertUsdToIdr(usd, fastify);
   if (!conv?.success) {
-    console.error('[Payments] Currency conversion failed:', conv?.error);
     throw new Error(conv?.error || 'Currency conversion failed');
   }
-  console.log('[Payments] Conversion rate:', conv.rate);
-  console.log('[Payments] Conversion result (IDR):', conv.result);
   return Math.round(conv.result);
 };
 

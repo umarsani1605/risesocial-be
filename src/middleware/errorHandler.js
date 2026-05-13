@@ -34,8 +34,8 @@ export function errorHandler(error, request, reply) {
     return reply.status(400).send(errorResponse(messages[0], 400, { errors: messages }));
   }
 
-  if (error.code) {
-    return handlePrismaError(error, reply);
+  if (typeof error.code === 'string' && error.code.startsWith('P')) {
+    return handlePrismaError(error, request, reply);
   }
 
   if (error.message?.includes('jwt') || error.message?.includes('token')) {
@@ -43,21 +43,27 @@ export function errorHandler(error, request, reply) {
   }
 
   if (error.statusCode) {
+    if (error.statusCode >= 500) {
+      captureException(error, request, error.statusCode);
+    }
     return reply.status(error.statusCode).send(errorResponse(error.message, error.statusCode));
   }
 
+  captureException(error, request, 500);
+  return reply.status(500).send(errorResponse('Internal Server Error', 500));
+}
+
+function captureException(error, request, status_code) {
   const distinctId = request.user?.userId ? String(request.user.userId) : undefined;
   posthog.captureException(error, distinctId, {
     path: request.routerPath ?? request.url,
     method: request.method,
-    status_code: 500,
+    status_code,
     user_role: request.user?.role,
   });
-
-  return reply.status(500).send(errorResponse('Internal Server Error', 500));
 }
 
-function handlePrismaError(error, reply) {
+function handlePrismaError(error, request, reply) {
   switch (error.code) {
     case 'P2002':
       return reply.status(409).send(errorResponse('Resource already exists', 409));
@@ -72,6 +78,7 @@ function handlePrismaError(error, reply) {
       return reply.status(400).send(errorResponse('Required relation missing', 400));
 
     default:
+      captureException(error, request, 500);
       return reply.status(500).send(errorResponse('Database error', 500));
   }
 }
