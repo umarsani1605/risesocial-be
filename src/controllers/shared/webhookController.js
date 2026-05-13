@@ -166,6 +166,10 @@ export class WebhookController {
         status: transaction_status,
       });
     } catch (error) {
+      // Intentional deviation from the throw-on-500 convention: Midtrans retries
+      // on 5xx responses, and expects a specific body shape (not the standard
+      // errorResponse() output produced by errorHandler). Capture manually here
+      // so the exception still reaches PostHog.
       if (process.env.NODE_ENV === 'production') {
         posthog.captureException(error, undefined, {
           path: '/webhooks/midtrans',
@@ -175,7 +179,6 @@ export class WebhookController {
         });
       }
 
-      // Return 500 so Midtrans will retry
       return reply.status(500).send({
         success: false,
         message: 'Internal server error',
