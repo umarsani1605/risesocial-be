@@ -39,9 +39,6 @@ vi.mock('../../../../src/config/database.js', () => ({
   default: mockPrisma,
 }));
 
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), debug: vi.fn(), error: vi.fn(), warn: vi.fn() }),
-}));
 
 const { AcademyPaymentService } = await import('../../../../src/services/user/academyPaymentService.js');
 

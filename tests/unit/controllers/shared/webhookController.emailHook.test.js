@@ -19,9 +19,6 @@ vi.mock('../../../../src/services/shared/emailService.js', () => ({
   },
 }));
 
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
-}));
 
 vi.mock('../../../../src/config/database.js', () => ({
   default: {

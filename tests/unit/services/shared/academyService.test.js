@@ -27,14 +27,6 @@ vi.mock('../../../../src/repositories/shared/academyRepository.js', () => ({
 }));
 
 // Mock logger
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
 
 // Mock Prisma
 const mockPrisma = {

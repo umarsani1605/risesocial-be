@@ -23,13 +23,6 @@ vi.mock('../../../src/repositories/jobsRepository.js', () => ({
 }));
 
 // Mock logger
-vi.mock('../../../src/lib/loggerContext.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
 
 // Import after mocking
 const { JobsService } = await import('../../../src/services/jobsService.js');

@@ -4,12 +4,6 @@ vi.mock('../../../../src/integrations/brevoClient.js', () => ({
   sendEmail: vi.fn().mockResolvedValue({ messageId: 'test-id' }),
 }));
 
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
 
 describe('EmailService', () => {
   let emailService;

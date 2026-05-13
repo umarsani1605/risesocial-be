@@ -88,14 +88,6 @@ vi.mock('../../../../src/config/database.js', () => ({
 }));
 
 // Mock logger
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
 
 // Import after mocking
 const { AdminAcademyRepository } = await import('../../../../src/repositories/admin/academyRepository.js');

@@ -22,9 +22,6 @@ vi.mock('../../../../src/services/shared/emailService.js', () => ({
   },
 }));
 
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), error: vi.fn() }),
-}));
 
 vi.mock('../../../../src/utils/certificateHelpers.js', () => ({
   formatCertificateCode: vi.fn().mockReturnValue('CERT-2026-0001'),

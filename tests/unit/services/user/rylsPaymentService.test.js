@@ -52,9 +52,6 @@ vi.mock('../../../../src/constants/payments.js', () => ({
   getItemTemplate: vi.fn().mockReturnValue({ id: 'RYLS-SF', name: 'RYLS Self Funded', category: 'scholarship' }),
 }));
 
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), debug: vi.fn(), error: vi.fn(), warn: vi.fn() }),
-}));
 
 const { RylsPaymentService } = await import('../../../../src/services/user/rylsPaymentService.js');
 

@@ -33,13 +33,6 @@ vi.mock('../../../src/repositories/admin/testimonialsRepository.js', () => ({
 }));
 
 // Mock logger
-vi.mock('../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
 
 // Import after mocking
 const { userTestimonialsService } = await import('../../../src/services/user/testimonialsService.js');

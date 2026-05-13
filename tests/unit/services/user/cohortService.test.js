@@ -35,9 +35,6 @@ vi.mock('../../../../src/config/database.js', () => ({
   default: mockPrisma,
 }));
 
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
-}));
 
 vi.mock('fs-extra', () => ({ default: { pathExists: vi.fn() } }));
 

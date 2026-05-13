@@ -16,9 +16,6 @@ vi.mock('../../../src/services/shared/emailService.js', () => ({
   },
 }));
 
-vi.mock('../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), debug: vi.fn(), error: vi.fn(), warn: vi.fn() }),
-}));
 
 import { midtransService } from '../../../src/services/shared/MidtransService.js';
 import { emailService } from '../../../src/services/shared/emailService.js';

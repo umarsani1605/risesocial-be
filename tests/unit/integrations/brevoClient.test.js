@@ -10,9 +10,6 @@ vi.mock('@getbrevo/brevo', () => ({
   }),
 }));
 
-vi.mock('../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), error: vi.fn() }),
-}));
 
 process.env.BREVO_API_KEY = 'test-api-key';
 process.env.EMAIL_FROM_ADDRESS = 'noreply@test.com';

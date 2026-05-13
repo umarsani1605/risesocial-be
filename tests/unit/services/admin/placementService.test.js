@@ -3,11 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // --- Mocks ---
 const mockCohortPlacementRepository = {
   createPlacement: vi.fn(),
+  findById: vi.fn(),
   findByEnrollmentId: vi.fn(),
   findByUserCohort: vi.fn(),
   findByCohort: vi.fn(),
   deletePlacement: vi.fn(),
   replacePlacement: vi.fn(),
+  transferPlacement: vi.fn(),
 };
 
 const mockAcademyEnrollmentRepository = {
@@ -36,9 +38,6 @@ vi.mock('../../../../src/config/database.js', () => ({
   default: mockPrisma,
 }));
 
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn() }),
-}));
 
 const { AdminPlacementService } = await import('../../../../src/services/admin/placementService.js');
 

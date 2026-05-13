@@ -3,14 +3,6 @@ import { MidtransService } from '../../../src/services/shared/MidtransService.js
 import * as midtransClient from '../../../src/integrations/midtransClient.js';
 
 vi.mock('../../../src/integrations/midtransClient.js');
-vi.mock('../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
 
 describe('MidtransService', () => {
   let service;

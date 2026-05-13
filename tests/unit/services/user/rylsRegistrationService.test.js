@@ -32,9 +32,6 @@ vi.mock('../../../../src/services/shared/fileUploadService.js', () => ({
   fileUploadService: mockFileUploadService,
 }));
 
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), debug: vi.fn(), error: vi.fn(), warn: vi.fn() }),
-}));
 
 const { RylsRegistrationService } = await import('../../../../src/services/user/rylsRegistrationService.js');
 

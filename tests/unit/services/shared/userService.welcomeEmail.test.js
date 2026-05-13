@@ -34,9 +34,6 @@ vi.mock('../../../../src/utils/jwt.js', () => ({
   generateToken: vi.fn().mockReturnValue('mock-token'),
 }));
 
-vi.mock('../../../../src/utils/loggerContext.js', () => ({
-  getLogger: () => ({ info: vi.fn(), debug: vi.fn(), error: vi.fn() }),
-}));
 
 vi.mock('../../../../src/config/database.js', () => ({ default: {} }));
 
