@@ -1,18 +1,13 @@
 import prisma from '../../config/database.js';
 import { BaseRepository } from '../shared/BaseRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class AdminCohortRepository extends BaseRepository {
   constructor() {
     super(prisma.cohort);
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async findWithPagination({ page = 1, limit = 10, id, academy_id, status } = {}) {
-    this.logger.info({ page, limit, id, academy_id, status }, '[adminCohortRepository] findWithPagination called');
 
     const skip = (page - 1) * limit;
     const where = {};
@@ -48,7 +43,6 @@ export class AdminCohortRepository extends BaseRepository {
   }
 
   async findByIdWithDetails(id) {
-    this.logger.info({ id }, '[adminCohortRepository] findByIdWithDetails called');
 
     return await this.model.findUnique({
       where: { id },
@@ -69,7 +63,6 @@ export class AdminCohortRepository extends BaseRepository {
   // --- Module order management ---
 
   async createModule(cohortId, academyId, data) {
-    this.logger.info({ cohortId, data }, '[adminCohortRepository] createModule called');
 
     const { order, ...rest } = data || {};
 
@@ -97,12 +90,10 @@ export class AdminCohortRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ moduleId: module.id }, '[adminCohortRepository] createModule success');
     return module;
   }
 
   async updateModule(cohortId, moduleId, data) {
-    this.logger.info({ cohortId, moduleId, data }, '[adminCohortRepository] updateModule called');
 
     const { order, ...rest } = data || {};
 
@@ -134,12 +125,10 @@ export class AdminCohortRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ moduleId: result.id }, '[adminCohortRepository] updateModule success');
     return result;
   }
 
   async deleteModule(cohortId, moduleId) {
-    this.logger.info({ cohortId, moduleId }, '[adminCohortRepository] deleteModule called');
 
     await prisma.$transaction(async (tx) => {
       const existing = await tx.cohortModule.findFirst({
@@ -157,14 +146,12 @@ export class AdminCohortRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ moduleId }, '[adminCohortRepository] deleteModule success');
     return { message: 'Module deleted successfully' };
   }
 
   // --- Attachment order management ---
 
   async createAttachment(moduleId, cohortId, academyId, data) {
-    this.logger.info({ moduleId, data }, '[adminCohortRepository] createAttachment called');
 
     const { order, ...rest } = data || {};
 
@@ -192,12 +179,10 @@ export class AdminCohortRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ attachmentId: attachment.id }, '[adminCohortRepository] createAttachment success');
     return attachment;
   }
 
   async updateAttachment(moduleId, attachmentId, data) {
-    this.logger.info({ moduleId, attachmentId, data }, '[adminCohortRepository] updateAttachment called');
 
     const { order, ...rest } = data || {};
 
@@ -229,12 +214,10 @@ export class AdminCohortRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ attachmentId: result.id }, '[adminCohortRepository] updateAttachment success');
     return result;
   }
 
   async deleteAttachment(moduleId, attachmentId) {
-    this.logger.info({ moduleId, attachmentId }, '[adminCohortRepository] deleteAttachment called');
 
     let filePath = null;
 
@@ -258,14 +241,12 @@ export class AdminCohortRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ attachmentId }, '[adminCohortRepository] deleteAttachment success');
     return { message: 'Attachment deleted successfully', filePath };
   }
 
   // --- Enrollment management ---
 
   async findEnrollments(cohortId, { status } = {}) {
-    this.logger.info({ cohortId, status }, '[adminCohortRepository] findEnrollments called');
 
     const where = { cohort_id: cohortId };
     if (status) where.status = status;
@@ -284,7 +265,6 @@ export class AdminCohortRepository extends BaseRepository {
   }
 
   async createEnrollment(cohortId, academyId, userId, notes = null) {
-    this.logger.info({ cohortId, userId }, '[adminCohortRepository] createEnrollment called');
 
     return await prisma.cohortEnrollment.create({
       data: {
@@ -299,7 +279,6 @@ export class AdminCohortRepository extends BaseRepository {
   }
 
   async updateEnrollment(cohortId, enrollmentId, data) {
-    this.logger.info({ cohortId, enrollmentId, data }, '[adminCohortRepository] updateEnrollment called');
 
     const existing = await prisma.cohortEnrollment.findFirst({
       where: { id: enrollmentId, cohort_id: cohortId },
@@ -316,7 +295,6 @@ export class AdminCohortRepository extends BaseRepository {
   // --- Mentor management ---
 
   async createMentor(cohortId, academyId, data) {
-    this.logger.info({ cohortId, data }, '[adminCohortRepository] createMentor called');
 
     return await prisma.cohortMentor.create({
       data: { cohort_id: cohortId, academy_id: academyId, ...data },
@@ -324,7 +302,6 @@ export class AdminCohortRepository extends BaseRepository {
   }
 
   async updateMentor(cohortId, mentorId, data) {
-    this.logger.info({ cohortId, mentorId, data }, '[adminCohortRepository] updateMentor called');
 
     const existing = await prisma.cohortMentor.findFirst({
       where: { id: mentorId, cohort_id: cohortId },
@@ -339,7 +316,6 @@ export class AdminCohortRepository extends BaseRepository {
   }
 
   async deleteMentor(cohortId, mentorId) {
-    this.logger.info({ cohortId, mentorId }, '[adminCohortRepository] deleteMentor called');
 
     const existing = await prisma.cohortMentor.findFirst({
       where: { id: mentorId, cohort_id: cohortId },
@@ -348,7 +324,6 @@ export class AdminCohortRepository extends BaseRepository {
     if (!existing) throw new Error('Mentor not found');
 
     await prisma.cohortMentor.delete({ where: { id: mentorId } });
-    this.logger.info({ mentorId }, '[adminCohortRepository] deleteMentor success');
     return { message: 'Mentor removed successfully' };
   }
 }

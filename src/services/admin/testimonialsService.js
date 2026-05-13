@@ -1,17 +1,12 @@
 import { adminTestimonialsRepository } from '../../repositories/admin/testimonialsRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 class AdminTestimonialsService {
   constructor() {
     this.testimonialsRepository = adminTestimonialsRepository;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async getStatistics() {
-    this.logger.info('[adminTestimonialsService] getStatistics start');
     try {
       const stats = await this.testimonialsRepository.getStatistics();
       const total = stats.totalTestimonials || 1;
@@ -36,17 +31,13 @@ class AdminTestimonialsService {
           averageTestimonialsPerMonth: Math.round(stats.totalTestimonials / 12),
         },
       };
-      this.logger.info('[adminTestimonialsService] getStatistics success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminTestimonialsService] getStatistics error');
       throw new Error(`Failed to get testimonials statistics: ${error.message}`);
     }
   }
 
   async getTestimonials(filters = {}, page = undefined, limit = undefined, sortBy = 'createdAt', sortOrder = 'desc') {
-    this.logger.info('[adminTestimonialsService] getTestimonials start');
-    this.logger.debug({ filters, page, limit, sortBy, sortOrder }, '[adminTestimonialsService] rawOptions');
     try {
       const result = await this.testimonialsRepository.findMany(filters, page, limit, sortBy, sortOrder);
       const response = { testimonials: result.testimonials };
@@ -55,10 +46,8 @@ class AdminTestimonialsService {
         response.pagination = result.pagination;
       }
 
-      this.logger.info('[adminTestimonialsService] getTestimonials success');
       return response;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminTestimonialsService] getTestimonials error');
       throw new Error(`Failed to get testimonials for admin: ${error.message}`);
     }
   }
@@ -99,19 +88,15 @@ class AdminTestimonialsService {
   }
 
   async getTestimonialById(id) {
-    this.logger.info({ id }, '[adminTestimonialsService] getTestimonialById start');
     try {
       const testimonial = await this.testimonialsRepository.findById(id);
-      this.logger.info({ found: !!testimonial }, '[adminTestimonialsService] getTestimonialById success');
       return testimonial;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminTestimonialsService] getTestimonialById error');
       throw new Error(`Failed to get testimonial by ID: ${error.message}`);
     }
   }
 
   async createTestimonial(data) {
-    this.logger.info('[adminTestimonialsService] createTestimonial start');
     try {
       const validation = this.validateTestimonialData(data, false);
       if (!validation.isValid) {
@@ -130,16 +115,13 @@ class AdminTestimonialsService {
       };
 
       const testimonial = await this.testimonialsRepository.create(testimonialData);
-      this.logger.info({ id: testimonial.id }, '[adminTestimonialsService] createTestimonial success');
       return testimonial;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminTestimonialsService] createTestimonial error');
       throw new Error(`Failed to create testimonial: ${error.message}`);
     }
   }
 
   async updateTestimonial(id, data) {
-    this.logger.info({ id }, '[adminTestimonialsService] updateTestimonial start');
     try {
       const validation = this.validateTestimonialData(data, true);
       if (!validation.isValid) {
@@ -157,22 +139,17 @@ class AdminTestimonialsService {
       if (data.featured !== undefined) updateData.featured = data.featured;
 
       const testimonial = await this.testimonialsRepository.update(id, updateData);
-      this.logger.info({ id, updated: !!testimonial }, '[adminTestimonialsService] updateTestimonial success');
       return testimonial;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminTestimonialsService] updateTestimonial error');
       throw new Error(`Failed to update testimonial: ${error.message}`);
     }
   }
 
   async deleteTestimonial(id) {
-    this.logger.info({ id }, '[adminTestimonialsService] deleteTestimonial start');
     try {
       const success = await this.testimonialsRepository.delete(id);
-      this.logger.info({ id, deleted: success }, '[adminTestimonialsService] deleteTestimonial success');
       return success;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminTestimonialsService] deleteTestimonial error');
       throw new Error(`Failed to delete testimonial: ${error.message}`);
     }
   }

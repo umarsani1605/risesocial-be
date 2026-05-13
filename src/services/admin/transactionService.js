@@ -1,27 +1,20 @@
 import { adminTransactionRepository } from '../../repositories/admin/transactionRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class AdminTransactionService {
   constructor() {
     this.repository = adminTransactionRepository;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async getTransactions(params) {
-    this.logger.info('[adminTransactionService] getTransactions start');
     return await this.repository.findAll(params);
   }
 
   async exportAllForExcel(params = {}) {
-    this.logger.info('[adminTransactionService] exportAllForExcel start');
     return await this.repository.findAll({ ...params, page: 1, limit: 10000 });
   }
 
   async generateExcelFile(transactions) {
-    this.logger.info('[adminTransactionService] generateExcelFile start');
     try {
       const XLSX = await import('xlsx');
       const workbook = XLSX.utils.book_new();
@@ -30,10 +23,8 @@ export class AdminTransactionService {
       sheet['!cols'] = this._calculateColumnWidths(sheetData);
       XLSX.utils.book_append_sheet(workbook, sheet, 'Transactions');
       const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-      this.logger.info('[adminTransactionService] generateExcelFile success');
       return buffer;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminTransactionService] generateExcelFile error');
       throw new Error('Failed to generate Excel file');
     }
   }
@@ -87,7 +78,6 @@ export class AdminTransactionService {
   }
 
   async getTransactionById(id) {
-    this.logger.info({ id }, '[adminTransactionService] getTransactionById start');
 
     const tx = await this.repository.findById(id);
     if (!tx) {

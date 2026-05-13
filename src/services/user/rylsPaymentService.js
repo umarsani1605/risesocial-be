@@ -6,7 +6,6 @@ import { rylsPaymentRepository } from '../../repositories/user/rylsPaymentReposi
 import { rylsRegistrationRepository } from '../../repositories/user/rylsRegistrationRepository.js';
 import { generateTransactionCode, TRANSACTION_CODE_CONFIG, PAYMENT_PROVIDER, PRODUCT_TYPE, PAYMENT_STATUS } from '../../constants/paymentHelpers.js';
 import { getPaymentAmountIdr, getItemTemplate } from '../../constants/payments.js';
-import { getLogger } from '../../utils/loggerContext.js';
 import prisma from '../../config/database.js';
 
 /**
@@ -14,9 +13,6 @@ import prisma from '../../config/database.js';
  * Orchestrates generic services and repositories
  */
 export class RylsPaymentService {
-  get logger() {
-    return getLogger();
-  }
 
   /**
    * Create RYLS payment transaction (Midtrans or PayPal)
@@ -26,8 +22,6 @@ export class RylsPaymentService {
    * @returns {Promise<Object>}
    */
   async createTransaction(data) {
-    this.logger.info('[RylsPaymentService] createTransaction start');
-    this.logger.debug({ type: data.type }, '[RylsPaymentService] payment type');
 
     try {
       const { type, data: registrationData } = data;
@@ -40,7 +34,6 @@ export class RylsPaymentService {
         throw new Error(`Invalid payment type: ${type}`);
       }
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentService] createTransaction error');
       throw new Error(`Failed to create payment: ${error.message}`);
     }
   }
@@ -50,14 +43,12 @@ export class RylsPaymentService {
    * @private
    */
   async createMidtransTransaction(registrationData) {
-    this.logger.info('[RylsPaymentService] createMidtransTransaction start');
 
     try {
       // Step 1: Get amount and item details
       const amountIdr = await getPaymentAmountIdr(registrationData.scholarshipType);
       const itemTemplate = getItemTemplate(registrationData.scholarshipType);
 
-      this.logger.debug({ amountIdr, itemTemplate }, '[RylsPaymentService] payment details');
 
       // Step 2: Prepare customer details for Midtrans
       const customerDetails = {
@@ -86,7 +77,6 @@ export class RylsPaymentService {
         const sequence = await rylsPaymentRepository.getNextSequenceNumber(tx);
         transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.RYLS_PREFIX, sequence);
 
-        this.logger.info({ transactionCode }, '[RylsPaymentService] transaction code generated');
 
         // Step 4: Create Snap transaction via MidtransService
         snapResult = await midtransService.createSnapTransaction({
@@ -104,7 +94,6 @@ export class RylsPaymentService {
           ],
         });
 
-        this.logger.info('[RylsPaymentService] Snap transaction created');
 
         // Layer 1: Create transaction
         const transaction = await tx.transaction.create({
@@ -163,7 +152,6 @@ export class RylsPaymentService {
         return { transaction, rylsPayment };
       });
 
-      this.logger.info('[RylsPaymentService] all 3 layers saved');
 
       return {
         payment_id: result.rylsPayment.id,
@@ -174,7 +162,6 @@ export class RylsPaymentService {
         redirect_url: snapResult.redirectUrl,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentService] createMidtransTransaction error');
       throw error;
     }
   }
@@ -184,7 +171,6 @@ export class RylsPaymentService {
    * @private
    */
   async createPayPalTransaction(registrationData) {
-    this.logger.info('[RylsPaymentService] createPayPalTransaction start');
 
     try {
       const amountIdr = await getPaymentAmountIdr(registrationData.scholarshipType);
@@ -197,7 +183,6 @@ export class RylsPaymentService {
         const sequence = await rylsPaymentRepository.getNextSequenceNumber(tx);
         transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.RYLS_PREFIX, sequence);
 
-        this.logger.info({ transactionCode }, '[RylsPaymentService] transaction code generated');
 
         // Layer 1: Create transaction
         const transaction = await tx.transaction.create({
@@ -244,7 +229,6 @@ export class RylsPaymentService {
         return { transaction, rylsPayment };
       });
 
-      this.logger.info('[RylsPaymentService] PayPal payment created');
 
       return {
         payment_id: result.rylsPayment.id,
@@ -255,7 +239,6 @@ export class RylsPaymentService {
         redirect_url: null,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentService] createPayPalTransaction error');
       throw error;
     }
   }
@@ -266,7 +249,6 @@ export class RylsPaymentService {
    * @returns {Promise<Object>}
    */
   async getPaymentStatus(registrationId) {
-    this.logger.info({ registrationId }, '[RylsPaymentService] getPaymentStatus');
 
     try {
       const payments = await rylsPaymentRepository.findByRegistrationId(registrationId);
@@ -293,7 +275,6 @@ export class RylsPaymentService {
         createdAt: latestPayment.transaction.created_at,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentService] getPaymentStatus error');
       throw error;
     }
   }

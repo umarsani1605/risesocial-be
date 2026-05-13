@@ -1,14 +1,9 @@
 import prisma from '../../config/database.js';
 import { ORDER_ID_CONFIG } from '../../constants/payments.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class RylsPaymentRepository {
-  get logger() {
-    return getLogger();
-  }
 
   async createMidtransPayment(paymentData) {
-    this.logger.info('[rylsPaymentRepository] createMidtransPayment called');
 
     try {
       const payment = await prisma.midtransPayment.create({
@@ -29,16 +24,13 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ order_id: payment.order_id }, '[rylsPaymentRepository] midtrans payment created');
       return payment;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] createMidtransPayment error');
       throw error;
     }
   }
 
   async createRylsPayment(paymentData) {
-    this.logger.info('[rylsPaymentRepository] createRylsPayment called');
 
     try {
       const payment = await prisma.rylsPayment.create({
@@ -52,16 +44,13 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ paymentId: payment.id, type: payment.type }, '[rylsPaymentRepository] ryls payment created');
       return payment;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] createRylsPayment error');
       throw error;
     }
   }
 
   async findMidtransPaymentByOrderId(orderId) {
-    this.logger.info({ orderId }, '[rylsPaymentRepository] findMidtransPaymentByOrderId called');
 
     try {
       const payment = await prisma.midtransPayment.findUnique({
@@ -75,16 +64,13 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ found: !!payment }, '[rylsPaymentRepository] midtrans payment found');
       return payment;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] findMidtransPaymentByOrderId error');
       throw error;
     }
   }
 
   async findById(paymentId) {
-    this.logger.info({ paymentId }, '[rylsPaymentRepository] findById called');
 
     try {
       const payment = await prisma.rylsPayment.findUnique({
@@ -96,16 +82,13 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ found: !!payment }, '[rylsPaymentRepository] payment found');
       return payment;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] findById error');
       throw error;
     }
   }
 
   async findRegistrationPayments(registrationId, options = {}) {
-    this.logger.info({ registrationId, options }, '[rylsPaymentRepository] findRegistrationPayments called');
 
     try {
       const whereClause = {
@@ -132,16 +115,13 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ count: payments.length }, '[rylsPaymentRepository] payments found');
       return payments;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] findRegistrationPayments error');
       throw error;
     }
   }
 
   async linkPaymentToRegistration(paymentId, registrationId) {
-    this.logger.info({ paymentId, registrationId }, '[rylsPaymentRepository] linkPaymentToRegistration called');
 
     try {
       const payment = await prisma.rylsPayment.update({
@@ -150,16 +130,13 @@ export class RylsPaymentRepository {
         include: { midtrans_payment: true, payment_proof: true },
       });
 
-      this.logger.info('[rylsPaymentRepository] payment linked to registration');
       return payment;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] linkPaymentToRegistration error');
       throw error;
     }
   }
 
   async findActivePendingPayment(registrationId) {
-    this.logger.info({ registrationId }, '[rylsPaymentRepository] findActivePendingPayment called');
 
     try {
       const payment = await prisma.rylsPayment.findFirst({
@@ -168,16 +145,13 @@ export class RylsPaymentRepository {
         include: { registration: { select: { id: true, full_name: true, email: true, scholarship_type: true, payment_status: true } } },
       });
 
-      this.logger.info({ found: !!payment, order_id: payment?.order_id }, '[rylsPaymentRepository] active payment check');
       return payment;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] findActivePendingPayment error');
       throw error;
     }
   }
 
   async updateByOrderId(orderId, updateData) {
-    this.logger.debug({ updateData }, '[rylsPaymentRepository] update payload');
 
     try {
       const payment = await prisma.rylsPayment.update({
@@ -188,16 +162,13 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ paymentId: payment.id, status: payment.transaction_status }, '[rylsPaymentRepository] payment updated');
       return payment;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] updateByOrderId error');
       throw error;
     }
   }
 
   async getStatistics(filters = {}) {
-    this.logger.info({ filters }, '[rylsPaymentRepository] getStatistics called');
 
     try {
       const whereClause = {
@@ -226,16 +197,13 @@ export class RylsPaymentRepository {
         successRate: totalPayments > 0 ? (successfulPayments / totalPayments) * 100 : 0,
       };
 
-      this.logger.info('[rylsPaymentRepository] getStatistics success');
       return statistics;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] getStatistics error');
       throw error;
     }
   }
 
   async getNextSequenceNumber() {
-    this.logger.info('[rylsPaymentRepository] getNextSequenceNumber called');
 
     try {
       const lastPayment = await prisma.rylsPayment.findFirst({ orderBy: { id: 'desc' }, select: { id: true } });
@@ -245,19 +213,15 @@ export class RylsPaymentRepository {
         return lastPayment.id + 1;
       }
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] getNextSequenceNumber error');
       throw error;
     }
   }
 
   async delete(paymentId) {
-    this.logger.info({ paymentId }, '[rylsPaymentRepository] delete called');
 
     try {
       await prisma.rylsPayment.delete({ where: { id: paymentId } });
-      this.logger.info('[rylsPaymentRepository] payment deleted');
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsPaymentRepository] delete error');
       throw error;
     }
   }

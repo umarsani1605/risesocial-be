@@ -1,10 +1,6 @@
 import prisma from '../../config/database.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class AdminPermissionRepository {
-  get logger() {
-    return getLogger();
-  }
 
   async listRegistry() {
     return prisma.adminPermission.findMany({ orderBy: { key: 'asc' } });

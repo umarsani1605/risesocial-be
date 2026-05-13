@@ -14,7 +14,6 @@ export class FileUploadController {
 
       return reply.status(201).send(successResponse(uploadResult, 'Essay file uploaded successfully'));
     } catch (error) {
-      request.log.error({ err: error }, 'Error uploading essay');
       return reply.status(500).send(errorResponse('Failed to upload essay file', 500, error.message));
     }
   }
@@ -28,7 +27,6 @@ export class FileUploadController {
 
       return reply.status(201).send(successResponse(uploadResult, 'Headshot file uploaded successfully'));
     } catch (error) {
-      request.log.error({ err: error }, 'Error uploading headshot');
       return reply.status(500).send(errorResponse('Failed to upload headshot file', 500, error.message));
     }
   }
@@ -41,11 +39,9 @@ export class FileUploadController {
 
       const uploadResult = await fileUploadService.upload(request.uploadedFile, {});
 
-      request.log.info({ uploadResult }, 'Payment proof uploaded successfully');
 
       return reply.status(201).send(successResponse(uploadResult, 'Payment proof file uploaded successfully'));
     } catch (error) {
-      request.log.error({ err: error }, 'Error uploading payment proof');
       return reply.status(500).send(errorResponse('Failed to upload payment proof file', 500, error.message));
     }
   }
@@ -54,7 +50,6 @@ export class FileUploadController {
     try {
       const { id } = request.params;
 
-      request.log.info({ id }, 'Downloading file');
 
       const fileInfo = await fileUploadService.getFileDownloadInfo(Number(id));
       const fileExists = await fs.pathExists(fileInfo.filePath);
@@ -69,7 +64,6 @@ export class FileUploadController {
       const fileStream = fs.createReadStream(fileInfo.filePath);
       return reply.send(fileStream);
     } catch (error) {
-      request.log.error({ err: error }, 'Error downloading file');
 
       if (error.message === 'File not found') {
         return reply.status(404).send(errorResponse('File not found', 404));
@@ -91,7 +85,6 @@ export class FileUploadController {
 
       return reply.status(200).send(successResponse(fileInfo, 'File information retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, 'Error getting file info');
       return reply.status(500).send(errorResponse('Failed to get file information', 500, error.message));
     }
   }
@@ -108,7 +101,6 @@ export class FileUploadController {
         }),
       );
     } catch (error) {
-      request.log.error({ err: error }, 'Error deleting file');
 
       if (error.message === 'File not found') {
         return reply.status(404).send(errorResponse('File not found', 404));
@@ -143,7 +135,6 @@ export class FileUploadController {
         }),
       );
     } catch (error) {
-      request.log.error({ err: error }, 'Error getting files by type');
       return reply.status(500).send(errorResponse('Failed to retrieve files', 500, error.message));
     }
   }
@@ -158,7 +149,6 @@ export class FileUploadController {
         }),
       );
     } catch (error) {
-      request.log.error({ err: error }, 'Error getting upload stats');
       return reply.status(500).send(errorResponse('Failed to retrieve upload statistics', 500, error.message));
     }
   }
@@ -187,7 +177,6 @@ export class FileUploadController {
 
       return reply.status(200).send(successResponse(health, 'Upload service is healthy'));
     } catch (error) {
-      request.log.error({ err: error }, 'Error in health check');
       return reply.status(500).send(errorResponse('Upload service health check failed', 500, error.message));
     }
   }
@@ -202,7 +191,6 @@ export class FileUploadController {
         }),
       );
     } catch (error) {
-      request.log.error({ err: error }, 'Error cleaning up orphaned files');
       return reply.status(500).send(errorResponse('Failed to cleanup orphaned files', 500, error.message));
     }
   }

@@ -1,9 +1,9 @@
 import { fileUploadRepository } from '../../repositories/shared/fileUploadRepository.js';
 import { UPLOAD_CONFIG } from '../../config/uploadConfig.js';
+import { captureEvent } from '../../config/posthog.js';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getLogger } from '../../utils/loggerContext.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,12 +14,8 @@ export class FileUploadService {
     this.fileUploadRepository = fileUploadRepository;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async processFileUpload(fileData, uploadType) {
-    this.logger.info('[fileUploadService] processFileUpload start');
     try {
       const validTypes = ['ESSAY', 'HEADSHOT', 'PAYMENT_PROOF', 'ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR', 'USER_AVATAR'];
       if (!validTypes.includes(uploadType)) {
@@ -47,31 +43,31 @@ export class FileUploadService {
         fileUrl: this.generateFileUrl(savedFile.id),
       };
 
-      this.logger.info('[fileUploadService] processFileUpload success');
       return result;
     } catch (error) {
       if (fileData && fileData.path) {
         await fs.remove(fileData.path).catch(() => {});
       }
-      this.logger.error({ err: error }, '[fileUploadService] processFileUpload error');
+      captureEvent('system', 'upload.failed', {
+        endpoint: 'processFileUpload',
+        upload_type: uploadType,
+        reason: error.message,
+        file_size: fileData?.size,
+      });
       throw error;
     }
   }
 
   async getFileById(fileId) {
-    this.logger.info({ fileId }, '[fileUploadService] getFileById start');
     try {
       const file = await this.fileUploadRepository.findById(fileId);
-      this.logger.info('[fileUploadService] getFileById success');
       return file;
     } catch (error) {
-      this.logger.error({ err: error }, '[fileUploadService] getFileById error');
       throw new Error('Failed to retrieve file');
     }
   }
 
   async getFileDownloadInfo(fileId) {
-    this.logger.info({ fileId }, '[fileUploadService] getFileDownloadInfo start');
     try {
       const file = await this.fileUploadRepository.findById(fileId);
       if (!file) {
@@ -91,16 +87,13 @@ export class FileUploadService {
         fileSize: file.file_size,
         uploadType: file.upload_type,
       };
-      this.logger.info('[fileUploadService] getFileDownloadInfo success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[fileUploadService] getFileDownloadInfo error');
       throw error;
     }
   }
 
   async deleteFile(fileId) {
-    this.logger.info({ fileId }, '[fileUploadService] deleteFile start');
     try {
       const file = await this.fileUploadRepository.findById(fileId);
       if (!file) {
@@ -110,38 +103,30 @@ export class FileUploadService {
       const fileDeleted = await fs.remove(file.file_path).then(() => true).catch(() => false);
       await this.fileUploadRepository.deleteFileUpload(fileId);
 
-      this.logger.info('[fileUploadService] deleteFile success');
       return { success: true, physicalFileDeleted: fileDeleted, message: 'File deleted successfully' };
     } catch (error) {
-      this.logger.error({ err: error }, '[fileUploadService] deleteFile error');
       throw error;
     }
   }
 
   async getFilesByType(uploadType, options = {}) {
-    this.logger.info({ uploadType, options }, '[fileUploadService] getFilesByType start');
     try {
       const files = await this.fileUploadRepository.findByUploadType(uploadType, options);
       const result = {
         files: files,
         pagination: { page: options.page || 1, limit: options.limit || 10, total: files.length },
       };
-      this.logger.info('[fileUploadService] getFilesByType success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[fileUploadService] getFilesByType error');
       throw new Error('Failed to retrieve files');
     }
   }
 
   async getUploadStatistics() {
-    this.logger.info('[fileUploadService] getUploadStatistics start');
     try {
       const stats = await this.fileUploadRepository.getFileUploadStats();
-      this.logger.info('[fileUploadService] getUploadStatistics success');
       return stats;
     } catch (error) {
-      this.logger.error({ err: error }, '[fileUploadService] getUploadStatistics error');
       throw new Error('Failed to retrieve upload statistics');
     }
   }
@@ -158,7 +143,6 @@ export class FileUploadService {
   }
 
   async uploadImage(file, type) {
-    this.logger.info('[fileUploadService] uploadImage start');
     try {
       const allowedTypes = ['ACADEMY_IMAGE', 'INSTRUCTOR_AVATAR', 'TESTIMONIAL_AVATAR', 'USER_AVATAR'];
       if (!allowedTypes.includes(type)) {
@@ -207,16 +191,13 @@ export class FileUploadService {
         mimetype: file.mimetype,
       };
 
-      this.logger.info({ avatarUrl: publicUrl }, '[fileUploadService] uploadImage success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[fileUploadService] uploadImage error');
       throw error;
     }
   }
 
   async cleanupOrphanedFiles() {
-    this.logger.info('[fileUploadService] cleanupOrphanedFiles start');
     try {
       const uploadBaseDir = path.join(process.cwd(), 'uploads');
       const subDirs = ['documents', 'images'];
@@ -251,10 +232,8 @@ export class FileUploadService {
         cleanedFiles: cleanedCount,
         message: `Cleaned up ${cleanedCount} orphaned files`,
       };
-      this.logger.info('[fileUploadService] cleanupOrphanedFiles success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[fileUploadService] cleanupOrphanedFiles error');
       throw new Error('Failed to cleanup orphaned files');
     }
   }
@@ -269,7 +248,6 @@ export class FileUploadService {
    * @returns {Promise<Object>} file record with relativePath and publicUrl
    */
   async upload(uploadedFile, entityRefs = {}) {
-    this.logger.info({ uploadType: uploadedFile?.uploadType }, '[fileUploadService] upload start');
     try {
       const config = UPLOAD_CONFIG[uploadedFile.uploadType];
       if (!config) {
@@ -311,14 +289,18 @@ export class FileUploadService {
       } catch (dbErr) {
         // Atomicity: remove physical file if DB insert fails
         await fs.remove(absolutePath).catch(() => {});
-        this.logger.error({ err: dbErr }, '[fileUploadService] upload DB error, physical file removed');
+        captureEvent('system', 'upload.failed', {
+          endpoint: 'upload',
+          upload_type: uploadedFile.uploadType,
+          reason: dbErr.message,
+          file_size: uploadedFile.size,
+        });
         throw dbErr;
       }
 
       const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
       const publicUrl = `${baseUrl}/uploads/${relativePath}`;
 
-      this.logger.info({ fileId: record.id }, '[fileUploadService] upload success');
       return {
         id: record.id,
         originalName: record.original_name,
@@ -330,7 +312,6 @@ export class FileUploadService {
         publicUrl,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[fileUploadService] upload error');
       throw error;
     }
   }

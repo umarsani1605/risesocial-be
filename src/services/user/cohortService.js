@@ -1,5 +1,4 @@
 import { userCohortRepository } from '../../repositories/user/cohortRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 import { toFileUrl } from '../../utils/response.js';
 import prisma from '../../config/database.js';
 import path from 'path';
@@ -14,24 +13,17 @@ export class UserCohortService {
     this.repository = userCohortRepository;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async getCohorts(params) {
-    this.logger.info('[userCohortService] getCohorts start');
     try {
       const result = await this.repository.findPublicWithPagination(params);
-      this.logger.info('[userCohortService] getCohorts success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] getCohorts error');
       throw error;
     }
   }
 
   async getCohortById(id) {
-    this.logger.info('[userCohortService] getCohortById start');
     try {
       const cohort = await this.repository.findByIdPublic(id);
       if (!cohort) {
@@ -39,28 +31,22 @@ export class UserCohortService {
         err.statusCode = 404;
         throw err;
       }
-      this.logger.info('[userCohortService] getCohortById success');
       return cohort;
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] getCohortById error');
       throw error;
     }
   }
 
   async getCohortStudents(cohortId) {
-    this.logger.info('[userCohortService] getCohortStudents start');
     try {
       const students = await this.repository.findStudentsByCohort(cohortId);
-      this.logger.info('[userCohortService] getCohortStudents success');
       return students;
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] getCohortStudents error');
       throw error;
     }
   }
 
   async getMyEnrollments(userId, params) {
-    this.logger.info('[userCohortService] getMyEnrollments start');
     try {
       const result = await this.repository.findUserEnrollments(userId, params);
 
@@ -117,16 +103,13 @@ export class UserCohortService {
         }),
       );
 
-      this.logger.info('[userCohortService] getMyEnrollments success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] getMyEnrollments error');
       throw error;
     }
   }
 
   async getCohortModules(cohortId, userId) {
-    this.logger.info('[userCohortService] getCohortModules start');
     try {
       const placement = await this.repository.findPlacementByUserCohort(userId, cohortId);
       if (!placement) {
@@ -137,16 +120,13 @@ export class UserCohortService {
 
       const modules = await this.repository.findPublishedModules(cohortId);
 
-      this.logger.info('[userCohortService] getCohortModules success');
       return modules;
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] getCohortModules error');
       throw error;
     }
   }
 
   async getCohortModuleById(cohortId, moduleId, userId) {
-    this.logger.info('[userCohortService] getCohortModuleById start');
     try {
       const placement = await this.repository.findPlacementByUserCohort(userId, cohortId);
       if (!placement) {
@@ -162,16 +142,13 @@ export class UserCohortService {
         throw err;
       }
 
-      this.logger.info('[userCohortService] getCohortModuleById success');
       return module;
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] getCohortModuleById error');
       throw error;
     }
   }
 
   async getUpcomingSessions(userId, limit = 7) {
-    this.logger.info('[userCohortService] getUpcomingSessions start');
     try {
       const now = new Date();
       const modules = await this.repository.findUpcomingModulesForUser(userId, limit * 2);
@@ -212,29 +189,23 @@ export class UserCohortService {
       expanded.sort((a, b) => new Date(a.sort_key) - new Date(b.sort_key));
       const results = expanded.slice(0, limit).map(({ sort_key, ...item }) => item);
 
-      this.logger.info('[userCohortService] getUpcomingSessions success');
       return results;
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] getUpcomingSessions error');
       throw error;
     }
   }
 
   async getCertificateInfo(cohortId, userId) {
-    this.logger.info('[userCohortService] getCertificateInfo start');
     try {
       const cert = await this.repository.findCertificateByCohortAndUser(cohortId, userId);
       if (!cert?.file_path) return null;
-      this.logger.info('[userCohortService] getCertificateInfo success');
       return { certificate_url: toFileUrl(cert.file_path) };
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] getCertificateInfo error');
       throw error;
     }
   }
 
   async downloadCertificate(cohortId, userId) {
-    this.logger.info('[userCohortService] downloadCertificate start');
     try {
       const cert = await this.repository.findCertificateByCohortAndUser(cohortId, userId);
       if (!cert) {
@@ -256,16 +227,13 @@ export class UserCohortService {
         throw err;
       }
 
-      this.logger.info('[userCohortService] downloadCertificate success');
       return { absolutePath, cert };
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] downloadCertificate error');
       throw error;
     }
   }
 
   async verifyCertificate(code) {
-    this.logger.info('[userCohortService] verifyCertificate start');
     try {
       const cert = await this.repository.findCertificateByCode(code);
       if (!cert) {
@@ -274,7 +242,6 @@ export class UserCohortService {
         throw err;
       }
 
-      this.logger.info('[userCohortService] verifyCertificate success');
       return {
         certificate_code: cert.certificate_code,
         student_name: cert.student_name,
@@ -285,7 +252,6 @@ export class UserCohortService {
         file_url: toFileUrl(cert.file_path),
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[userCohortService] verifyCertificate error');
       throw error;
     }
   }

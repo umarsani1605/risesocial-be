@@ -1,13 +1,8 @@
 import prisma from '../../config/database.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class AdminTransactionRepository {
-  get logger() {
-    return getLogger();
-  }
 
   async findAll({ page = 1, limit = 10, search, status, product_type } = {}) {
-    this.logger.info({ page, limit, search, status, product_type }, '[adminTransactionRepository] findAll called');
 
     const skip = (page - 1) * limit;
     const where = {};
@@ -70,7 +65,6 @@ export class AdminTransactionRepository {
   }
 
   async findById(id) {
-    this.logger.info({ id }, '[adminTransactionRepository] findById called');
 
     return await prisma.transaction.findUnique({
       where: { id: Number(id) },

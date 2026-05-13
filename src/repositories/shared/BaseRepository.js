@@ -1,13 +1,9 @@
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class BaseRepository {
   constructor(model) {
     this.model = model;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async findMany(options = {}) {
     return await this.model.findMany(options);
@@ -45,12 +41,10 @@ export class BaseRepository {
   }
 
   async count(where = {}) {
-    this.logger.debug({ where }, '[BaseRepository] count called');
     try {
       const result = await this.model.count({ where });
       return result;
     } catch (error) {
-      this.logger.error({ err: error, where }, '[BaseRepository] count error');
       throw error;
     }
   }

@@ -3,11 +3,9 @@ import { errorResponse } from '../utils/response.js';
 export function validateSchema(schema) {
   return async (request, reply) => {
     try {
-      request.log.debug({ url: request.url, method: request.method }, '[validation] validateSchema noop');
 
       return;
     } catch (error) {
-      request.log.error({ err: error }, '[validation] validateSchema error');
       return reply.status(400).send(errorResponse('Validation failed', 400, error.validation));
     }
   };
@@ -58,11 +56,9 @@ export function rateLimit(maxRequests = 100, windowMs = 15 * 60 * 1000) {
     }
 
     if (requestData.count >= maxRequests) {
-      request.log.warn({ ip: key }, '[rateLimit] too_many_requests');
       return reply.status(429).send(errorResponse('Too many requests, please try again later', 429));
     }
 
     requestData.count++;
-    request.log.debug({ ip: key, count: requestData.count }, '[rateLimit] increment');
   };
 }

@@ -1,15 +1,11 @@
 import crypto from 'crypto';
 import { snap, getServerKey } from '../../integrations/midtransClient.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 /**
  * MidtransService - Generic Midtrans payment gateway operations
  * Provider-agnostic, no business logic
  */
 export class MidtransService {
-  get logger() {
-    return getLogger();
-  }
 
   /**
    * Create a Snap transaction with Midtrans
@@ -21,8 +17,6 @@ export class MidtransService {
    * @returns {Promise<{token: string, redirectUrl: string}>}
    */
   async createSnapTransaction(params) {
-    this.logger.info('[MidtransService] createSnapTransaction start');
-    this.logger.debug({ params }, '[MidtransService] transaction params');
 
     try {
       // Validate parameters
@@ -38,19 +32,15 @@ export class MidtransService {
         credit_card: { secure: true },
       };
 
-      this.logger.debug({ transactionParams }, '[MidtransService] calling Midtrans API');
 
       const response = await snap.createTransaction(transactionParams);
 
-      this.logger.info('[MidtransService] Snap transaction created successfully');
-      this.logger.debug({ token: response.token }, '[MidtransService] response');
 
       return {
         token: response.token,
         redirectUrl: response.redirect_url,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[MidtransService] createSnapTransaction error');
       throw new Error(`Midtrans API error: ${error.message}`);
     }
   }
@@ -61,13 +51,11 @@ export class MidtransService {
    * @returns {boolean} - True if signature is valid
    */
   verifyWebhookSignature(notificationData) {
-    this.logger.info('[MidtransService] verifyWebhookSignature start');
 
     try {
       const { order_id, status_code, gross_amount, signature_key } = notificationData;
 
       if (!order_id || !status_code || !gross_amount || !signature_key) {
-        this.logger.warn('[MidtransService] missing required fields for signature verification');
         return false;
       }
 
@@ -77,21 +65,12 @@ export class MidtransService {
 
       const isValid = calculatedSignature === signature_key;
 
-      this.logger.info({ isValid }, '[MidtransService] signature verification result');
 
       if (!isValid) {
-        this.logger.warn(
-          {
-            expected: calculatedSignature.substring(0, 20) + '...',
-            received: signature_key.substring(0, 20) + '...',
-          },
-          '[MidtransService] signature mismatch',
-        );
       }
 
       return isValid;
     } catch (error) {
-      this.logger.error({ err: error }, '[MidtransService] verifyWebhookSignature error');
       return false;
     }
   }
@@ -102,17 +81,13 @@ export class MidtransService {
    * @returns {Promise<Object>} - Transaction details
    */
   async getTransactionStatus(orderId) {
-    this.logger.info({ orderId }, '[MidtransService] getTransactionStatus start');
 
     try {
       const response = await snap.transaction.status(orderId);
 
-      this.logger.info('[MidtransService] transaction status retrieved');
-      this.logger.debug({ status: response.transaction_status }, '[MidtransService] status');
 
       return response;
     } catch (error) {
-      this.logger.error({ err: error }, '[MidtransService] getTransactionStatus error');
       throw new Error(`Failed to get transaction status: ${error.message}`);
     }
   }
@@ -123,15 +98,12 @@ export class MidtransService {
    * @returns {Promise<Object>} - Cancellation result
    */
   async cancelTransaction(orderId) {
-    this.logger.info({ orderId }, '[MidtransService] cancelTransaction start');
 
     try {
       const response = await snap.transaction.cancel(orderId);
 
-      this.logger.info('[MidtransService] transaction cancelled');
       return response;
     } catch (error) {
-      this.logger.error({ err: error }, '[MidtransService] cancelTransaction error');
       throw new Error(`Failed to cancel transaction: ${error.message}`);
     }
   }
@@ -159,7 +131,6 @@ export class MidtransService {
       throw new Error('Invalid item_details: must be non-empty array');
     }
 
-    this.logger.debug('[MidtransService] parameters validated');
   }
 }
 

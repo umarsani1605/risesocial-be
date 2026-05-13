@@ -1,5 +1,4 @@
 import { academyRepository } from '../../repositories/shared/academyRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 import prisma from '../../config/database.js';
 
 export class AcademyService {
@@ -7,24 +6,17 @@ export class AcademyService {
     this.academyRepository = academyRepository;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async getAllAcademies(options = {}) {
-    this.logger.info('[academyService] getAllAcademies start');
     try {
       const result = await this.academyRepository.findAll(options);
-      this.logger.info('[academyService] getAllAcademies success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAllAcademies error');
       throw error;
     }
   }
 
   async getAcademyBySlug(slug) {
-    this.logger.info('[academyService] getAcademyBySlug start');
     try {
       const academy = await this.academyRepository.findBySlug(slug);
       if (!academy) {
@@ -34,26 +26,21 @@ export class AcademyService {
       }
       return academy;
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAcademyBySlug error');
       throw error;
     }
   }
 
   async getCategories() {
-    this.logger.info('[academyService] getCategories start');
     try {
       const categories = await this.academyRepository.getCategories();
-      this.logger.info('[academyService] getCategories success');
       return categories;
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getCategories error');
       throw error;
     }
   }
 
   // Get all methods for sub-tables (read-only)
   async getAllPricing(academyId = null) {
-    this.logger.info({ academyId }, '[academyService] getAllPricing start');
     try {
       if (academyId) {
         return await this.academyRepository.findPricingsByAcademyId(parseInt(academyId));
@@ -64,13 +51,11 @@ export class AcademyService {
       });
       return academies.flatMap((a) => a.pricing);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAllPricing error');
       throw error;
     }
   }
 
   async getAllFeatures(academyId = null) {
-    this.logger.info({ academyId }, '[academyService] getAllFeatures start');
     try {
       if (academyId) {
         return await this.academyRepository.findFeaturesByAcademyId(parseInt(academyId));
@@ -81,13 +66,11 @@ export class AcademyService {
       });
       return academies.flatMap((a) => a.features);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAllFeatures error');
       throw error;
     }
   }
 
   async getAllInstructors(academyId = null) {
-    this.logger.info({ academyId }, '[academyService] getAllInstructors start');
     try {
       if (academyId) {
         return await this.academyRepository.findInstructorsByAcademyId(parseInt(academyId));
@@ -98,13 +81,11 @@ export class AcademyService {
       });
       return academies.flatMap((a) => a.instructors);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAllInstructors error');
       throw error;
     }
   }
 
   async getAllThemes(academyId = null, includeTopics = false) {
-    this.logger.info({ academyId, includeTopics }, '[academyService] getAllThemes start');
     try {
       const includeOption = includeTopics
         ? {
@@ -134,13 +115,11 @@ export class AcademyService {
       });
       return academies.flatMap((a) => a.themes);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAllThemes error');
       throw error;
     }
   }
 
   async getAllTopics(academyId = null, themeId = null) {
-    this.logger.info({ academyId, themeId }, '[academyService] getAllTopics start');
     try {
       if (themeId) {
         return await prisma.academyTopic.findMany({
@@ -160,13 +139,11 @@ export class AcademyService {
         orderBy: [{ academy_id: 'asc' }, { order: 'asc' }],
       });
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAllTopics error');
       throw error;
     }
   }
 
   async getAllTestimonials(academyId = null) {
-    this.logger.info({ academyId }, '[academyService] getAllTestimonials start');
     try {
       if (academyId) {
         return await this.academyRepository.findTestimonialsByAcademyId(parseInt(academyId));
@@ -177,13 +154,11 @@ export class AcademyService {
       });
       return academies.flatMap((a) => a.testimonials);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAllTestimonials error');
       throw error;
     }
   }
 
   async getAllFaqs(academyId = null) {
-    this.logger.info({ academyId }, '[academyService] getAllFaqs start');
     try {
       if (academyId) {
         return await this.academyRepository.findFaqsByAcademyId(parseInt(academyId));
@@ -194,7 +169,6 @@ export class AcademyService {
       });
       return academies.flatMap((a) => a.faqs);
     } catch (error) {
-      this.logger.error({ err: error }, '[academyService] getAllFaqs error');
       throw error;
     }
   }

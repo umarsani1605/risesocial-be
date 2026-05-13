@@ -1,7 +1,7 @@
 import { cohortPlacementRepository } from '../../repositories/cohorts/cohortPlacementRepository.js';
 import { academyEnrollmentRepository } from '../../repositories/cohorts/academyEnrollmentRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 import prisma from '../../config/database.js';
+import { captureEvent } from '../../config/posthog.js';
 
 function makeError(message, statusCode) {
   const err = new Error(message);
@@ -12,12 +12,8 @@ function makeError(message, statusCode) {
 const VALID_COHORT_STATUSES = ['not_started', 'ongoing'];
 
 export class AdminPlacementService {
-  get logger() {
-    return getLogger();
-  }
 
   async listAcademyEnrollments({ page = 1, limit = 20, placed, academy_id, user_id } = {}) {
-    this.logger.info('[AdminPlacementService] listAcademyEnrollments start');
 
     const where = {};
     if (academy_id) where.academy_id = Number(academy_id);
@@ -52,7 +48,6 @@ export class AdminPlacementService {
   }
 
   async getEnrollmentDetail(enrollmentId) {
-    this.logger.info({ enrollmentId }, '[AdminPlacementService] getEnrollmentDetail start');
 
     const enrollment = await academyEnrollmentRepository.findById(enrollmentId);
     if (!enrollment) throw makeError('Enrollment not found', 404);
@@ -60,7 +55,6 @@ export class AdminPlacementService {
   }
 
   async assignToCohort(enrollmentId, cohortId, { notes, adminId } = {}) {
-    this.logger.info({ enrollmentId, cohortId, adminId }, '[AdminPlacementService] assignToCohort start');
 
     const enrollment = await academyEnrollmentRepository.findById(enrollmentId);
     if (!enrollment) throw makeError('Enrollment not found', 404);
@@ -99,33 +93,42 @@ export class AdminPlacementService {
       });
     }
 
-    this.logger.info({ placementId: placement.id, adminId }, '[AdminPlacementService] assignToCohort success');
+    captureEvent(adminId, 'cohort.placement_assigned', {
+      placement_id: placement.id,
+      cohort_id: cohortId,
+      enrollment_id: enrollmentId,
+      admin_user_id: adminId,
+    });
+
     return placement;
   }
 
   async cancelEnrollment(enrollmentId, { reason, adminId } = {}) {
-    this.logger.info({ enrollmentId, adminId }, '[AdminPlacementService] cancelEnrollment start');
 
     const enrollment = await academyEnrollmentRepository.findById(enrollmentId);
     if (!enrollment) throw makeError('Enrollment not found', 404);
 
     if (enrollment.placement) {
       await cohortPlacementRepository.deletePlacement(enrollment.placement.id);
-      this.logger.info({ placementId: enrollment.placement.id }, '[AdminPlacementService] placement deleted before cancel');
     }
 
     await prisma.academyEnrollment.delete({ where: { id: enrollmentId } });
 
-    this.logger.info({ enrollmentId, adminId, reason }, '[AdminPlacementService] cancelEnrollment success');
     return { message: 'Enrollment cancelled' };
   }
 
   async transferPlacement(placementId, cohortId, { notes, adminId } = {}) {
-    this.logger.info({ placementId, cohortId, adminId }, '[AdminPlacementService] transferPlacement start');
-
     try {
+      const previous = await cohortPlacementRepository.findById(placementId);
       const transferred = await cohortPlacementRepository.transferPlacement(placementId, cohortId);
-      this.logger.info({ placementId: transferred.id, adminId }, '[AdminPlacementService] transferPlacement success');
+
+      captureEvent(adminId, 'cohort.placement_transferred', {
+        placement_id: placementId,
+        from_cohort_id: previous?.cohort_id,
+        to_cohort_id: cohortId,
+        admin_user_id: adminId,
+      });
+
       return transferred;
     } catch (error) {
       if (error.code === 'P2025') throw makeError('Placement not found', 404);
@@ -134,11 +137,16 @@ export class AdminPlacementService {
   }
 
   async dropPlacement(placementId, { reason, adminId } = {}) {
-    this.logger.info({ placementId, reason, adminId }, '[AdminPlacementService] dropPlacement start');
-
     try {
+      const existing = await cohortPlacementRepository.findById(placementId);
       const deleted = await cohortPlacementRepository.deletePlacement(placementId);
-      this.logger.info({ placementId, reason, adminId }, '[AdminPlacementService] dropPlacement success');
+
+      captureEvent(adminId, 'cohort.placement_dropped', {
+        placement_id: placementId,
+        cohort_id: existing?.cohort_id,
+        admin_user_id: adminId,
+      });
+
       return deleted;
     } catch (error) {
       if (error.code === 'P2025') throw makeError('Placement not found', 404);

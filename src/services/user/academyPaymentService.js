@@ -2,16 +2,12 @@ import { midtransService } from '../shared/MidtransService.js';
 import { academyPaymentRepository } from '../../repositories/user/academyPaymentRepository.js';
 import { academyEnrollmentRepository } from '../../repositories/cohorts/academyEnrollmentRepository.js';
 import { generateTransactionCode, TRANSACTION_CODE_CONFIG, mapMidtransStatus, mapPaymentMethod } from '../../constants/paymentHelpers.js';
-import { getLogger } from '../../utils/loggerContext.js';
 import prisma from '../../config/database.js';
+import { captureEvent } from '../../config/posthog.js';
 
 export class AcademyPaymentService {
-  get logger() {
-    return getLogger();
-  }
 
   async createTransaction(userId, academyId, pricingId) {
-    this.logger.info({ userId, academyId, pricingId }, '[AcademyPaymentService] createTransaction start');
 
     try {
       // Step 1: Validate academy exists and is active
@@ -41,7 +37,6 @@ export class AcademyPaymentService {
           !existingEnrollment.transaction?.expired_at || existingEnrollment.transaction.expired_at < new Date();
 
         if (!tokenExpired) {
-          this.logger.info('[AcademyPaymentService] returning existing snap token for pending enrollment');
           return {
             enrollment_id: existingEnrollment.id,
             transaction_code: existingEnrollment.transaction.transaction_code,
@@ -53,7 +48,6 @@ export class AcademyPaymentService {
         }
 
         // Token expired → cancel old transaction on Midtrans (fire and forget)
-        this.logger.info('[AcademyPaymentService] pending enrollment token expired, resetting');
         await midtransService.cancelTransaction(existingEnrollment.transaction.transaction_code).catch(() => {});
         await prisma.transaction.update({
           where: { id: existingEnrollment.transaction.id },
@@ -92,7 +86,6 @@ export class AcademyPaymentService {
         await prisma.$transaction(async (tx) => {
           const sequence = await academyPaymentRepository.getNextSequenceNumber(tx);
           transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.ACADEMY_PREFIX, sequence);
-          this.logger.info({ transactionCode }, '[AcademyPaymentService] transaction code generated');
 
           snapResult = await midtransService.createSnapTransaction({
             orderId: transactionCode,
@@ -109,7 +102,6 @@ export class AcademyPaymentService {
             ],
           });
 
-          this.logger.info('[AcademyPaymentService] Snap transaction created');
 
           const newTransaction = await tx.transaction.create({
             data: {
@@ -157,13 +149,11 @@ export class AcademyPaymentService {
         });
 
         enrollmentId = existingEnrollment.id;
-        this.logger.info('[AcademyPaymentService] expired enrollment reset with new transaction');
       } else {
         // Create new enrollment with 3-layer payment
         await prisma.$transaction(async (tx) => {
           const sequence = await academyPaymentRepository.getNextSequenceNumber(tx);
           transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.ACADEMY_PREFIX, sequence);
-          this.logger.info({ transactionCode }, '[AcademyPaymentService] transaction code generated');
 
           snapResult = await midtransService.createSnapTransaction({
             orderId: transactionCode,
@@ -180,7 +170,6 @@ export class AcademyPaymentService {
             ],
           });
 
-          this.logger.info('[AcademyPaymentService] Snap transaction created');
 
           // Layer 1: Transaction — product_type_id is a placeholder (0) updated below
           // after the enrollment is created (circular dependency: tx needs enrollment id)
@@ -242,7 +231,11 @@ export class AcademyPaymentService {
           });
         });
 
-        this.logger.info('[AcademyPaymentService] all 3 layers saved');
+        captureEvent(userId, 'enrollment.created', {
+          enrollment_id: enrollmentId,
+          academy_id: academyId,
+          user_id: userId,
+        });
       }
 
       return {
@@ -254,13 +247,11 @@ export class AcademyPaymentService {
         redirect_url: snapResult.redirectUrl,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[AcademyPaymentService] createTransaction error');
       throw error;
     }
   }
 
   async getPaymentStatus(enrollmentId, userId) {
-    this.logger.info({ enrollmentId, userId }, '[AcademyPaymentService] getPaymentStatus');
 
     try {
       const enrollment = await academyPaymentRepository.findEnrollmentWithTransaction(enrollmentId, userId);
@@ -280,13 +271,11 @@ export class AcademyPaymentService {
         created_at: enrollment.created_at,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[AcademyPaymentService] getPaymentStatus error');
       throw error;
     }
   }
 
   async syncTransactionStatus(transactionCode, userId) {
-    this.logger.info({ transactionCode, userId }, '[AcademyPaymentService] syncTransactionStatus start');
 
     try {
       const transaction = await prisma.transaction.findFirst({
@@ -328,16 +317,13 @@ export class AcademyPaymentService {
 
       });
 
-      this.logger.info({ genericStatus }, '[AcademyPaymentService] syncTransactionStatus success');
       return { status: genericStatus, payment_method: paymentMethod };
     } catch (error) {
-      this.logger.error({ err: error }, '[AcademyPaymentService] syncTransactionStatus error');
       throw error;
     }
   }
 
   async checkEnrollment(userId, academyId) {
-    this.logger.info({ userId, academyId }, '[AcademyPaymentService] checkEnrollment');
 
     try {
       const enrollment = await academyEnrollmentRepository.findActiveByUserAcademy(userId, academyId);
@@ -363,7 +349,6 @@ export class AcademyPaymentService {
         transaction_code: isPending && !tokenExpired ? enrollment.transaction?.transaction_code : null,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[AcademyPaymentService] checkEnrollment error');
       throw error;
     }
   }

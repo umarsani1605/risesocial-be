@@ -1,15 +1,11 @@
 import prisma from '../../config/database.js';
 import { BaseRepository } from '../shared/BaseRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class AdminAcademyRepository extends BaseRepository {
   constructor() {
     super(prisma.academy);
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async findPricingsByAcademyId(academyId) {
     return await prisma.academyPricing.findMany({
@@ -64,7 +60,6 @@ export class AdminAcademyRepository extends BaseRepository {
   }
 
   async createTheme(academyId, data) {
-    this.logger.info({ academyId, data }, '[adminAcademyRepository] createTheme called');
 
     const { order, ...rest } = data || {};
 
@@ -76,7 +71,6 @@ export class AdminAcademyRepository extends BaseRepository {
           where: { academy_id: academyId, order: { gte: desiredOrder } },
           data: { order: { increment: 1 } },
         });
-        this.logger.info({ academyId, desiredOrder, shifted: shiftResult.count }, '[adminAcademyRepository] theme shift-on-create');
         finalOrder = desiredOrder;
       } else {
         const maxRow = await tx.academyTheme.findFirst({
@@ -93,12 +87,10 @@ export class AdminAcademyRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ themeId: theme.id }, '[adminAcademyRepository] createTheme success');
     return theme;
   }
 
   async updateTheme(academyId, themeId, data) {
-    this.logger.info({ academyId, themeId, data }, '[adminAcademyRepository] updateTheme called');
     const { order, ...rest } = data || {};
 
     const result = await prisma.$transaction(async (tx) => {
@@ -130,12 +122,10 @@ export class AdminAcademyRepository extends BaseRepository {
       return updated;
     });
 
-    this.logger.info({ themeId: result.id }, '[adminAcademyRepository] updateTheme success');
     return result;
   }
 
   async deleteTheme(academyId, themeId) {
-    this.logger.info({ academyId, themeId }, '[adminAcademyRepository] deleteTheme called');
 
     await prisma.$transaction(async (tx) => {
       const existing = await tx.academyTheme.findFirst({
@@ -153,16 +143,13 @@ export class AdminAcademyRepository extends BaseRepository {
           where: { academy_id: academyId, order: { gt: existing.order } },
           data: { order: { decrement: 1 } },
         });
-        this.logger.info({ academyId, deletedOrder: existing.order, shifted: shiftResult.count }, '[adminAcademyRepository] theme shift-on-delete');
       }
     });
 
-    this.logger.info({ themeId }, '[adminAcademyRepository] deleteTheme success');
     return { message: 'Theme deleted successfully' };
   }
 
   async createPricing(academyId, data) {
-    this.logger.info({ academyId, data }, '[adminAcademyRepository] createPricing called');
 
     const { order, ...rest } = data || {};
 
@@ -174,7 +161,6 @@ export class AdminAcademyRepository extends BaseRepository {
           where: { academy_id: academyId, order: { gte: desiredOrder } },
           data: { order: { increment: 1 } },
         });
-        this.logger.info({ academyId, desiredOrder, shifted: shiftResult.count }, '[adminAcademyRepository] pricing shift-on-create');
         finalOrder = desiredOrder;
       } else {
         const maxRow = await tx.academyPricing.findFirst({
@@ -190,12 +176,10 @@ export class AdminAcademyRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ pricingId: pricing.id }, '[adminAcademyRepository] createPricing success');
     return pricing;
   }
 
   async updatePricing(academyId, pricingId, data) {
-    this.logger.info({ academyId, pricingId, data }, '[adminAcademyRepository] updatePricing called');
     const { order, ...rest } = data || {};
 
     const result = await prisma.$transaction(async (tx) => {
@@ -226,12 +210,10 @@ export class AdminAcademyRepository extends BaseRepository {
       return updated;
     });
 
-    this.logger.info({ pricingId: result.id }, '[adminAcademyRepository] updatePricing success');
     return result;
   }
 
   async deletePricing(academyId, pricingId) {
-    this.logger.info({ academyId, pricingId }, '[adminAcademyRepository] deletePricing called');
 
     await prisma.$transaction(async (tx) => {
       const existing = await tx.academyPricing.findFirst({
@@ -248,16 +230,13 @@ export class AdminAcademyRepository extends BaseRepository {
           where: { academy_id: academyId, order: { gt: existing.order } },
           data: { order: { decrement: 1 } },
         });
-        this.logger.info({ academyId, deletedOrder: existing.order, shifted: shiftResult.count }, '[adminAcademyRepository] pricing shift-on-delete');
       }
     });
 
-    this.logger.info({ pricingId }, '[adminAcademyRepository] deletePricing success');
     return { message: 'Pricing deleted successfully' };
   }
 
   async createFeature(academyId, data) {
-    this.logger.info({ academyId, data }, '[adminAcademyRepository] createFeature called');
 
     const { feature_order, order, ...rest } = data || {};
     const rawOrder = feature_order ?? order;
@@ -270,7 +249,6 @@ export class AdminAcademyRepository extends BaseRepository {
           where: { academy_id: academyId, order: { gte: desiredOrder } },
           data: { order: { increment: 1 } },
         });
-        this.logger.info({ academyId, desiredOrder, shifted: shiftResult.count }, '[adminAcademyRepository] feature shift-on-create');
         finalOrder = desiredOrder;
       } else {
         const maxRow = await tx.academyFeature.findFirst({
@@ -286,12 +264,10 @@ export class AdminAcademyRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ featureId: feature.id }, '[adminAcademyRepository] createFeature success');
     return feature;
   }
 
   async updateFeature(academyId, featureId, data) {
-    this.logger.info({ academyId, featureId, data }, '[adminAcademyRepository] updateFeature called');
     const { feature_order, order: orderField, ...rest } = data || {};
     const order = feature_order ?? orderField;
 
@@ -323,12 +299,10 @@ export class AdminAcademyRepository extends BaseRepository {
       return updated;
     });
 
-    this.logger.info({ featureId: result.id }, '[adminAcademyRepository] updateFeature success');
     return result;
   }
 
   async deleteFeature(academyId, featureId) {
-    this.logger.info({ academyId, featureId }, '[adminAcademyRepository] deleteFeature called');
 
     await prisma.$transaction(async (tx) => {
       const existing = await tx.academyFeature.findFirst({
@@ -348,12 +322,10 @@ export class AdminAcademyRepository extends BaseRepository {
       }
     });
 
-    this.logger.info({ featureId }, '[adminAcademyRepository] deleteFeature success');
     return { message: 'Feature deleted successfully' };
   }
 
   async createInstructor(academyId, data) {
-    this.logger.info({ academyId, data }, '[adminAcademyRepository] createInstructor called');
 
     const { order, ...rest } = data || {};
 
@@ -365,7 +337,6 @@ export class AdminAcademyRepository extends BaseRepository {
           where: { academy_id: academyId, order: { gte: desiredOrder } },
           data: { order: { increment: 1 } },
         });
-        this.logger.info({ academyId, desiredOrder, shifted: shiftResult.count }, '[adminAcademyRepository] instructor shift-on-create');
         finalOrder = desiredOrder;
       } else {
         const maxRow = await tx.academyInstructor.findFirst({
@@ -381,12 +352,10 @@ export class AdminAcademyRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ instructorId: instructor.id }, '[adminAcademyRepository] createInstructor success');
     return instructor;
   }
 
   async updateInstructor(academyId, instructorId, data) {
-    this.logger.info({ academyId, instructorId, data }, '[adminAcademyRepository] updateInstructor called');
     const { order, ...rest } = data || {};
 
     const result = await prisma.$transaction(async (tx) => {
@@ -417,12 +386,10 @@ export class AdminAcademyRepository extends BaseRepository {
       return updated;
     });
 
-    this.logger.info({ instructorId: result.id }, '[adminAcademyRepository] updateInstructor success');
     return result;
   }
 
   async deleteInstructor(academyId, instructorId) {
-    this.logger.info({ academyId, instructorId }, '[adminAcademyRepository] deleteInstructor called');
 
     await prisma.$transaction(async (tx) => {
       const existing = await tx.academyInstructor.findFirst({
@@ -442,12 +409,10 @@ export class AdminAcademyRepository extends BaseRepository {
       }
     });
 
-    this.logger.info({ instructorId }, '[adminAcademyRepository] deleteInstructor success');
     return { message: 'Instructor removed successfully' };
   }
 
   async createTopic(academyId, data) {
-    this.logger.info({ academyId, data }, '[adminAcademyRepository] createTopic called');
 
     const { topic_order, order, theme_id, ...rest } = data || {};
     const rawOrder = topic_order ?? order;
@@ -461,7 +426,6 @@ export class AdminAcademyRepository extends BaseRepository {
           where: { academy_id: academyId, theme_id, order: { gte: desiredOrder } },
           data: { order: { increment: 1 } },
         });
-        this.logger.info({ academyId, theme_id, desiredOrder, shifted: shiftResult.count }, '[adminAcademyRepository] topic shift-on-create');
         finalOrder = desiredOrder;
       } else {
         const maxRow = await tx.academyTopic.findFirst({
@@ -477,12 +441,10 @@ export class AdminAcademyRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ topicId: topic.id }, '[adminAcademyRepository] createTopic success');
     return topic;
   }
 
   async updateTopic(academyId, topicId, data) {
-    this.logger.info({ academyId, topicId, data }, '[adminAcademyRepository] updateTopic called');
     const { topic_order, order: orderField, theme_id, ...rest } = data || {};
     const order = topic_order ?? orderField;
 
@@ -517,12 +479,10 @@ export class AdminAcademyRepository extends BaseRepository {
       return updated;
     });
 
-    this.logger.info({ topicId: result.id }, '[adminAcademyRepository] updateTopic success');
     return result;
   }
 
   async deleteTopic(academyId, topicId) {
-    this.logger.info({ academyId, topicId }, '[adminAcademyRepository] deleteTopic called');
 
     await prisma.$transaction(async (tx) => {
       const existing = await tx.academyTopic.findFirst({
@@ -542,12 +502,10 @@ export class AdminAcademyRepository extends BaseRepository {
       }
     });
 
-    this.logger.info({ topicId }, '[adminAcademyRepository] deleteTopic success');
     return { message: 'Topic deleted successfully' };
   }
 
   async createTestimonial(academyId, data) {
-    this.logger.info({ academyId, data }, '[adminAcademyRepository] createTestimonial called');
 
     const { testimonial_order, order, ...rest } = data || {};
     const rawOrder = testimonial_order ?? order;
@@ -560,7 +518,6 @@ export class AdminAcademyRepository extends BaseRepository {
           where: { academy_id: academyId, order: { gte: desiredOrder } },
           data: { order: { increment: 1 } },
         });
-        this.logger.info({ academyId, desiredOrder, shifted: shiftResult.count }, '[adminAcademyRepository] testimonial shift-on-create');
         finalOrder = desiredOrder;
       } else {
         const maxRow = await tx.academyTestimonial.findFirst({
@@ -576,12 +533,10 @@ export class AdminAcademyRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ testimonialId: testimonial.id }, '[adminAcademyRepository] createTestimonial success');
     return testimonial;
   }
 
   async updateTestimonial(academyId, testimonialId, data) {
-    this.logger.info({ academyId, testimonialId, data }, '[adminAcademyRepository] updateTestimonial called');
     const { testimonial_order, order: orderField, ...rest } = data || {};
     const order = testimonial_order ?? orderField;
 
@@ -613,12 +568,10 @@ export class AdminAcademyRepository extends BaseRepository {
       return updated;
     });
 
-    this.logger.info({ testimonialId: result.id }, '[adminAcademyRepository] updateTestimonial success');
     return result;
   }
 
   async deleteTestimonial(academyId, testimonialId) {
-    this.logger.info({ academyId, testimonialId }, '[adminAcademyRepository] deleteTestimonial called');
 
     await prisma.$transaction(async (tx) => {
       const existing = await tx.academyTestimonial.findFirst({
@@ -638,12 +591,10 @@ export class AdminAcademyRepository extends BaseRepository {
       }
     });
 
-    this.logger.info({ testimonialId }, '[adminAcademyRepository] deleteTestimonial success');
     return { message: 'Testimonial deleted successfully' };
   }
 
   async createFaq(academyId, data) {
-    this.logger.info({ academyId, data }, '[adminAcademyRepository] createFaq called');
 
     const { faq_order, order, ...rest } = data || {};
     const rawOrder = faq_order ?? order;
@@ -656,7 +607,6 @@ export class AdminAcademyRepository extends BaseRepository {
           where: { academy_id: academyId, order: { gte: desiredOrder } },
           data: { order: { increment: 1 } },
         });
-        this.logger.info({ academyId, desiredOrder, shifted: shiftResult.count }, '[adminAcademyRepository] faq shift-on-create');
         finalOrder = desiredOrder;
       } else {
         const maxRow = await tx.academyFaq.findFirst({
@@ -672,12 +622,10 @@ export class AdminAcademyRepository extends BaseRepository {
       });
     });
 
-    this.logger.info({ faqId: faq.id }, '[adminAcademyRepository] createFaq success');
     return faq;
   }
 
   async updateFaq(academyId, faqId, data) {
-    this.logger.info({ academyId, faqId, data }, '[adminAcademyRepository] updateFaq called');
     const { faq_order, order: orderField, ...rest } = data || {};
     const order = faq_order ?? orderField;
 
@@ -709,12 +657,10 @@ export class AdminAcademyRepository extends BaseRepository {
       return updated;
     });
 
-    this.logger.info({ faqId: result.id }, '[adminAcademyRepository] updateFaq success');
     return result;
   }
 
   async deleteFaq(academyId, faqId) {
-    this.logger.info({ academyId, faqId }, '[adminAcademyRepository] deleteFaq called');
 
     await prisma.$transaction(async (tx) => {
       const existing = await tx.academyFaq.findFirst({
@@ -734,7 +680,6 @@ export class AdminAcademyRepository extends BaseRepository {
       }
     });
 
-    this.logger.info({ faqId }, '[adminAcademyRepository] deleteFaq success');
     return { message: 'FAQ deleted successfully' };
   }
 }

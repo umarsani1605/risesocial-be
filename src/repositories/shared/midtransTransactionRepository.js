@@ -1,14 +1,10 @@
 import prisma from '../../config/database.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 /**
  * MidtransTransactionRepository - Layer 2 (Provider-Specific)
  * Midtrans-specific data management
  */
 export class MidtransTransactionRepository {
-  get logger() {
-    return getLogger();
-  }
 
   /**
    * Create Midtrans transaction record
@@ -16,7 +12,6 @@ export class MidtransTransactionRepository {
    * @returns {Promise<Object>} - Created record
    */
   async create(data) {
-    this.logger.info('[MidtransTransactionRepository] create start');
 
     try {
       const midtransTransaction = await prisma.midtransTransaction.create({
@@ -43,10 +38,8 @@ export class MidtransTransactionRepository {
         },
       });
 
-      this.logger.info({ id: midtransTransaction.id }, '[MidtransTransactionRepository] created');
       return midtransTransaction;
     } catch (error) {
-      this.logger.error({ err: error }, '[MidtransTransactionRepository] create error');
       throw error;
     }
   }
@@ -57,7 +50,6 @@ export class MidtransTransactionRepository {
    * @returns {Promise<Object|null>}
    */
   async findByTransactionId(transactionId) {
-    this.logger.info({ transactionId }, '[MidtransTransactionRepository] findByTransactionId');
 
     try {
       const record = await prisma.midtransTransaction.findUnique({
@@ -67,10 +59,8 @@ export class MidtransTransactionRepository {
         },
       });
 
-      this.logger.info({ found: !!record }, '[MidtransTransactionRepository] found');
       return record;
     } catch (error) {
-      this.logger.error({ err: error }, '[MidtransTransactionRepository] findByTransactionId error');
       throw error;
     }
   }
@@ -82,7 +72,6 @@ export class MidtransTransactionRepository {
    * @returns {Promise<Object>}
    */
   async updateFromWebhook(transactionId, webhookData) {
-    this.logger.info({ transactionId }, '[MidtransTransactionRepository] updateFromWebhook');
 
     try {
       const updated = await prisma.midtransTransaction.update({
@@ -100,10 +89,8 @@ export class MidtransTransactionRepository {
         },
       });
 
-      this.logger.info('[MidtransTransactionRepository] updated from webhook');
       return updated;
     } catch (error) {
-      this.logger.error({ err: error }, '[MidtransTransactionRepository] updateFromWebhook error');
       throw error;
     }
   }
@@ -114,7 +101,6 @@ export class MidtransTransactionRepository {
    * @returns {Promise<Object|null>}
    */
   async findByMidtransOrderId(midtransOrderId) {
-    this.logger.info({ midtransOrderId }, '[MidtransTransactionRepository] findByMidtransOrderId');
 
     try {
       const record = await prisma.midtransTransaction.findFirst({
@@ -124,10 +110,8 @@ export class MidtransTransactionRepository {
         },
       });
 
-      this.logger.info({ found: !!record }, '[MidtransTransactionRepository] found');
       return record;
     } catch (error) {
-      this.logger.error({ err: error }, '[MidtransTransactionRepository] findByMidtransOrderId error');
       throw error;
     }
   }

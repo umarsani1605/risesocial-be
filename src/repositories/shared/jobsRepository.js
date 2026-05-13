@@ -1,18 +1,13 @@
 import prisma from '../../config/database.js';
 import { BaseRepository } from './BaseRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class JobsRepository extends BaseRepository {
   constructor() {
     super(prisma.job);
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async searchJobs(options = {}) {
-    this.logger.info({ options }, '[jobsRepository] searchJobs start');
 
     const {
       page,
@@ -171,7 +166,6 @@ export class JobsRepository extends BaseRepository {
       this.model.count({ where }),
     ]);
 
-    this.logger.info({ data, total }, '[jobsRepository] searchJobs result');
 
     // Return meta only if pagination was requested
     const result = { data };
@@ -277,16 +271,13 @@ export class JobsRepository extends BaseRepository {
   }
 
   async findJobByLinkedInId(linkedinJobId) {
-    this.logger.debug({ linkedinJobId }, '[jobsRepository] findJobByLinkedInId');
     const job = await this.model.findFirst({
       where: { linkedin_job_id: linkedinJobId },
     });
-    this.logger.debug({ found: !!job }, '[jobsRepository] findJobByLinkedInId result');
     return job;
   }
 
   async createManyJobs(jobsData) {
-    this.logger.info({ size: jobsData.length }, '[jobsRepository] createManyJobs');
     return await this.model.createMany({
       data: jobsData,
       skipDuplicates: true,
@@ -294,7 +285,6 @@ export class JobsRepository extends BaseRepository {
   }
 
   async findJobsByLinkedInIds(linkedinIds) {
-    this.logger.debug({ size: linkedinIds?.length }, '[jobsRepository] findJobsByLinkedInIds');
     const ids = (linkedinIds || []).map((v) => String(v));
     return await this.model.findMany({
       where: { linkedin_job_id: { in: ids } },
@@ -303,7 +293,6 @@ export class JobsRepository extends BaseRepository {
   }
 
   async createJobAIInsights(data) {
-    this.logger.debug({ job_id: data.job_id }, '[jobsRepository] createJobAIInsights');
     return await prisma.jobAIInsights.create({
       data,
     });
@@ -311,7 +300,6 @@ export class JobsRepository extends BaseRepository {
 
   async findLocationByDetails(locationData) {
     const { city, region, country } = locationData;
-    this.logger.debug({ city, region, country }, '[jobsRepository] findLocation');
     return await prisma.jobLocation.findFirst({
       where: {
         city: city,
@@ -322,40 +310,34 @@ export class JobsRepository extends BaseRepository {
   }
 
   async createLocation(locationData) {
-    this.logger.debug({ locationData }, '[jobsRepository] createLocation');
     return await prisma.jobLocation.create({
       data: locationData,
     });
   }
 
   async findCompanyById(id) {
-    this.logger.debug({ id }, '[jobsRepository] findCompanyById');
     return await prisma.company.findUnique({
       where: { id },
     });
   }
 
   async findCompanyBySlug(slug) {
-    this.logger.debug({ slug }, '[jobsRepository] findCompanyBySlug');
     return await prisma.company.findUnique({
       where: { slug },
     });
   }
 
   async findCompanyByName(name) {
-    this.logger.debug({ name }, '[jobsRepository] findCompanyByName');
     return await prisma.company.findFirst({
       where: { name: { equals: name, mode: 'insensitive' } },
     });
   }
 
   async createCompany(data) {
-    this.logger.debug({ name: data.name }, '[jobsRepository] createCompany');
     return await prisma.company.create({ data });
   }
 
   async createCompanyFromLinkedIn(linkedinJob) {
-    this.logger.info({ organization: linkedinJob.organization }, '[jobsRepository] createCompanyFromLinkedIn');
 
     const companyData = {
       name: linkedinJob.organization,
@@ -385,7 +367,6 @@ export class JobsRepository extends BaseRepository {
   }
 
   async updateWithRelations(id, jobData, companyData, locationData) {
-    this.logger.info({ id, jobData, companyData, locationData }, '[jobsRepository] updateWithRelations start');
 
     return await prisma.$transaction(async (tx) => {
       if (companyData && Object.keys(companyData).length > 0) {
@@ -430,13 +411,11 @@ export class JobsRepository extends BaseRepository {
         },
       });
 
-      this.logger.info({ updatedJob }, '[jobsRepository] updateWithRelations success');
       return updatedJob;
     });
   }
 
   async searchCompanies(options = {}) {
-    this.logger.info({ options }, '[jobsRepository] searchCompanies start');
 
     const { page = 1, limit = 20, slug, name, headquarters, industry, linkedinSize, search, sortBy = 'name', sortOrder = 'asc' } = options;
 
@@ -510,7 +489,6 @@ export class JobsRepository extends BaseRepository {
       prisma.company.count({ where }),
     ]);
 
-    this.logger.info({ data, total }, '[jobsRepository] searchCompanies result');
 
     return {
       data,

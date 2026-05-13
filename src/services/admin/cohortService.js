@@ -2,10 +2,10 @@ import { adminCohortRepository } from '../../repositories/admin/cohortRepository
 import { academyRepository } from '../../repositories/shared/academyRepository.js';
 import { fileUploadService } from '../shared/fileUploadService.js';
 import { emailService } from '../shared/emailService.js';
-import { getLogger } from '../../utils/loggerContext.js';
 import { formatCertificateCode, safeFilename, formatIssuedDate } from '../../utils/certificateHelpers.js';
 import { toFileUrl } from '../../utils/response.js';
 import prisma from '../../config/database.js';
+import { captureEvent } from '../../config/posthog.js';
 import path from 'path';
 import fs from 'fs-extra';
 import { fileURLToPath } from 'url';
@@ -20,14 +20,10 @@ export class AdminCohortService {
     this.fileUploadService = fileUploadService;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   // --- Cohort CRUD ---
 
   async createCohort(data) {
-    this.logger.info('[adminCohortService] createCohort start');
     try {
       const academy = await this.academyRepository.findById(data.academy_id);
       if (!academy) {
@@ -51,16 +47,13 @@ export class AdminCohortService {
         end_date: data.end_date ? new Date(data.end_date) : null,
       });
 
-      this.logger.info('[adminCohortService] createCohort success');
       return cohort;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] createCohort error');
       throw error;
     }
   }
 
   async updateCohort(id, data) {
-    this.logger.info('[adminCohortService] updateCohort start');
     try {
       const existing = await this.repository.findById(id);
       if (!existing) {
@@ -96,16 +89,13 @@ export class AdminCohortService {
       } else {
         cohort = await this.repository.update(id, updateData);
       }
-      this.logger.info('[adminCohortService] updateCohort success');
       return cohort;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] updateCohort error');
       throw error;
     }
   }
 
   async completeCohort(cohortId) {
-    this.logger.info('[adminCohortService] completeCohort start');
     try {
       const cohort = await this.repository.findByIdWithDetails(cohortId);
       if (!cohort) {
@@ -121,10 +111,6 @@ export class AdminCohortService {
         },
       });
 
-      this.logger.info(
-        { cohortId, placementCount: placements.length },
-        '[AdminCohortService] completeCohort start',
-      );
 
       const now = new Date();
       const academy = await this.academyRepository.findById(cohort.academy_id);
@@ -195,16 +181,19 @@ export class AdminCohortService {
         });
       }
 
-      this.logger.info('[adminCohortService] completeCohort success');
+      captureEvent(`cohort:${cohortId}`, 'cohort.completed', {
+        cohort_id: cohortId,
+        placement_count: placements.length,
+        certificates_generated: certRecords.length,
+      });
+
       return { cohort: updatedCohort, certificatesGenerated: certRecords.length };
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] completeCohort error');
       throw error;
     }
   }
 
   async deleteCohort(id) {
-    this.logger.info('[adminCohortService] deleteCohort start');
     try {
       const existing = await this.repository.findById(id);
       if (!existing) {
@@ -214,27 +203,21 @@ export class AdminCohortService {
       }
 
       await this.repository.delete(id);
-      this.logger.info('[adminCohortService] deleteCohort success');
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] deleteCohort error');
       throw error;
     }
   }
 
   async getCohorts(params) {
-    this.logger.info('[adminCohortService] getCohorts start');
     try {
       const result = await this.repository.findWithPagination(params);
-      this.logger.info('[adminCohortService] getCohorts success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] getCohorts error');
       throw error;
     }
   }
 
   async getCohortById(id) {
-    this.logger.info('[adminCohortService] getCohortById start');
     try {
       const cohort = await this.repository.findByIdWithDetails(id);
       if (!cohort) {
@@ -244,10 +227,8 @@ export class AdminCohortService {
       }
 
       const result = { ...cohort, enrollment_count: cohort._count?.placements, _count: undefined };
-      this.logger.info('[adminCohortService] getCohortById success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] getCohortById error');
       throw error;
     }
   }
@@ -255,7 +236,6 @@ export class AdminCohortService {
   // --- Module management ---
 
   async createModule(cohortId, data) {
-    this.logger.info('[adminCohortService] createModule start');
     try {
       const cohort = await this.repository.findById(cohortId);
       if (!cohort) {
@@ -291,16 +271,13 @@ export class AdminCohortService {
       }
 
       const module = await this.repository.createModule(cohortId, cohort.academy_id, moduleData);
-      this.logger.info('[adminCohortService] createModule success');
       return module;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] createModule error');
       throw error;
     }
   }
 
   async updateModule(cohortId, moduleId, data) {
-    this.logger.info('[adminCohortService] updateModule start');
     try {
       const cohort = await this.repository.findById(cohortId);
       if (!cohort) {
@@ -310,22 +287,17 @@ export class AdminCohortService {
       }
 
       const module = await this.repository.updateModule(cohortId, moduleId, data);
-      this.logger.info('[adminCohortService] updateModule success');
       return module;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] updateModule error');
       throw error;
     }
   }
 
   async deleteModule(cohortId, moduleId) {
-    this.logger.info('[adminCohortService] deleteModule start');
     try {
       const result = await this.repository.deleteModule(cohortId, moduleId);
-      this.logger.info('[adminCohortService] deleteModule success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] deleteModule error');
       throw error;
     }
   }
@@ -333,7 +305,6 @@ export class AdminCohortService {
   // --- Attachment management ---
 
   async createAttachment(cohortId, moduleId, data) {
-    this.logger.info('[adminCohortService] createAttachment start');
     try {
       const cohort = await this.repository.findById(cohortId);
       if (!cohort) {
@@ -365,28 +336,22 @@ export class AdminCohortService {
       }
 
       const attachment = await this.repository.createAttachment(moduleId, cohortId, cohort.academy_id, data);
-      this.logger.info('[adminCohortService] createAttachment success');
       return attachment;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] createAttachment error');
       throw error;
     }
   }
 
   async updateAttachment(cohortId, moduleId, attachmentId, data) {
-    this.logger.info('[adminCohortService] updateAttachment start');
     try {
       const attachment = await this.repository.updateAttachment(moduleId, attachmentId, data);
-      this.logger.info('[adminCohortService] updateAttachment success');
       return attachment;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] updateAttachment error');
       throw error;
     }
   }
 
   async deleteAttachment(cohortId, moduleId, attachmentId) {
-    this.logger.info('[adminCohortService] deleteAttachment start');
     try {
       const result = await this.repository.deleteAttachment(moduleId, attachmentId);
 
@@ -396,16 +361,12 @@ export class AdminCohortService {
           const uploadsBaseDir = path.join(__dirname, '../../../uploads');
           const absolutePath = path.join(uploadsBaseDir, result.filePath.replace(/^\/uploads\//, ''));
           await fs.remove(absolutePath);
-          this.logger.info({ filePath: result.filePath }, '[adminCohortService] physical file deleted');
         } catch (fsErr) {
-          this.logger.warn({ err: fsErr }, '[adminCohortService] failed to delete physical file');
         }
       }
 
-      this.logger.info('[adminCohortService] deleteAttachment success');
       return { message: 'Attachment deleted successfully' };
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] deleteAttachment error');
       throw error;
     }
   }
@@ -413,7 +374,6 @@ export class AdminCohortService {
   // --- Enrollment management ---
 
   async getEnrollments(cohortId, params) {
-    this.logger.info('[adminCohortService] getEnrollments start');
     try {
       const result = await this.repository.findEnrollments(cohortId, params);
       result.data = result.data.map((e) => ({
@@ -425,16 +385,13 @@ export class AdminCohortService {
           ? { ...e.certificate, file_url: toFileUrl(e.certificate.file_path) }
           : null,
       }));
-      this.logger.info('[adminCohortService] getEnrollments success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] getEnrollments error');
       throw error;
     }
   }
 
   async manualEnroll(cohortId, userId, notes) {
-    this.logger.info('[adminCohortService] manualEnroll start');
     try {
       const cohort = await this.repository.findById(cohortId);
       if (!cohort) {
@@ -454,16 +411,13 @@ export class AdminCohortService {
       }
 
       const enrollment = await this.repository.createEnrollment(cohortId, cohort.academy_id, userId, notes);
-      this.logger.info('[adminCohortService] manualEnroll success');
       return enrollment;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] manualEnroll error');
       throw error;
     }
   }
 
   async updateEnrollment(cohortId, enrollmentId, data) {
-    this.logger.info('[adminCohortService] updateEnrollment start');
     try {
       const updateData = {};
       if (data.status !== undefined) updateData.status = data.status;
@@ -471,10 +425,8 @@ export class AdminCohortService {
       if (data.notes !== undefined) updateData.notes = data.notes;
 
       const enrollment = await this.repository.updateEnrollment(cohortId, enrollmentId, updateData);
-      this.logger.info('[adminCohortService] updateEnrollment success');
       return enrollment;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] updateEnrollment error');
       throw error;
     }
   }
@@ -482,7 +434,6 @@ export class AdminCohortService {
   // --- Mentor management ---
 
   async createMentor(cohortId, data) {
-    this.logger.info('[adminCohortService] createMentor start');
     try {
       const cohort = await this.repository.findById(cohortId);
       if (!cohort) {
@@ -502,16 +453,13 @@ export class AdminCohortService {
       }
 
       const mentor = await this.repository.createMentor(cohortId, cohort.academy_id, data);
-      this.logger.info('[adminCohortService] createMentor success');
       return mentor;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] createMentor error');
       throw error;
     }
   }
 
   async updateMentor(cohortId, mentorId, data) {
-    this.logger.info('[adminCohortService] updateMentor start');
     try {
       if (data.avatarFile) {
         try {
@@ -526,22 +474,17 @@ export class AdminCohortService {
       }
 
       const mentor = await this.repository.updateMentor(cohortId, mentorId, data);
-      this.logger.info('[adminCohortService] updateMentor success');
       return mentor;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] updateMentor error');
       throw error;
     }
   }
 
   async deleteMentor(cohortId, mentorId) {
-    this.logger.info('[adminCohortService] deleteMentor start');
     try {
       const result = await this.repository.deleteMentor(cohortId, mentorId);
-      this.logger.info('[adminCohortService] deleteMentor success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] deleteMentor error');
       throw error;
     }
   }
@@ -549,7 +492,6 @@ export class AdminCohortService {
   // --- Certificate generation ---
 
   async generateCertificate(cohortId, placementId, grades = {}) {
-    this.logger.info('[adminCohortService] generateCertificate start');
     try {
       const cohort = await this.repository.findByIdWithDetails(cohortId);
       if (!cohort) {
@@ -618,7 +560,6 @@ export class AdminCohortService {
         });
       });
 
-      this.logger.info('[adminCohortService] generateCertificate success');
 
       // Fire certificate email (fire-and-forget)
       const verifyUrl = `${process.env.FRONTEND_URL}/certificates/verify/${cert.certificate_code}`;
@@ -631,11 +572,10 @@ export class AdminCohortService {
           certCode: cert.certificate_code,
           verifyUrl,
         })
-        .catch((err) => this.logger.error({ err }, '[adminCohortService] certificate email error'));
+        .catch(() => {});
 
       return { ...cert, file_url: toFileUrl(cert.file_path) };
     } catch (error) {
-      this.logger.error({ err: error }, '[adminCohortService] generateCertificate error');
       throw error;
     }
   }

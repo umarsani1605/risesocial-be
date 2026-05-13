@@ -1,6 +1,6 @@
 import { rylsPaymentService } from '../../services/user/rylsPaymentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
-import posthog from '../../config/posthog.js';
+import { captureEvent } from '../../config/posthog.js';
 
 /**
  * RylsPaymentController - Updated for 3-layer architecture
@@ -13,27 +13,21 @@ export class RylsPaymentController {
   }
 
   async createTransaction(request, reply) {
-    request.log.info('[rylsPaymentController] createTransaction start');
-    request.log.debug({ body: request.body }, '[rylsPaymentController] rawBody');
 
     try {
       const data = request.body;
 
       const transactionData = await this.paymentService.createTransaction(data);
 
-      const distinctId = data.registration_id ? String(data.registration_id) : (data.email || 'anonymous');
-      posthog.capture({
-        distinctId,
-        event: 'ryls_checkout_started',
-        properties: {
-          payment_id: transactionData.payment_id,
-          transaction_code: transactionData.transaction_code,
-          amount: transactionData.amount,
-          currency: transactionData.currency,
-        },
+      const distinctId = data.registration_id ?? `anon:${data.email || 'unknown'}`;
+      captureEvent(distinctId, 'payment.transaction_created', {
+        product_type: 'ryls',
+        payment_id: transactionData.payment_id,
+        transaction_code: transactionData.transaction_code,
+        amount: transactionData.amount,
+        registration_id: data.registration_id,
       });
 
-      request.log.info('[rylsPaymentController] createTransaction success');
       return reply.status(200).send(
         successResponse(
           {
@@ -48,7 +42,6 @@ export class RylsPaymentController {
         ),
       );
     } catch (error) {
-      request.log.error({ err: error }, '[rylsPaymentController] createTransaction error');
 
       if (error.message.includes('Registration not found')) {
         return reply.status(404).send(errorResponse('Registration not found', 404, error.message));
@@ -63,14 +56,11 @@ export class RylsPaymentController {
   }
 
   async getPaymentStatus(request, reply) {
-    request.log.info('[rylsPaymentController] getPaymentStatus start');
-    request.log.debug({ params: request.params }, '[rylsPaymentController] rawParams');
 
     try {
       const registrationId = Number(request.params.registrationId);
       const paymentStatus = await this.paymentService.getPaymentStatus(registrationId);
 
-      request.log.info('[rylsPaymentController] getPaymentStatus success');
       return reply.status(200).send(
         successResponse(
           {
@@ -87,7 +77,6 @@ export class RylsPaymentController {
         ),
       );
     } catch (error) {
-      request.log.error({ err: error }, '[rylsPaymentController] getPaymentStatus error');
       return reply.status(500).send(errorResponse('Failed to get payment status', 500, error.message));
     }
   }

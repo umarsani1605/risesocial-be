@@ -2,18 +2,14 @@ import { midtransService } from '../../services/shared/MidtransService.js';
 import { transactionRepository } from '../../repositories/shared/transactionRepository.js';
 import { mapMidtransStatus, mapPaymentMethod } from '../../constants/paymentHelpers.js';
 import { emailService } from '../../services/shared/emailService.js';
-import { getLogger } from '../../utils/loggerContext.js';
 import prisma from '../../config/database.js';
-import posthog from '../../config/posthog.js';
+import { captureEvent } from '../../config/posthog.js';
 
 /**
  * WebhookController - Simplified webhook handler
  * Updates all 3 database layers directly (no service routing)
  */
 export class WebhookController {
-  get logger() {
-    return getLogger();
-  }
 
   /**
    * Handle Midtrans webhook notification
@@ -21,8 +17,6 @@ export class WebhookController {
    * @param {Object} reply - Fastify reply
    */
   async handleMidtransWebhook(request, reply) {
-    this.logger.info('[WebhookController] handleMidtransWebhook start');
-    this.logger.debug({ body: request.body }, '[WebhookController] webhook payload');
 
     try {
       const notificationData = request.body;
@@ -30,14 +24,12 @@ export class WebhookController {
       // Step 1: Verify signature
       const isValid = midtransService.verifyWebhookSignature(notificationData);
       if (!isValid) {
-        this.logger.warn('[WebhookController] invalid signature');
         return reply.status(400).send({
           success: false,
           message: 'Invalid signature',
         });
       }
 
-      this.logger.info('[WebhookController] signature verified');
 
       // Step 2: Extract webhook data
       const { order_id, transaction_status, transaction_id, payment_type, fraud_status, bank, store, settlement_time } = notificationData;
@@ -46,15 +38,6 @@ export class WebhookController {
       const genericStatus = mapMidtransStatus(transaction_status);
       const paymentMethod = mapPaymentMethod(notificationData);
 
-      this.logger.info(
-        {
-          order_id,
-          midtrans_status: transaction_status,
-          generic_status: genericStatus,
-          payment_method: paymentMethod,
-        },
-        '[WebhookController] mapped data',
-      );
 
       // Step 4: Update all 3 layers in single transaction
       await prisma.$transaction(async (tx) => {
@@ -71,7 +54,6 @@ export class WebhookController {
           },
         });
 
-        this.logger.info({ transaction_id: transaction.id }, '[WebhookController] Layer 1 updated');
 
         // Layer 2: Update midtrans_transactions table
         await tx.midtransTransaction.update({
@@ -89,7 +71,6 @@ export class WebhookController {
           },
         });
 
-        this.logger.info('[WebhookController] Layer 2 updated');
 
         // Layer 3: Update business-specific tables
         // Check if this is RYLS payment
@@ -99,7 +80,6 @@ export class WebhookController {
         });
 
         if (rylsPayment) {
-          this.logger.info({ ryls_payment_id: rylsPayment.id }, '[WebhookController] RYLS payment found');
 
           // Update RYLS payment status
           await tx.rylsPayment.update({
@@ -122,10 +102,8 @@ export class WebhookController {
               },
             });
 
-            this.logger.info({ registration_status: registrationStatus }, '[WebhookController] registration updated');
           }
 
-          this.logger.info('[WebhookController] Layer 3 (RYLS) updated');
         }
 
         // Log academy enrollment association (status is now derived from transaction)
@@ -135,11 +113,9 @@ export class WebhookController {
         });
 
         if (academyEnrollment) {
-          this.logger.info({ academy_enrollment_id: academyEnrollment.id, generic_status: genericStatus }, '[WebhookController] Layer 3 (AcademyEnrollment) linked');
         }
       });
 
-      this.logger.info('[WebhookController] all layers updated successfully');
 
       // Step 4b: Fire payment confirmation email (fire-and-forget) and PostHog event
       if (genericStatus === 'paid' || genericStatus === 'expired' || genericStatus === 'failed') {
@@ -149,19 +125,15 @@ export class WebhookController {
         });
 
         if (transaction) {
-          const distinctId = transaction.user_id ? String(transaction.user_id) : (transaction.customer_email || order_id);
+          const distinctId = transaction.user_id ?? `anon:${transaction.customer_email || order_id}`;
 
           if (genericStatus === 'paid') {
-            posthog.capture({
-              distinctId,
-              event: 'payment_completed',
-              properties: {
-                transaction_code: order_id,
-                amount: transaction.amount,
-                currency: transaction.currency || 'IDR',
-                product_type: transaction.product_type,
-                payment_method: paymentMethod,
-              },
+            captureEvent(distinctId, 'payment.completed', {
+              transaction_code: order_id,
+              amount: transaction.amount,
+              product_type: transaction.product_type,
+              payment_method: paymentMethod,
+              user_id: transaction.user_id,
             });
 
             if (transaction.customer_email) {
@@ -173,19 +145,15 @@ export class WebhookController {
                   amount: transaction.amount,
                   currency: transaction.currency || 'IDR',
                 })
-                .catch((err) => this.logger.error({ err }, '[WebhookController] payment email error'));
+                .catch(() => {});
             }
           } else {
-            posthog.capture({
-              distinctId,
-              event: 'payment_expired',
-              properties: {
-                transaction_code: order_id,
-                amount: transaction.amount,
-                currency: transaction.currency || 'IDR',
-                product_type: transaction.product_type,
-                status: genericStatus,
-              },
+            captureEvent(distinctId, 'payment.failed', {
+              transaction_code: order_id,
+              amount: transaction.amount,
+              product_type: transaction.product_type,
+              reason: genericStatus,
+              user_id: transaction.user_id,
             });
           }
         }
@@ -198,7 +166,6 @@ export class WebhookController {
         status: transaction_status,
       });
     } catch (error) {
-      this.logger.error({ err: error }, '[WebhookController] handleMidtransWebhook error');
 
       // Return 500 so Midtrans will retry
       return reply.status(500).send({

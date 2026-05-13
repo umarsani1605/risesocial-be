@@ -1,18 +1,13 @@
 import prisma from '../../config/database.js';
 import { BaseRepository } from '../shared/BaseRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class UserCohortRepository extends BaseRepository {
   constructor() {
     super(prisma.cohort);
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async findPublicWithPagination({ page = 1, limit = 10, academy_id, status } = {}) {
-    this.logger.info({ page, limit, academy_id, status }, '[userCohortRepository] findPublicWithPagination called');
 
     const skip = (page - 1) * limit;
     const where = {};
@@ -47,7 +42,6 @@ export class UserCohortRepository extends BaseRepository {
   }
 
   async findByIdPublic(id) {
-    this.logger.info({ id }, '[userCohortRepository] findByIdPublic called');
 
     const cohort = await this.model.findUnique({
       where: { id },
@@ -64,7 +58,6 @@ export class UserCohortRepository extends BaseRepository {
   }
 
   async findPlacementByUserCohort(userId, cohortId) {
-    this.logger.info({ userId, cohortId }, '[userCohortRepository] findPlacementByUserCohort called');
 
     return await prisma.cohortPlacement.findUnique({
       where: { cohort_id_user_id: { cohort_id: cohortId, user_id: userId } },
@@ -72,7 +65,6 @@ export class UserCohortRepository extends BaseRepository {
   }
 
   async findStudentsByCohort(cohortId) {
-    this.logger.info({ cohortId }, '[userCohortRepository] findStudentsByCohort called');
 
     const placements = await prisma.cohortPlacement.findMany({
       where: { cohort_id: cohortId },
@@ -86,7 +78,6 @@ export class UserCohortRepository extends BaseRepository {
   }
 
   async findUserEnrollments(userId, { page = 1, limit = 10 } = {}) {
-    this.logger.info({ userId, page, limit }, '[userCohortRepository] findUserEnrollments called');
 
     const skip = (page - 1) * limit;
     const where = {
@@ -148,7 +139,6 @@ export class UserCohortRepository extends BaseRepository {
   }
 
   async countCompletedModules(cohortId) {
-    this.logger.info({ cohortId }, '[userCohortRepository] countCompletedModules called');
 
     return prisma.cohortModule.count({
       where: {
@@ -160,7 +150,6 @@ export class UserCohortRepository extends BaseRepository {
   }
 
   async findPublishedModules(cohortId) {
-    this.logger.info({ cohortId }, '[userCohortRepository] findPublishedModules called');
 
     return await prisma.cohortModule.findMany({
       where: { cohort_id: cohortId, is_published: true },
@@ -172,7 +161,6 @@ export class UserCohortRepository extends BaseRepository {
   }
 
   async findPublishedModuleById(cohortId, moduleId) {
-    this.logger.info({ cohortId, moduleId }, '[userCohortRepository] findPublishedModuleById called');
 
     return await prisma.cohortModule.findFirst({
       where: { id: moduleId, cohort_id: cohortId, is_published: true },
@@ -183,7 +171,6 @@ export class UserCohortRepository extends BaseRepository {
   }
 
   async findUpcomingModulesForUser(userId, limit = 7) {
-    this.logger.info({ userId, limit }, '[userCohortRepository] findUpcomingModulesForUser called');
 
     const now = new Date();
 

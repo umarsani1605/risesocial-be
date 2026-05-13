@@ -9,8 +9,6 @@ export class AdminRylsRegistrationController {
 
   getRegistrations = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] getRegistrations start');
-      request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
 
       const { page = 1, limit = 10, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search, startDate, endDate } = request.query;
 
@@ -29,18 +27,14 @@ export class AdminRylsRegistrationController {
         sortOrder,
       });
 
-      request.log.info('[adminRylsRegistrationController] getRegistrations success');
       return reply.send(successResponse(result, 'Registrations retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] getRegistrations error');
       return reply.status(500).send(errorResponse('Failed to retrieve registrations', 500, error.message));
     }
   };
 
   getRegistrationById = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] getRegistrationById start');
-      request.log.debug({ params: request.params }, '[adminRylsRegistrationController] rawParams');
       const { id } = request.params;
 
       const result = await this.registrationService.getRegistrationById(Number(id));
@@ -49,27 +43,21 @@ export class AdminRylsRegistrationController {
         return reply.status(404).send(errorResponse('Registration not found', 404, 'No registration found with this ID'));
       }
 
-      request.log.info('[adminRylsRegistrationController] getRegistrationById success');
       return reply.send(successResponse(result, 'Registration retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] getRegistrationById error');
       return reply.status(500).send(errorResponse('Failed to retrieve registration', 500, error.message));
     }
   };
 
   updateRegistrationStatus = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] updateRegistrationStatus start');
-      request.log.debug({ params: request.params, body: request.body }, '[adminRylsRegistrationController] raw');
       const { id } = request.params;
       const { status, notes } = request.body;
 
       const result = await this.registrationService.updateRegistrationStatus(Number(id), status, notes);
 
-      request.log.info('[adminRylsRegistrationController] updateRegistrationStatus success');
       return reply.send(successResponse(result, 'Registration status updated successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] updateRegistrationStatus error');
 
       if (error.message.includes('not found')) {
         return reply.status(404).send(errorResponse('Registration not found', 404, error.message));
@@ -81,16 +69,12 @@ export class AdminRylsRegistrationController {
 
   deleteRegistration = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] deleteRegistration start');
-      request.log.debug({ params: request.params }, '[adminRylsRegistrationController] rawParams');
       const { id } = request.params;
 
       await this.registrationService.deleteRegistration(Number(id));
 
-      request.log.info('[adminRylsRegistrationController] deleteRegistration success');
       return reply.send(successResponse(null, 'Registration deleted successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] deleteRegistration error');
 
       if (error.message.includes('not found')) {
         return reply.status(404).send(errorResponse('Registration not found', 404, error.message));
@@ -102,21 +86,16 @@ export class AdminRylsRegistrationController {
 
   getRegistrationStatistics = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] getRegistrationStatistics start');
       const result = await this.registrationService.getRegistrationStatistics();
 
-      request.log.info('[adminRylsRegistrationController] getRegistrationStatistics success');
       return reply.send(successResponse(result, 'Registration statistics retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] getRegistrationStatistics error');
       return reply.status(500).send(errorResponse('Failed to retrieve statistics', 500, error.message));
     }
   };
 
   getRegistrationsByDateRange = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] getRegistrationsByDateRange start');
-      request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
       const { startDate, endDate, page = 1, limit = 50 } = request.query;
 
       if (!startDate || !endDate) {
@@ -130,18 +109,14 @@ export class AdminRylsRegistrationController {
         limit: Number(limit),
       });
 
-      request.log.info('[adminRylsRegistrationController] getRegistrationsByDateRange success');
       return reply.send(successResponse(result, 'Registrations retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] getRegistrationsByDateRange error');
       return reply.status(500).send(errorResponse('Failed to retrieve registrations by date range', 500, error.message));
     }
   };
 
   exportRegistrations = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] exportRegistrations start');
-      request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
 
       const { format = 'csv', startDate, endDate } = request.query;
 
@@ -149,7 +124,6 @@ export class AdminRylsRegistrationController {
 
       const result = await this.registrationService.exportRegistrations(format, filters);
 
-      request.log.info('[adminRylsRegistrationController] exportRegistrations success');
 
       const filename = `registrations_${new Date().toISOString().split('T')[0]}.${format}`;
       reply.header('Content-Disposition', `attachment; filename="${filename}"`);
@@ -157,15 +131,12 @@ export class AdminRylsRegistrationController {
 
       return reply.send(result);
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] exportRegistrations error');
       return reply.status(500).send(errorResponse('Failed to export registrations', 500, error.message));
     }
   };
 
   exportRegistrationsExcel = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] exportRegistrationsExcel start');
-      request.log.debug({ query: request.query }, '[adminRylsRegistrationController] rawQuery');
 
       const result = await this.registrationService.getRegistrations({
         limit: 1000,
@@ -175,7 +146,6 @@ export class AdminRylsRegistrationController {
 
       const excelBuffer = await this.registrationService.generateExcelFile(result.registrations);
 
-      request.log.info('[adminRylsRegistrationController] exportRegistrationsExcel success');
 
       const timestamp = new Date().toISOString().split('T')[0];
       const filename = `ryls-registrations-${timestamp}.xlsx`;
@@ -186,17 +156,14 @@ export class AdminRylsRegistrationController {
 
       return reply.send(excelBuffer);
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] exportRegistrationsExcel error');
       return reply.status(500).send(errorResponse('Failed to export registrations to Excel', 500, error.message));
     }
   };
 
   getDrafts = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] getDrafts start');
       const { page = 1, limit = 20 } = request.query;
       const result = await rylsDraftService.getDrafts({ page: Number(page), limit: Number(limit) });
-      request.log.info('[adminRylsRegistrationController] getDrafts success');
       return reply.send(
         successResponse(
           { drafts: result.data, pagination: { total: result.total, page: Number(page), limit: Number(limit) } },
@@ -204,69 +171,53 @@ export class AdminRylsRegistrationController {
         ),
       );
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] getDrafts error');
       return reply.status(500).send(errorResponse('Failed to retrieve drafts', 500, error.message));
     }
   };
 
   getDraftStats = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] getDraftStats start');
       const result = await rylsDraftService.getDraftStats();
-      request.log.info('[adminRylsRegistrationController] getDraftStats success');
       return reply.send(successResponse(result, 'Draft stats retrieved'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] getDraftStats error');
       return reply.status(500).send(errorResponse('Failed to retrieve draft stats', 500, error.message));
     }
   };
 
   cleanupExpiredDrafts = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] cleanupExpiredDrafts start');
       const count = await rylsDraftService.cleanupExpired();
-      request.log.info({ count }, '[adminRylsRegistrationController] cleanupExpiredDrafts success');
       return reply.send(successResponse({ deleted: count }, 'Expired drafts cleaned up'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] cleanupExpiredDrafts error');
       return reply.status(500).send(errorResponse('Failed to cleanup expired drafts', 500, error.message));
     }
   };
   getAnalyticsSummary = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] getAnalyticsSummary start');
       const { period, startDate, endDate } = request.query;
       const result = await this.registrationService.getAnalyticsSummary({ period, startDate, endDate });
-      request.log.info('[adminRylsRegistrationController] getAnalyticsSummary success');
       return reply.send(successResponse(result, 'Summary retrieved'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] getAnalyticsSummary error');
       return reply.status(500).send(errorResponse('Failed to retrieve analytics summary', 500, error.message));
     }
   };
 
   getAnalyticsTrend = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] getAnalyticsTrend start');
       const { period, startDate, endDate } = request.query;
       const result = await this.registrationService.getAnalyticsTrend({ period, startDate, endDate });
-      request.log.info('[adminRylsRegistrationController] getAnalyticsTrend success');
       return reply.send(successResponse(result, 'Trend retrieved'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] getAnalyticsTrend error');
       return reply.status(500).send(errorResponse('Failed to retrieve analytics trend', 500, error.message));
     }
   };
 
   getAnalyticsDemographics = async (request, reply) => {
     try {
-      request.log.info('[adminRylsRegistrationController] getAnalyticsDemographics start');
       const { period, startDate, endDate } = request.query;
       const result = await this.registrationService.getAnalyticsDemographics({ period, startDate, endDate });
-      request.log.info('[adminRylsRegistrationController] getAnalyticsDemographics success');
       return reply.send(successResponse(result, 'Demographics retrieved'));
     } catch (error) {
-      request.log.error({ err: error }, '[adminRylsRegistrationController] getAnalyticsDemographics error');
       return reply.status(500).send(errorResponse('Failed to retrieve analytics demographics', 500, error.message));
     }
   };

@@ -1,7 +1,7 @@
 import { academyPaymentService } from '../../services/user/academyPaymentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 import prisma from '../../config/database.js';
-import posthog from '../../config/posthog.js';
+import { captureEvent } from '../../config/posthog.js';
 
 export class AcademyPaymentController {
   constructor() {
@@ -9,7 +9,6 @@ export class AcademyPaymentController {
   }
 
   async createTransaction(request, reply) {
-    request.log.info('[academyPaymentController] createTransaction start');
 
     try {
       const userId = request.user.userId;
@@ -17,24 +16,19 @@ export class AcademyPaymentController {
 
       const result = await this.paymentService.createTransaction(userId, academy_id, pricing_id);
 
-      posthog.capture({
-        distinctId: String(userId),
-        event: 'academy_checkout_started',
-        properties: {
-          academy_id,
-          pricing_id,
-          transaction_code: result.transaction_code,
-          amount: result.amount,
-          currency: result.currency,
-        },
+      captureEvent(userId, 'payment.transaction_created', {
+        product_type: 'academy',
+        academy_id,
+        pricing_id,
+        transaction_code: result.transaction_code,
+        amount: result.amount,
+        user_id: userId,
       });
 
-      request.log.info('[academyPaymentController] createTransaction success');
       return reply.status(200).send(
         successResponse(result, 'Payment transaction created successfully'),
       );
     } catch (error) {
-      request.log.error({ err: error }, '[academyPaymentController] createTransaction error');
 
       if (error.message.includes('not found') || error.message.includes('not active')) {
         return reply.status(404).send(errorResponse(error.message, 404));
@@ -51,7 +45,6 @@ export class AcademyPaymentController {
   }
 
   async getPaymentStatus(request, reply) {
-    request.log.info('[academyPaymentController] getPaymentStatus start');
 
     try {
       const userId = request.user.userId;
@@ -63,13 +56,11 @@ export class AcademyPaymentController {
         successResponse(status, 'Payment status retrieved successfully'),
       );
     } catch (error) {
-      request.log.error({ err: error }, '[academyPaymentController] getPaymentStatus error');
       return reply.status(500).send(errorResponse('Failed to get payment status', 500, error.message));
     }
   }
 
   async syncStatus(request, reply) {
-    request.log.info('[academyPaymentController] syncStatus start');
 
     try {
       const userId = request.user.userId;
@@ -79,7 +70,6 @@ export class AcademyPaymentController {
 
       return reply.status(200).send(successResponse(result, 'Transaction status synced'));
     } catch (error) {
-      request.log.error({ err: error }, '[academyPaymentController] syncStatus error');
       if (error.message.includes('not found')) {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
@@ -88,7 +78,6 @@ export class AcademyPaymentController {
   }
 
   async checkEnrollment(request, reply) {
-    request.log.info('[academyPaymentController] checkEnrollment start');
 
     try {
       const userId = request.user.userId;
@@ -100,13 +89,11 @@ export class AcademyPaymentController {
         successResponse(result, 'Enrollment status retrieved'),
       );
     } catch (error) {
-      request.log.error({ err: error }, '[academyPaymentController] checkEnrollment error');
       return reply.status(500).send(errorResponse('Failed to check enrollment', 500, error.message));
     }
   }
 
   async getUserTransactions(request, reply) {
-    request.log.info('[academyPaymentController] getUserTransactions start');
 
     try {
       const userId = request.user.userId;
@@ -160,13 +147,11 @@ export class AcademyPaymentController {
         },
       });
     } catch (error) {
-      request.log.error({ err: error }, '[academyPaymentController] getUserTransactions error');
       return reply.status(500).send(errorResponse('Failed to get transactions', 500, error.message));
     }
   }
 
   async getUserTransactionDetail(request, reply) {
-    request.log.info('[academyPaymentController] getUserTransactionDetail start');
 
     try {
       const userId = request.user.userId;
@@ -211,7 +196,6 @@ export class AcademyPaymentController {
         successResponse(detail, 'Transaction detail retrieved'),
       );
     } catch (error) {
-      request.log.error({ err: error }, '[academyPaymentController] getUserTransactionDetail error');
       return reply.status(500).send(errorResponse('Failed to get transaction detail', 500, error.message));
     }
   }

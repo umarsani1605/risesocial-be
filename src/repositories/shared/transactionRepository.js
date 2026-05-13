@@ -1,14 +1,10 @@
 import prisma from '../../config/database.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 /**
  * TransactionRepository - Layer 1 (Generic Transaction)
  * Provider-agnostic transaction management
  */
 export class TransactionRepository {
-  get logger() {
-    return getLogger();
-  }
 
   /**
    * Create a new transaction record
@@ -16,8 +12,6 @@ export class TransactionRepository {
    * @returns {Promise<Object>} - Created transaction
    */
   async create(data) {
-    this.logger.info('[TransactionRepository] create start');
-    this.logger.debug({ transaction_code: data.transaction_code }, '[TransactionRepository] creating');
 
     try {
       const transaction = await prisma.transaction.create({
@@ -45,10 +39,8 @@ export class TransactionRepository {
         },
       });
 
-      this.logger.info({ id: transaction.id }, '[TransactionRepository] transaction created');
       return transaction;
     } catch (error) {
-      this.logger.error({ err: error }, '[TransactionRepository] create error');
       throw error;
     }
   }
@@ -59,7 +51,6 @@ export class TransactionRepository {
    * @returns {Promise<Object|null>} - Transaction or null
    */
   async findByTransactionCode(transactionCode) {
-    this.logger.info({ transactionCode }, '[TransactionRepository] findByTransactionCode');
 
     try {
       const transaction = await prisma.transaction.findUnique({
@@ -71,10 +62,8 @@ export class TransactionRepository {
         },
       });
 
-      this.logger.info({ found: !!transaction }, '[TransactionRepository] transaction found');
       return transaction;
     } catch (error) {
-      this.logger.error({ err: error }, '[TransactionRepository] findByTransactionCode error');
       throw error;
     }
   }
@@ -86,8 +75,6 @@ export class TransactionRepository {
    * @returns {Promise<Object>} - Updated transaction
    */
   async updateStatus(transactionCode, updateData) {
-    this.logger.info({ transactionCode }, '[TransactionRepository] updateStatus');
-    this.logger.debug({ updateData }, '[TransactionRepository] update data');
 
     try {
       const transaction = await prisma.transaction.update({
@@ -98,10 +85,8 @@ export class TransactionRepository {
         },
       });
 
-      this.logger.info({ id: transaction.id, status: transaction.status }, '[TransactionRepository] status updated');
       return transaction;
     } catch (error) {
-      this.logger.error({ err: error }, '[TransactionRepository] updateStatus error');
       throw error;
     }
   }
@@ -113,7 +98,6 @@ export class TransactionRepository {
    * @returns {Promise<Array>} - Transactions
    */
   async findByProductType(productType, productTypeId) {
-    this.logger.info({ productType, productTypeId }, '[TransactionRepository] findByProductType');
 
     try {
       const transactions = await prisma.transaction.findMany({
@@ -128,10 +112,8 @@ export class TransactionRepository {
         },
       });
 
-      this.logger.info({ count: transactions.length }, '[TransactionRepository] transactions found');
       return transactions;
     } catch (error) {
-      this.logger.error({ err: error }, '[TransactionRepository] findByProductType error');
       throw error;
     }
   }

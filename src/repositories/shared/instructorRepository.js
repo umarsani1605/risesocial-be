@@ -1,6 +1,5 @@
 import prisma from '../../config/database.js';
 import { BaseRepository } from './BaseRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 class InstructorRepository extends BaseRepository {
   constructor() {
@@ -8,12 +7,8 @@ class InstructorRepository extends BaseRepository {
     this.prisma = prisma;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async findManyWithPagination(options = {}) {
-    this.logger.info({ options }, '[instructorRepository] findManyWithPagination called');
     const { page = 1, limit = 10, search, includeAcademies = false } = options;
     const skip = (page - 1) * limit;
 
@@ -38,14 +33,12 @@ class InstructorRepository extends BaseRepository {
         }
       : {};
 
-    this.logger.debug({ whereClause, includeClause }, '[instructorRepository] findManyWithPagination query');
 
     const [instructors, total] = await Promise.all([
       this.findMany({ where: whereClause, include: includeClause, orderBy: { created_at: 'desc' }, skip, take: limit }),
       this.count(whereClause),
     ]);
 
-    this.logger.debug({ instructorsCount: instructors.length, total }, '[instructorRepository] findManyWithPagination results');
 
     return {
       data: instructors,
@@ -54,7 +47,6 @@ class InstructorRepository extends BaseRepository {
   }
 
   async findByIdWithAcademies(id, includeAcademies = false) {
-    this.logger.info({ id, includeAcademies }, '[instructorRepository] findByIdWithAcademies called');
     const includeClause = includeAcademies
       ? {
           academy_instructors: {
@@ -72,22 +64,18 @@ class InstructorRepository extends BaseRepository {
   }
 
   async findByName(name) {
-    this.logger.info({ name }, '[instructorRepository] findByName called');
     return this.findMany({ where: { name: { contains: name, mode: 'insensitive' } }, orderBy: { name: 'asc' } });
   }
 
   async findByJobTitle(jobTitle) {
-    this.logger.info({ jobTitle }, '[instructorRepository] findByJobTitle called');
     return this.findMany({ where: { job_title: { contains: jobTitle, mode: 'insensitive' } }, orderBy: { name: 'asc' } });
   }
 
   async findAvailableForAcademy(academyId) {
-    this.logger.info({ academyId }, '[instructorRepository] findAvailableForAcademy called');
     return this.findMany({ where: { academy_instructors: { none: { academy_id: academyId } } }, orderBy: { name: 'asc' } });
   }
 
   async findByAcademyId(academyId) {
-    this.logger.info({ academyId }, '[instructorRepository] findByAcademyId called');
     const academyInstructors = await this.prisma.academyInstructor.findMany({
       where: { academy_id: academyId },
       include: { instructor: true },
@@ -98,7 +86,6 @@ class InstructorRepository extends BaseRepository {
   }
 
   async findAcademiesByInstructorId(instructorId) {
-    this.logger.info({ instructorId }, '[instructorRepository] findAcademiesByInstructorId called');
     const academyInstructors = await this.prisma.academyInstructor.findMany({
       where: { instructor_id: instructorId },
       include: { academy: true },
@@ -109,7 +96,6 @@ class InstructorRepository extends BaseRepository {
   }
 
   async findPopularInstructors(limit = 10) {
-    this.logger.info({ limit }, '[instructorRepository] findPopularInstructors called');
     return this.findMany({
       include: { academy_instructors: { include: { academy: { select: { id: true, title: true, status: true } } } } },
       orderBy: { created_at: 'desc' },
@@ -118,7 +104,6 @@ class InstructorRepository extends BaseRepository {
   }
 
   async getInstructorStats() {
-    this.logger.info('[instructorRepository] getInstructorStats called');
     const [totalInstructors, instructorsWithAvatar, instructorsWithDescription, instructorsWithJobTitle, totalAcademyAssociations] =
       await Promise.all([
         this.count(),
@@ -154,7 +139,6 @@ class InstructorRepository extends BaseRepository {
   }
 
   async createInstructor(data) {
-    this.logger.info('[instructorRepository] createInstructor called');
     const existingInstructor = await this.findFirst({ where: { name: data.name } });
     if (existingInstructor) {
       throw new Error('Instructor dengan nama tersebut sudah ada');
@@ -163,7 +147,6 @@ class InstructorRepository extends BaseRepository {
   }
 
   async updateInstructor(id, data) {
-    this.logger.info({ id }, '[instructorRepository] updateInstructor called');
     const instructor = await this.findById(id);
     if (!instructor) {
       throw new Error('Instructor tidak ditemukan');
@@ -180,7 +163,6 @@ class InstructorRepository extends BaseRepository {
   }
 
   async deleteInstructor(id) {
-    this.logger.info({ id }, '[instructorRepository] deleteInstructor called');
     const instructor = await this.findById(id);
     if (!instructor) {
       throw new Error('Instructor tidak ditemukan');

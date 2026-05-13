@@ -1,6 +1,5 @@
 import prisma from '../../config/database.js';
 import { BaseRepository } from '../shared/BaseRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 class UserTestimonialsRepository extends BaseRepository {
   constructor() {
@@ -8,13 +7,8 @@ class UserTestimonialsRepository extends BaseRepository {
     this.prisma = prisma;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async findMany(filters = {}, page = undefined, limit = undefined, sortBy = 'createdAt', sortOrder = 'desc') {
-    this.logger.info('[userTestimonialsRepository] findMany start');
-    this.logger.debug({ filters, page, limit, sortBy, sortOrder }, '[userTestimonialsRepository] rawOptions');
     try {
       const whereClause = {};
       if (filters.status) whereClause.status = filters.status;
@@ -51,29 +45,23 @@ class UserTestimonialsRepository extends BaseRepository {
           testimonials,
           pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page < Math.ceil(total / limit), hasPrev: page > 1 },
         };
-        this.logger.info('[userTestimonialsRepository] findMany success (paginated)');
         return result;
       } else {
         const testimonials = await this.prisma.testimonial.findMany({ where: whereClause, orderBy });
 
         const result = { testimonials };
-        this.logger.info('[userTestimonialsRepository] findMany success (all)');
         return result;
       }
     } catch (error) {
-      this.logger.error({ err: error }, '[userTestimonialsRepository] findMany error');
       throw new Error(`Failed to fetch testimonials: ${error.message}`);
     }
   }
 
   async findById(id) {
-    this.logger.info({ id }, '[userTestimonialsRepository] findById start');
     try {
       const testimonial = await this.prisma.testimonial.findUnique({ where: { id: parseInt(id) } });
-      this.logger.info({ found: !!testimonial }, '[userTestimonialsRepository] findById success');
       return testimonial;
     } catch (error) {
-      this.logger.error({ err: error }, '[userTestimonialsRepository] findById error');
       throw new Error(`Failed to find testimonial by ID: ${error.message}`);
     }
   }

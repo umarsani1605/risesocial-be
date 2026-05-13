@@ -1,10 +1,8 @@
 import { adminService } from '../services/admin/adminService.js';
 import { successResponse, errorResponse } from '../utils/response.js';
-import { getLogger } from '../utils/loggerContext.js';
 
 export class AdminController {
   constructor() {
-    this.logger = getLogger();
   }
 
   async uploadImage(request, reply) {
@@ -26,7 +24,6 @@ export class AdminController {
         data: result,
       });
     } catch (error) {
-      this.logger.error('Upload image error:', error);
       return reply.status(500).json({
         success: false,
         message: error.message || 'Failed to upload image',

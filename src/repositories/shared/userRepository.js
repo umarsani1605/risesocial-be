@@ -1,42 +1,31 @@
 import prisma from '../../config/database.js';
 import { BaseRepository } from './BaseRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class UserRepository extends BaseRepository {
   constructor() {
     super(prisma.user);
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async findByEmail(email, options = {}) {
-    this.logger.info({ email }, '[userRepository] findByEmail start');
     try {
       const user = await this.model.findUnique({ where: { email }, ...options });
-      this.logger.info({ found: !!user }, '[userRepository] findByEmail success');
       return user;
     } catch (error) {
-      this.logger.error({ err: error }, '[userRepository] findByEmail error');
       throw error;
     }
   }
 
   async findByUsername(username, options = {}) {
-    this.logger.info({ username }, '[userRepository] findByUsername start');
     try {
       const user = await this.model.findUnique({ where: { username }, ...options });
-      this.logger.info({ found: !!user }, '[userRepository] findByUsername success');
       return user;
     } catch (error) {
-      this.logger.error({ err: error }, '[userRepository] findByUsername error');
       throw error;
     }
   }
 
   async createWithSettings(userData) {
-    this.logger.info('[userRepository] createWithSettings start');
     try {
       const result = await prisma.$transaction(async (tx) => {
         const user = await tx.user.create({ data: userData, include: { user_settings: true } });
@@ -55,20 +44,16 @@ export class UserRepository extends BaseRepository {
           },
         });
 
-        this.logger.info({ id: user.id }, '[userRepository] default notification preferences created');
         return user;
       });
 
-      this.logger.info({ id: result.id }, '[userRepository] createWithSettings success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[userRepository] createWithSettings error');
       throw error;
     }
   }
 
   async findManyWithPagination(options = {}) {
-    this.logger.info({ options }, '[userRepository] findManyWithPagination start');
     try {
       const { page, limit, role, search, id } = options;
 
@@ -108,21 +93,17 @@ export class UserRepository extends BaseRepository {
         };
       }
 
-      this.logger.info('[userRepository] findManyWithPagination success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[userRepository] findManyWithPagination error');
       throw error;
     }
   }
 
   async usernameExists(username) {
-    this.logger.debug({ username }, '[userRepository] usernameExists');
     return await this.exists({ username });
   }
 
   async emailExists(email) {
-    this.logger.debug({ email }, '[userRepository] emailExists');
     return await this.exists({ email });
   }
 }

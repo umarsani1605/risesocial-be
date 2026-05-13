@@ -1,6 +1,6 @@
 import { rylsRegistrationService } from '../../services/user/rylsRegistrationService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
-import posthog from '../../config/posthog.js';
+import { captureEvent } from '../../config/posthog.js';
 
 export class UserRylsRegistrationController {
   constructor() {
@@ -9,8 +9,6 @@ export class UserRylsRegistrationController {
 
   createRegistration = async (request, reply) => {
     try {
-      request.log.info('[userRylsRegistrationController] createRegistration start');
-      request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
       const formData = request.body;
 
       if (!formData.step1) {
@@ -19,20 +17,13 @@ export class UserRylsRegistrationController {
 
       const result = await this.registrationService.createRegistration(formData);
 
-      const email = formData.step1?.email;
-      posthog.capture({
-        distinctId: email || String(result.id || 'anonymous'),
-        event: 'ryls_registration_created',
-        properties: {
-          registration_id: result.id,
-          email,
-        },
+      const distinctId = result.id ?? `anon:${formData.step1?.email || 'unknown'}`;
+      captureEvent(distinctId, 'ryls.registration_created', {
+        registration_id: result.id,
       });
 
-      request.log.info('[userRylsRegistrationController] createRegistration success');
       return reply.status(201).send(successResponse(result, 'Registration created successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userRylsRegistrationController] createRegistration error');
 
       if (error.message.includes('Missing required fields') || error.message.includes('Invalid')) {
         return reply.status(400).send(errorResponse('Validation failed', 400, error.message));
@@ -44,8 +35,6 @@ export class UserRylsRegistrationController {
 
   submitRegistration = async (request, reply) => {
     try {
-      request.log.info('[userRylsRegistrationController] submitRegistration start');
-      request.log.debug({ body: request.body }, '[userRylsRegistrationController] rawBody');
       const formData = request.body;
 
       if (!formData.step1) {
@@ -54,20 +43,13 @@ export class UserRylsRegistrationController {
 
       const result = await this.registrationService.submitRegistration(formData);
 
-      const email = formData.step1?.email;
-      posthog.capture({
-        distinctId: email || String(result.id || 'anonymous'),
-        event: 'ryls_registration_submitted',
-        properties: {
-          registration_id: result.id,
-          email,
-        },
+      const distinctId = result.id ?? `anon:${formData.step1?.email || 'unknown'}`;
+      captureEvent(distinctId, 'ryls.registration_submitted', {
+        registration_id: result.id,
       });
 
-      request.log.info('[userRylsRegistrationController] submitRegistration success');
       return reply.status(201).send(successResponse(result, 'Registration submitted successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userRylsRegistrationController] submitRegistration error');
 
       if (error.message.includes('Missing required fields') || error.message.includes('Invalid')) {
         return reply.status(400).send(errorResponse('Validation failed', 400, error.message));
@@ -79,8 +61,6 @@ export class UserRylsRegistrationController {
 
   getRegistrationBySubmissionId = async (request, reply) => {
     try {
-      request.log.info('[userRylsRegistrationController] getRegistrationBySubmissionId start');
-      request.log.debug({ params: request.params }, '[userRylsRegistrationController] rawParams');
       const { submissionId } = request.params;
 
       if (!submissionId) {
@@ -93,18 +73,14 @@ export class UserRylsRegistrationController {
         return reply.status(404).send(errorResponse('Registration not found', 404, 'No registration found with this submission ID'));
       }
 
-      request.log.info('[userRylsRegistrationController] getRegistrationBySubmissionId success');
       return reply.send(successResponse(result, 'Registration retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userRylsRegistrationController] getRegistrationBySubmissionId error');
       return reply.status(500).send(errorResponse('Failed to retrieve registration', 500, error.message));
     }
   };
 
   checkEmailExists = async (request, reply) => {
     try {
-      request.log.info('[userRylsRegistrationController] checkEmailExists start');
-      request.log.debug({ params: request.params }, '[userRylsRegistrationController] rawParams');
       const { email } = request.params;
 
       if (!email) {
@@ -113,23 +89,18 @@ export class UserRylsRegistrationController {
 
       const result = await this.registrationService.checkEmailExists(email);
 
-      request.log.info('[userRylsRegistrationController] checkEmailExists success');
       return reply.send(successResponse(result, 'Email check completed'));
     } catch (error) {
-      request.log.error({ err: error }, '[userRylsRegistrationController] checkEmailExists error');
       return reply.status(500).send(errorResponse('Failed to check email', 500, error.message));
     }
   };
 
   healthCheck = async (request, reply) => {
     try {
-      request.log.info('[userRylsRegistrationController] healthCheck start');
       const result = await this.registrationService.healthCheck();
 
-      request.log.info('[userRylsRegistrationController] healthCheck success');
       return reply.send(successResponse(result, 'Registration service is healthy'));
     } catch (error) {
-      request.log.error({ err: error }, '[userRylsRegistrationController] healthCheck error');
       return reply.status(500).send(errorResponse('Registration service health check failed', 500, error.message));
     }
   };

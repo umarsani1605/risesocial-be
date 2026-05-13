@@ -1,7 +1,6 @@
 import { rylsRegistrationRepository } from '../../repositories/user/rylsRegistrationRepository.js';
 import { fileUploadService } from '../shared/fileUploadService.js';
 import { rylsDraftService } from '../rylsDraftService.js';
-import { getLogger } from '../../utils/loggerContext.js';
 import { periodToDateRange } from '../../utils/periodToDateRange.js';
 
 export class RylsRegistrationService {
@@ -10,16 +9,12 @@ export class RylsRegistrationService {
     this.fileUploadService = fileUploadService;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   getBaseUrl() {
     return process.env.BACKEND_URL;
   }
 
   async submitRegistration(formData) {
-    this.logger.info('[rylsRegistrationService] submitRegistration start');
     const scholarshipType = formData.step1?.scholarshipType;
 
     let result;
@@ -49,9 +44,7 @@ export class RylsRegistrationService {
     if (formData.resumeToken) {
       try {
         await rylsDraftService.deleteDraft(formData.resumeToken);
-        this.logger.info('[rylsRegistrationService] submitRegistration draft cleaned up');
       } catch (err) {
-        this.logger.warn({ err }, '[rylsRegistrationService] submitRegistration draft cleanup failed (non-blocking)');
       }
     }
 
@@ -59,7 +52,6 @@ export class RylsRegistrationService {
   }
 
   async submitFullyFundedRegistration(formData) {
-    this.logger.info('[rylsRegistrationService] submitFullyFundedRegistration start');
     try {
       const { registration, submission } = await this.registrationRepository.createFullyFundedFlow({
         step1: formData.step1,
@@ -82,16 +74,13 @@ export class RylsRegistrationService {
         },
       };
 
-      this.logger.info('[rylsRegistrationService] submitFullyFundedRegistration success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] submitFullyFundedRegistration error');
       throw error;
     }
   }
 
   async submitSelfFundedRegistration(formData) {
-    this.logger.info('[rylsRegistrationService] submitSelfFundedRegistration start');
     try {
       const { registration, submission } = await this.registrationRepository.createSelfFundedFlow({
         step1: formData.step1,
@@ -116,56 +105,43 @@ export class RylsRegistrationService {
         },
       };
 
-      this.logger.info('[rylsRegistrationService] submitSelfFundedRegistration success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] submitSelfFundedRegistration error');
       throw error;
     }
   }
 
   async getRegistrationBySubmissionId(submissionId) {
-    this.logger.info({ submissionId }, '[rylsRegistrationService] getRegistrationBySubmissionId start');
     try {
       const registration = await this.registrationRepository.findBySubmissionId(submissionId);
-      this.logger.info('[rylsRegistrationService] getRegistrationBySubmissionId success');
       return registration || null;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationBySubmissionId error');
       throw new Error('Failed to retrieve registration');
     }
   }
 
   async getRegistrationById(id) {
-    this.logger.info({ id }, '[rylsRegistrationService] getRegistrationById start');
     try {
       const registration = await this.registrationRepository.findByIdWithRelations(id);
-      this.logger.info('[rylsRegistrationService] getRegistrationById success');
       return registration || null;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationById error');
       throw new Error('Failed to retrieve registration');
     }
   }
 
   async getRegistrations(options = {}) {
-    this.logger.info('[rylsRegistrationService] getRegistrations start');
-    this.logger.debug({ options }, '[rylsRegistrationService] rawOptions');
     try {
       // Flatten nested filters from admin controller: { page, limit, filters: {}, sortBy, sortOrder }
       const { page, limit, filters = {}, sortBy, sortOrder } = options;
       const repoOptions = { page, limit, sortBy, sortOrder, ...filters };
       const result = await this.registrationRepository.getRegistrations(repoOptions);
-      this.logger.info('[rylsRegistrationService] getRegistrations success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrations error');
       throw new Error('Failed to retrieve registrations');
     }
   }
 
   async getRegistrationStatistics() {
-    this.logger.info('[rylsRegistrationService] getRegistrationStatistics start');
     try {
       const [basicStats, nationalityStats, sourceStats] = await Promise.all([
         this.registrationRepository.getRegistrationStats(),
@@ -182,28 +158,22 @@ export class RylsRegistrationService {
         generatedAt: new Date().toISOString(),
       };
 
-      this.logger.info('[rylsRegistrationService] getRegistrationStatistics success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationStatistics error');
       throw new Error('Failed to retrieve registration statistics');
     }
   }
 
   async getRegistrationsByDateRange({ startDate, endDate, page, limit } = {}) {
-    this.logger.info({ startDate, endDate }, '[rylsRegistrationService] getRegistrationsByDateRange start');
     try {
       const registrations = await this.registrationRepository.getRegistrationsByDateRange(startDate, endDate, { page, limit });
-      this.logger.info('[rylsRegistrationService] getRegistrationsByDateRange success');
       return registrations;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] getRegistrationsByDateRange error');
       throw new Error('Failed to retrieve registrations by date range');
     }
   }
 
   async deleteRegistration(id) {
-    this.logger.info({ id }, '[rylsRegistrationService] deleteRegistration start');
     try {
       const registration = await this.registrationRepository.findByIdWithRelations(id);
 
@@ -225,33 +195,26 @@ export class RylsRegistrationService {
 
       await this.registrationRepository.deleteRegistration(id);
 
-      this.logger.info('[rylsRegistrationService] deleteRegistration success');
       return true;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] deleteRegistration error');
       throw error;
     }
   }
 
   async checkEmailExists(email) {
-    this.logger.info({ email }, '[rylsRegistrationService] checkEmailExists start');
     try {
       const exists = await this.registrationRepository.emailExists(email);
-      this.logger.info('[rylsRegistrationService] checkEmailExists success');
       return { exists };
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] checkEmailExists error');
       throw new Error('Failed to check email');
     }
   }
 
   async healthCheck() {
-    this.logger.info('[rylsRegistrationService] healthCheck start');
     return { status: 'ok', timestamp: new Date().toISOString() };
   }
 
   async exportRegistrations(format = 'csv', filters = {}) {
-    this.logger.info('[rylsRegistrationService] exportRegistrations start');
     try {
       const { registrations } = await this.registrationRepository.getRegistrations({
         limit: 10000,
@@ -290,16 +253,13 @@ export class RylsRegistrationService {
           .join(','),
       );
 
-      this.logger.info('[rylsRegistrationService] exportRegistrations success');
       return [headers.join(','), ...rows].join('\n');
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] exportRegistrations error');
       throw new Error('Failed to export registrations');
     }
   }
 
   async generateExcelFile(registrations) {
-    this.logger.info('[rylsRegistrationService] generateExcelFile start');
     try {
       const XLSX = await import('xlsx');
 
@@ -327,10 +287,8 @@ export class RylsRegistrationService {
 
       const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
-      this.logger.info('[rylsRegistrationService] generateExcelFile success');
       return excelBuffer;
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] generateExcelFile error');
       throw new Error('Failed to generate Excel file');
     }
   }
@@ -468,7 +426,6 @@ export class RylsRegistrationService {
   }
 
   async getAnalyticsSummary({ period, startDate, endDate } = {}) {
-    this.logger.info('[rylsRegistrationService] getAnalyticsSummary start');
     try {
       const range = periodToDateRange(period, startDate, endDate);
       const whereClause = range.start ? { created_at: { gte: range.start, lte: range.end } } : {};
@@ -478,16 +435,13 @@ export class RylsRegistrationService {
         rylsDraftService.repo.model.count({ where: { expires_at: { gte: new Date() } } }),
       ]);
 
-      this.logger.info('[rylsRegistrationService] getAnalyticsSummary success');
       return { submitted, drafts };
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] getAnalyticsSummary error');
       throw new Error('Failed to retrieve analytics summary');
     }
   }
 
   async getAnalyticsTrend({ period, startDate, endDate } = {}) {
-    this.logger.info('[rylsRegistrationService] getAnalyticsTrend start');
     try {
       const effectivePeriod = period ?? '1m';
       const range = periodToDateRange(effectivePeriod, startDate, endDate);
@@ -505,16 +459,13 @@ export class RylsRegistrationService {
         byDate[day] = (byDate[day] ?? 0) + 1;
       }
 
-      this.logger.info('[rylsRegistrationService] getAnalyticsTrend success');
       return Object.entries(byDate).map(([date, count]) => ({ date, count }));
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] getAnalyticsTrend error');
       throw new Error('Failed to retrieve analytics trend');
     }
   }
 
   async getAnalyticsDemographics({ period, startDate, endDate } = {}) {
-    this.logger.info('[rylsRegistrationService] getAnalyticsDemographics start');
     try {
       const range = periodToDateRange(period, startDate, endDate);
       const whereClause = range.start ? { created_at: { gte: range.start, lte: range.end } } : {};
@@ -560,7 +511,6 @@ export class RylsRegistrationService {
         else ageBuckets['30+']++;
       }
 
-      this.logger.info('[rylsRegistrationService] getAnalyticsDemographics success');
       return {
         byNationality: nationalityGroups.slice(0, 10).map((n) => ({ name: n.nationality, count: n._count.id })),
         byDiscoverSource: sourceGroups.map((s) => ({ name: s.discover_source, count: s._count.id })),
@@ -569,7 +519,6 @@ export class RylsRegistrationService {
         byScholarshipType: scholarshipGroups.map((s) => ({ name: s.scholarship_type, count: s._count.id })),
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[rylsRegistrationService] getAnalyticsDemographics error');
       throw new Error('Failed to retrieve analytics demographics');
     }
   }

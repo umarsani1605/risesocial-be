@@ -1,18 +1,14 @@
 import { userService } from '../../services/shared/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
-import posthog from '../../config/posthog.js';
+import { captureEvent } from '../../config/posthog.js';
 
 export class UserController {
   getCurrentUser = async (request, reply) => {
     try {
-      request.log.info('[userUserController] getCurrentUser start');
       const { userId } = request.user;
-      request.log.debug({ userId }, '[userUserController] jwtUser');
       const user = await userService.getCurrentUser(userId);
-      request.log.info('[userUserController] getCurrentUser success');
       return reply.send(successResponse(user, 'User profile retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userUserController] getCurrentUser error');
 
       if (error.statusCode === 404) {
         return reply.status(404).send(errorResponse(error.message, 404));
@@ -24,21 +20,16 @@ export class UserController {
 
   getUserSettings = async (request, reply) => {
     try {
-      request.log.info('[userUserController] getUserSettings start');
       const { userId } = request.user;
       const settings = await userService.getUserSettings(userId);
-      request.log.info('[userUserController] getUserSettings success');
       return reply.send(successResponse(settings, 'User settings retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userUserController] getUserSettings error');
       return reply.status(500).send(errorResponse('Failed to fetch user settings', 500, error.message));
     }
   };
 
   updateUserSettings = async (request, reply) => {
     try {
-      request.log.info('[userUserController] updateUserSettings start');
-      request.log.debug({ body: request.body }, '[userUserController] rawBody');
       const { userId } = request.user;
       const { settings } = request.body;
 
@@ -47,21 +38,17 @@ export class UserController {
       }
 
       const updatedSettings = await userService.updateUserSettings(userId, settings);
-      request.log.info('[userUserController] updateUserSettings success');
       return reply.send(successResponse(updatedSettings, 'Settings updated successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userUserController] updateUserSettings error');
       return reply.status(500).send(errorResponse('Failed to update settings', 500, error.message));
     }
   };
 
   getNotificationPreferences = async (request, reply) => {
     try {
-      request.log.info('[userUserController] getNotificationPreferences start');
       const { userId } = request.user;
 
       const preferences = await userService.getNotificationPreferences(userId);
-      request.log.info({ preferences }, '[userUserController] getNotificationPreferences - preferences received');
 
       // Ensure preferences is a plain object for serialization
       const plainPreferences = {
@@ -70,19 +57,14 @@ export class UserController {
         program_notification: preferences.program_notification,
       };
 
-      request.log.info({ plainPreferences }, '[userUserController] getNotificationPreferences - plain preferences');
-      request.log.info('[userUserController] getNotificationPreferences success');
       return reply.send(successResponse(plainPreferences, 'Notification preferences retrieved successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userUserController] getNotificationPreferences error');
       return reply.status(500).send(errorResponse('Failed to get notification preferences', 500, error.message));
     }
   };
 
   updateNotificationPreferences = async (request, reply) => {
     try {
-      request.log.info('[userUserController] updateNotificationPreferences start');
-      request.log.debug({ body: request.body }, '[userUserController] rawBody');
       const { userId } = request.user;
       const { preferences } = request.body;
 
@@ -99,42 +81,31 @@ export class UserController {
         program_notification: updatedPreferences.program_notification,
       };
 
-      request.log.info('[userUserController] updateNotificationPreferences success');
       return reply.send(successResponse(plainPreferences, 'Notification preferences updated successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userUserController] updateNotificationPreferences error');
       return reply.status(500).send(errorResponse('Failed to update notification preferences', 500, error.message));
     }
   };
 
   updateUserAccount = async (request, reply) => {
     try {
-      request.log.info('[userUserController] updateUserAccount start');
-      request.log.debug({ body: request.body }, '[userUserController] rawBody');
       const { userId } = request.user;
       const accountData = request.body || {};
 
       if (request.uploadedFile) {
         accountData.avatarFile = request.uploadedFile;
-        request.log.info({ uploadedFile: request.uploadedFile }, '[userUserController] user avatar file received from middleware');
       } else {
-        request.log.info('[userUserController] no uploaded file found');
       }
 
       const updatedUser = await userService.updateUserAccount(userId, accountData);
 
-      posthog.capture({
-        distinctId: String(userId),
-        event: 'user_account_updated',
-        properties: {
-          has_avatar_change: !!accountData.avatarFile || accountData.avatar === null,
-        },
+      captureEvent(userId, 'user.account_updated', {
+        user_id: userId,
+        has_avatar_change: !!accountData.avatarFile || accountData.avatar === null,
       });
 
-      request.log.info('[userUserController] updateUserAccount success');
       return reply.send(successResponse(updatedUser, 'Account updated successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userUserController] updateUserAccount error');
 
       if (error.statusCode === 400) {
         return reply.status(400).send(errorResponse(error.message, 400));
@@ -146,8 +117,6 @@ export class UserController {
 
   updateUserPassword = async (request, reply) => {
     try {
-      request.log.info('[userUserController] updateUserPassword start');
-      request.log.debug({ body: request.body }, '[userUserController] rawBody');
       const { userId } = request.user;
       const { password, repeatPassword } = request.body;
 
@@ -161,15 +130,10 @@ export class UserController {
 
       await userService.updateUserPassword(userId, password);
 
-      posthog.capture({
-        distinctId: String(userId),
-        event: 'user_password_changed',
-      });
+      captureEvent(userId, 'user.password_changed', { user_id: userId });
 
-      request.log.info('[userUserController] updateUserPassword success');
       return reply.send(successResponse(null, 'Password updated successfully'));
     } catch (error) {
-      request.log.error({ err: error }, '[userUserController] updateUserPassword error');
       return reply.status(500).send(errorResponse('Failed to update password', 500, error.message));
     }
   };

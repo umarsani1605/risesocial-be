@@ -1,21 +1,14 @@
 import { jobsRepository } from '../../repositories/shared/jobsRepository.js';
 import { linkedInJobSearch } from '../../integrations/linkedinJobSearch.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class JobsService {
-  get logger() {
-    return getLogger();
-  }
 
   async searchJobs(options = {}) {
-    this.logger.info('[jobsService] searchJobs start');
     const result = await jobsRepository.searchJobs(options);
-    this.logger.info('[jobsService] searchJobs success');
     return result;
   }
 
   async getJobsForAdmin(options = {}) {
-    this.logger.info('[jobsService] getJobsForAdmin start');
     const { status = 'all', ...otherOptions } = options;
 
     const searchOptions = {
@@ -27,11 +20,9 @@ export class JobsService {
     }
 
     const result = await jobsRepository.searchJobs(searchOptions);
-    this.logger.info('[jobsService] getJobsForAdmin success');
     return result;
   }
   async getJobsForAdmin(options = {}) {
-    this.logger.info('[jobsService] getJobsForAdmin start');
     const { status = 'all', ...otherOptions } = options;
 
     const searchOptions = {
@@ -43,7 +34,6 @@ export class JobsService {
     }
 
     const result = await jobsRepository.searchJobs(searchOptions);
-    this.logger.info('[jobsService] getJobsForAdmin success');
     return result;
   }
 
@@ -298,7 +288,6 @@ export class JobsService {
   }
 
   async getJobCategories() {
-    this.logger.info('[jobsService] getJobCategories start');
     const categories = await jobsRepository.model.findMany({
       select: { employment_type: true },
       distinct: ['employment_type'],
@@ -309,13 +298,11 @@ export class JobsService {
       .map((job) => job.employment_type)
       .filter(Boolean)
       .sort();
-    this.logger.info('[jobsService] getJobCategories success');
     return uniqueCategories;
   }
 
   async syncJobsFromLinkedIn(options = {}) {
     try {
-      this.logger.info('[jobsService] sync start');
       const searchResult = await linkedInJobSearch.searchJobs(options);
 
       if (!searchResult.success) {
@@ -444,11 +431,9 @@ export class JobsService {
             await jobsRepository.createJobAIInsights({ job_id: job.id, ...aiPayload });
           }
         } catch (aiErr) {
-          this.logger.error({ err: aiErr }, '[jobsService] save AI insights failed');
         }
       }
 
-      this.logger.info('[jobsService] sync done');
       return {
         success: true,
         message: 'LinkedIn sync successful',
@@ -457,19 +442,15 @@ export class JobsService {
         skippedJobs: skippedCount,
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[jobsService] sync failed');
       throw error;
     }
   }
 
   async getCompanies(options = {}) {
-    this.logger.info('[jobsService] getCompanies start');
     try {
       const result = await jobsRepository.searchCompanies(options);
-      this.logger.info('[jobsService] getCompanies success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[jobsService] getCompanies error');
       throw error;
     }
   }

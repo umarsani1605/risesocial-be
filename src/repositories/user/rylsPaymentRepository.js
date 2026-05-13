@@ -1,5 +1,4 @@
 import prisma from '../../config/database.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 /**
  * RylsPaymentRepository - Layer 3 (Business-Specific)
@@ -7,9 +6,6 @@ import { getLogger } from '../../utils/loggerContext.js';
  * Updated for 3-layer architecture
  */
 export class RylsPaymentRepository {
-  get logger() {
-    return getLogger();
-  }
 
   /**
    * Create RYLS payment record (links to transaction)
@@ -17,7 +13,6 @@ export class RylsPaymentRepository {
    * @returns {Promise<Object>}
    */
   async create(data) {
-    this.logger.info('[RylsPaymentRepository] create start');
 
     try {
       const rylsPayment = await prisma.rylsPayment.create({
@@ -35,10 +30,8 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ id: rylsPayment.id }, '[RylsPaymentRepository] created');
       return rylsPayment;
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentRepository] create error');
       throw error;
     }
   }
@@ -49,7 +42,6 @@ export class RylsPaymentRepository {
    * @returns {Promise<Object|null>}
    */
   async findByTransactionId(transactionId) {
-    this.logger.info({ transactionId }, '[RylsPaymentRepository] findByTransactionId');
 
     try {
       const payment = await prisma.rylsPayment.findUnique({
@@ -66,10 +58,8 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ found: !!payment }, '[RylsPaymentRepository] found');
       return payment;
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentRepository] findByTransactionId error');
       throw error;
     }
   }
@@ -80,7 +70,6 @@ export class RylsPaymentRepository {
    * @returns {Promise<Array>}
    */
   async findByRegistrationId(registrationId) {
-    this.logger.info({ registrationId }, '[RylsPaymentRepository] findByRegistrationId');
 
     try {
       const payments = await prisma.rylsPayment.findMany({
@@ -97,10 +86,8 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ count: payments.length }, '[RylsPaymentRepository] payments found');
       return payments;
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentRepository] findByRegistrationId error');
       throw error;
     }
   }
@@ -112,7 +99,6 @@ export class RylsPaymentRepository {
    * @returns {Promise<Object>}
    */
   async updateStatus(id, status) {
-    this.logger.info({ id, status }, '[RylsPaymentRepository] updateStatus');
 
     try {
       const updated = await prisma.rylsPayment.update({
@@ -123,10 +109,8 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info('[RylsPaymentRepository] status updated');
       return updated;
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentRepository] updateStatus error');
       throw error;
     }
   }
@@ -137,7 +121,6 @@ export class RylsPaymentRepository {
    * @returns {Promise<Object|null>}
    */
   async findByTransactionCode(transactionCode) {
-    this.logger.info({ transactionCode }, '[RylsPaymentRepository] findByTransactionCode');
 
     try {
       const payment = await prisma.rylsPayment.findFirst({
@@ -158,10 +141,8 @@ export class RylsPaymentRepository {
         },
       });
 
-      this.logger.info({ found: !!payment }, '[RylsPaymentRepository] found');
       return payment;
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentRepository] findByTransactionCode error');
       throw error;
     }
   }
@@ -173,7 +154,6 @@ export class RylsPaymentRepository {
    * @returns {Promise<number>} Next sequence number
    */
   async getNextSequenceNumber(tx) {
-    this.logger.info('[RylsPaymentRepository] getNextSequenceNumber');
 
     try {
       const lastPayment = await tx.rylsPayment.findFirst({
@@ -182,10 +162,8 @@ export class RylsPaymentRepository {
       });
 
       const sequence = lastPayment ? lastPayment.id + 1 : 1;
-      this.logger.info({ sequence }, '[RylsPaymentRepository] sequence number');
       return sequence;
     } catch (error) {
-      this.logger.error({ err: error }, '[RylsPaymentRepository] getNextSequenceNumber error');
       throw error;
     }
   }

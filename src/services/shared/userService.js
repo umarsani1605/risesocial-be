@@ -4,7 +4,6 @@ import { userSettingsRepository } from '../../repositories/shared/userSettingsRe
 import { fileUploadService } from './fileUploadService.js';
 import { emailService } from './emailService.js';
 import { generateToken } from '../../utils/jwt.js';
-import { getLogger } from '../../utils/loggerContext.js';
 import prisma from '../../config/database.js';
 
 export class UserService {
@@ -14,25 +13,18 @@ export class UserService {
     this.fileUploadService = fileUploadService;
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async exportAllForExcel(params = {}) {
-    this.logger.info('[userService] exportAllForExcel start');
     try {
       const result = await userRepository.findManyWithPagination({ ...params, limit: 10000 });
       result.data = result.data.map((user) => this.excludePassword(user));
-      this.logger.info('[userService] exportAllForExcel success');
       return result.data;
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] exportAllForExcel error');
       throw error;
     }
   }
 
   async generateExcelFile(users) {
-    this.logger.info('[userService] generateExcelFile start');
     try {
       const XLSX = await import('xlsx');
       const workbook = XLSX.utils.book_new();
@@ -41,10 +33,8 @@ export class UserService {
       sheet['!cols'] = this._calculateColumnWidths(sheetData);
       XLSX.utils.book_append_sheet(workbook, sheet, 'Users');
       const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-      this.logger.info('[userService] generateExcelFile success');
       return buffer;
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] generateExcelFile error');
       throw new Error('Failed to generate Excel file');
     }
   }
@@ -90,31 +80,25 @@ export class UserService {
   }
 
   async getAllUsers(options = {}) {
-    this.logger.info('[userService] getAllUsers start');
     try {
       const result = await userRepository.findManyWithPagination(options);
 
       result.data = result.data.map((user) => this.excludePassword(user));
-      this.logger.info('[userService] getAllUsers success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] getAllUsers error');
       throw error;
     }
   }
 
   async getUserById(id) {
-    this.logger.info('[userService] getUserById start');
     const user = await userRepository.findById(id, { include: { user_settings: true } });
     if (!user) {
       throw new Error('User not found');
     }
-    this.logger.info('[userService] getUserById success');
     return this.excludePassword(user);
   }
 
   async createUser(userData) {
-    this.logger.info('[userService] createUser start');
     try {
       await this.validateUserCreation(userData);
 
@@ -138,19 +122,15 @@ export class UserService {
           to: user.email,
           name: `${user.first_name} ${user.last_name}`.trim(),
         })
-        .catch((err) => this.logger.error({ err }, '[userService] welcome email error'));
+        .catch(() => {});
 
-      this.logger.info('[userService] createUser success');
       return this.excludePassword(user);
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] createUser error');
       throw error;
     }
   }
 
   async updateUser(id, updateData) {
-    this.logger.info('[userService] updateUser start');
-    this.logger.debug({ id, updateData }, '[userService] raw');
 
     const existingUser = await userRepository.findById(id);
     if (!existingUser) throw new Error('User not found');
@@ -169,16 +149,13 @@ export class UserService {
     }
 
     const user = await userRepository.update(id, updateData);
-    this.logger.info('[userService] updateUser success');
     return this.excludePassword(user);
   }
 
   async deleteUser(id) {
-    this.logger.info('[userService] deleteUser start');
     const user = await userRepository.findById(id);
     if (!user) throw new Error('User not found');
     await userRepository.delete(id);
-    this.logger.info('[userService] deleteUser success');
   }
 
   async _fetchPermissions(userId) {
@@ -190,7 +167,6 @@ export class UserService {
   }
 
   async login(email, password, rememberMe = false, server) {
-    this.logger.info('[userService] login start');
     const user = await userRepository.findByEmail(email);
     if (!user) {
       const error = new Error('Invalid email or password');
@@ -212,7 +188,6 @@ export class UserService {
       safeUser.permissions = await this._fetchPermissions(user.id);
     }
 
-    this.logger.info('[userService] login success');
     return {
       user: safeUser,
       token,
@@ -221,7 +196,6 @@ export class UserService {
   }
 
   async register(userData, server) {
-    this.logger.info('[userService] register start');
     try {
       const emailExists = await userRepository.emailExists(userData.email);
       if (emailExists) {
@@ -243,20 +217,17 @@ export class UserService {
       const user = await userRepository.createWithSettings(userDataWithHashedPassword);
       const token = generateToken(server, user, false);
 
-      this.logger.info('[userService] register success');
       return {
         user: this.excludePassword(user),
         token,
         expiresIn: '1 day',
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] register error');
       throw error;
     }
   }
 
   async getCurrentUser(userId) {
-    this.logger.info('[userService] getCurrentUser start');
     const user = await userRepository.findById(userId);
     if (!user) throw new Error('User not found');
     const safeUser = this.excludePassword(user);
@@ -265,36 +236,28 @@ export class UserService {
       safeUser.permissions = await this._fetchPermissions(userId);
     }
 
-    this.logger.info('[userService] getCurrentUser success');
     return safeUser;
   }
 
   async getUserSettings(userId) {
-    this.logger.info('[userService] getUserSettings start');
     try {
       const settings = await userSettingsRepository.getUserSettings(userId);
-      this.logger.info('[userService] getUserSettings success');
       return settings;
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] getUserSettings error');
       throw error;
     }
   }
 
   async updateUserSettings(userId, settingsArray) {
-    this.logger.info('[userService] updateUserSettings start');
     try {
       const result = await userSettingsRepository.updateUserSettings(userId, settingsArray);
-      this.logger.info('[userService] updateUserSettings success');
       return result;
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] updateUserSettings error');
       throw error;
     }
   }
 
   async updateNotificationPreferences(userId, preferences) {
-    this.logger.info('[userService] updateNotificationPreferences start');
     try {
       const validKeys = ['promo_notification', 'job_notification', 'program_notification'];
       const validatedPreferences = {};
@@ -308,16 +271,13 @@ export class UserService {
       }
 
       const result = await userSettingsRepository.upsertUserSetting(userId, 'notification_preferences', validatedPreferences);
-      this.logger.info('[userService] updateNotificationPreferences success');
       return result.value;
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] updateNotificationPreferences error');
       throw error;
     }
   }
 
   async getNotificationPreferences(userId) {
-    this.logger.info('[userService] getNotificationPreferences start');
     try {
       const setting = await userSettingsRepository.getUserSettingByKey(userId, 'notification_preferences');
 
@@ -332,16 +292,13 @@ export class UserService {
       // Convert Prisma JSON to plain object by serializing and deserializing
       const preferences = JSON.parse(JSON.stringify(setting.value));
 
-      this.logger.info('[userService] getNotificationPreferences success');
       return preferences;
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] getNotificationPreferences error');
       throw error;
     }
   }
 
   async updateUserAccount(userId, accountData) {
-    this.logger.info('[userService] updateUserAccount start');
     try {
       if (accountData.avatarFile) {
         try {
@@ -371,23 +328,18 @@ export class UserService {
       }
 
       const updatedUser = await userRepository.update(userId, accountData);
-      this.logger.info('[userService] updateUserAccount success');
       return this.excludePassword(updatedUser);
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] updateUserAccount error');
       throw error;
     }
   }
 
   async updateUserPassword(userId, password) {
-    this.logger.info('[userService] updateUserPassword start');
     try {
       const hashedPassword = await bcrypt.hash(password, 12);
       const updatedUser = await userRepository.update(userId, { password: hashedPassword });
-      this.logger.info('[userService] updateUserPassword success');
       return this.excludePassword(updatedUser);
     } catch (error) {
-      this.logger.error({ err: error }, '[userService] updateUserPassword error');
       throw error;
     }
   }
@@ -433,11 +385,9 @@ export class UserService {
   }
 
   generateUsername(firstName, lastName) {
-    this.logger.info('[userService] generateUsername start');
 
     const username = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9]/g, '');
 
-    this.logger.info('[userService] generateUsername - generated username');
     return username;
   }
 

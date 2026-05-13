@@ -1,16 +1,10 @@
 import { adminPermissionRepository } from '../../repositories/admin/permissionRepository.js';
 import prisma from '../../config/database.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class AdminPermissionService {
-  get logger() {
-    return getLogger();
-  }
 
   async listRegistry() {
-    this.logger.info('[permissionService] listRegistry start');
     const result = await adminPermissionRepository.listRegistry();
-    this.logger.info('[permissionService] listRegistry success');
     return result;
   }
 
@@ -30,15 +24,12 @@ export class AdminPermissionService {
   }
 
   async getUserPermissions(userId) {
-    this.logger.info('[permissionService] getUserPermissions start');
     await this._requireAdminUser(userId);
     const rows = await adminPermissionRepository.getUserPermissions(userId);
-    this.logger.info('[permissionService] getUserPermissions success');
     return rows.map((r) => ({ key: r.permission_key, access_level: r.access_level }));
   }
 
   async setUserPermissions(userId, permissions) {
-    this.logger.info('[permissionService] setUserPermissions start');
     await this._requireAdminUser(userId);
 
     const registry = await adminPermissionRepository.listRegistry();
@@ -60,12 +51,10 @@ export class AdminPermissionService {
 
     await adminPermissionRepository.replaceUserPermissions(userId, permissions);
     const rows = await adminPermissionRepository.getUserPermissions(userId);
-    this.logger.info('[permissionService] setUserPermissions success');
     return rows.map((r) => ({ key: r.permission_key, access_level: r.access_level }));
   }
 
   async deleteUserPermission(userId, key) {
-    this.logger.info('[permissionService] deleteUserPermission start');
     await this._requireAdminUser(userId);
     try {
       await adminPermissionRepository.deleteUserPermission(userId, key);
@@ -77,7 +66,6 @@ export class AdminPermissionService {
       }
       throw e;
     }
-    this.logger.info('[permissionService] deleteUserPermission success');
   }
 }
 

@@ -1,10 +1,8 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class AdminService {
   constructor() {
-    this.logger = getLogger();
   }
 
   async uploadImage(file, type) {
@@ -53,7 +51,6 @@ export class AdminService {
         mimetype: file.mimetype,
       };
     } catch (error) {
-      this.logger.error('Upload image service error:', error);
       throw error;
     }
   }

@@ -1,16 +1,11 @@
 import prisma from '../../config/database.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 /**
  * SharedCohortRepository - queries used by multiple layers (webhook, certificate)
  */
 export class SharedCohortRepository {
-  get logger() {
-    return getLogger();
-  }
 
   async findEnrollmentByTransactionId(transactionId) {
-    this.logger.info({ transactionId }, '[sharedCohortRepository] findEnrollmentByTransactionId called');
 
     return await prisma.cohortEnrollment.findFirst({
       where: { transaction_id: transactionId },
@@ -18,7 +13,6 @@ export class SharedCohortRepository {
   }
 
   async updateEnrollmentStatus(enrollmentId, status, enrolledAt = null) {
-    this.logger.info({ enrollmentId, status }, '[sharedCohortRepository] updateEnrollmentStatus called');
 
     return await prisma.cohortEnrollment.update({
       where: { id: enrollmentId },
@@ -31,7 +25,6 @@ export class SharedCohortRepository {
   }
 
   async findCompletedEnrollmentsWithoutCertificate(cohortId) {
-    this.logger.info({ cohortId }, '[sharedCohortRepository] findCompletedEnrollmentsWithoutCertificate called');
 
     return await prisma.cohortEnrollment.findMany({
       where: {
@@ -46,7 +39,6 @@ export class SharedCohortRepository {
   }
 
   async getNextCertificateSequence() {
-    this.logger.info('[sharedCohortRepository] getNextCertificateSequence called');
 
     const latest = await prisma.cohortCertificate.findFirst({
       orderBy: { id: 'desc' },
@@ -57,7 +49,6 @@ export class SharedCohortRepository {
   }
 
   async createCertificate(data) {
-    this.logger.info({ enrollmentId: data.enrollment_id }, '[sharedCohortRepository] createCertificate called');
 
     return await prisma.cohortCertificate.create({ data });
   }

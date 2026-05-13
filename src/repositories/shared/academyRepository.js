@@ -1,18 +1,13 @@
 import prisma from '../../config/database.js';
 import { BaseRepository } from './BaseRepository.js';
-import { getLogger } from '../../utils/loggerContext.js';
 
 export class AcademyRepository extends BaseRepository {
   constructor() {
     super(prisma.academy);
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async findBySlug(slug, options = {}) {
-    this.logger.info({ slug }, '[academyRepository] findBySlug called');
     const academy = await this.model.findUnique({
       where: { slug: slug },
       include: {
@@ -43,7 +38,6 @@ export class AcademyRepository extends BaseRepository {
   }
 
   async findAll(options = {}) {
-    this.logger.info({ options }, '[academyRepository] findAll called');
     const { page, limit, category, search, status, includeRelations = false } = options;
 
     // Only apply pagination if both page and limit are provided
@@ -105,7 +99,6 @@ export class AcademyRepository extends BaseRepository {
   }
 
   async getCategories() {
-    this.logger.info('[academyRepository] getCategories called');
     const result = await this.model.findMany({
       where: { status: 'ACTIVE' },
       select: { category: true },
@@ -115,7 +108,6 @@ export class AcademyRepository extends BaseRepository {
   }
 
   async slugExists(slug, excludeId = null) {
-    this.logger.info({ slug, excludeId }, '[academyRepository] slugExists called');
     const where = { slug: slug };
     if (excludeId) {
       where.id = { not: excludeId };
