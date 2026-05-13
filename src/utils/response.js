@@ -1,5 +1,3 @@
-import { getLogger } from '../utils/loggerContext.js';
-
 export function successResponse(data, message = 'Success', meta = {}) {
   const response = {
     success: true,

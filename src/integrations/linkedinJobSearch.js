@@ -1,11 +1,9 @@
 import { systemSettingsService } from '../services/admin/systemSettingsService.js';
-import { getLogger } from '../utils/loggerContext.js';
 
 const API_KEY = process.env.RAPIDAPI_KEY;
 const BASE_URL = process.env.RAPIDAPI_BASE_URL;
 
 if (!API_KEY) {
-  getLogger().error('[linkedinJobSearch] Missing env RAPIDAPI_KEY');
   throw new Error('RAPIDAPI_KEY is not set');
 }
 
@@ -17,12 +15,8 @@ export class LinkedInJobSearch {
     };
   }
 
-  get logger() {
-    return getLogger();
-  }
 
   async searchJobs(options = {}) {
-    this.logger.info('[linkedinJobSearch] searchJobs start');
 
     const { filter = {} } = options;
     const FIXED_LIMIT = 10;
@@ -61,10 +55,7 @@ export class LinkedInJobSearch {
 
       const url = `${BASE_URL}/active-jb-7d?${params.toString()}`;
 
-      this.logger.info({ params: params.toString() }, '[linkedinJobSearch] built params');
-      this.logger.info({ url }, '[linkedinJobSearch] request GET');
 
-      this.logger.info({ limit: FIXED_LIMIT }, '[linkedinJobSearch] request params');
 
       const response = await fetch(url, {
         method: 'GET',
@@ -72,7 +63,6 @@ export class LinkedInJobSearch {
       });
 
       if (!response.ok) {
-        this.logger.error({ status: response.status, statusText: response.statusText }, '[linkedinJobSearch] response error');
         throw new Error(`Request failed: ${response.statusText}`);
       }
 
@@ -91,15 +81,11 @@ export class LinkedInJobSearch {
 
       try {
         await systemSettingsService.updateLinkedInRateLimit(rateLimitData);
-        this.logger.info('[linkedinJobSearch] rateLimit saved');
       } catch (error) {
-        this.logger.error({ err: error }, '[linkedinJobSearch] rateLimit save failed');
       }
 
       const data = await response.json();
 
-      this.logger.debug({ type: typeof data }, '[linkedinJobSearch] response type');
-      this.logger.info({ jobsCount: Array.isArray(data) ? data.length : data.jobs?.length || 0 }, '[linkedinJobSearch] jobs count');
 
       return {
         success: true,
@@ -108,7 +94,6 @@ export class LinkedInJobSearch {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error({ err: error }, '[linkedinJobSearch] search error');
       return {
         success: false,
         error: error.message,

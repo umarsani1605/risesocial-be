@@ -8,7 +8,6 @@
  */
 
 import { UPLOAD_CONFIG } from '../config/uploadConfig.js';
-import { getLogger } from '../utils/loggerContext.js';
 import { errorResponse } from '../utils/response.js';
 
 /**
@@ -30,12 +29,8 @@ export function createUploadMiddleware(uploadType) {
   }
 
   return async function uploadPreHandler(request, reply) {
-    const logger = getLogger();
-    logger.info({ uploadType }, '[uploadMiddleware] start');
-
     // Skip if not a multipart request (allow JSON-only or no-file updates)
     if (!request.isMultipart()) {
-      logger.info('[uploadMiddleware] not multipart, skipping file parse');
       request.uploadedFile = null;
       return;
     }
@@ -54,12 +49,10 @@ export function createUploadMiddleware(uploadType) {
             continue;
           }
 
-          logger.debug({ filename: part.filename, mimetype: part.mimetype }, '[uploadMiddleware] file part received');
 
           // Validate MIME type (skip if mimeTypes is null — all types allowed)
           if (config.mimeTypes && !config.mimeTypes.includes(part.mimetype)) {
             await part.toBuffer(); // drain stream before replying
-            logger.warn({ mimetype: part.mimetype, allowed: config.mimeTypes }, '[uploadMiddleware] invalid mime type');
             return reply.status(400).send(errorResponse(`Invalid file type. Allowed: ${config.mimeTypes.join(', ')}`, 400));
           }
 
@@ -69,7 +62,6 @@ export function createUploadMiddleware(uploadType) {
           // Validate size
           if (buffer.length > config.maxSize) {
             const maxMB = Math.round(config.maxSize / (1024 * 1024));
-            logger.warn({ size: buffer.length, maxSize: config.maxSize }, '[uploadMiddleware] file too large');
             return reply.status(400).send(errorResponse(`File too large. Maximum size: ${maxMB}MB`, 400));
           }
 
@@ -82,7 +74,6 @@ export function createUploadMiddleware(uploadType) {
           };
 
           fileAttached = true;
-          logger.info({ size: buffer.length, uploadType }, '[uploadMiddleware] file buffered successfully');
         } else {
           // Text/JSON field — collect into body
           const value = part.value;
@@ -105,12 +96,9 @@ export function createUploadMiddleware(uploadType) {
 
       if (!fileAttached) {
         request.uploadedFile = null;
-        logger.info('[uploadMiddleware] multipart request but no file part found');
       }
 
-      logger.info('[uploadMiddleware] done');
     } catch (error) {
-      logger.error({ err: error }, '[uploadMiddleware] error parsing multipart');
       return reply.status(400).send(errorResponse('Failed to parse file upload', 400));
     }
   };

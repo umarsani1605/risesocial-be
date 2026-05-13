@@ -6,8 +6,8 @@ import { registerPlugins } from './config/plugins.js';
 import { registerRoutes } from './config/routes.js';
 import { errorHandler, notFoundHandler } from './middleware/index.js';
 import { disconnectDatabase } from './config/database.js';
-import { runWithLogger } from './utils/loggerContext.js';
 import posthog from './config/posthog.js';
+import posthogRequestEvent from './plugins/posthogRequestEvent.js';
 
 dotenv.config();
 
@@ -15,10 +15,7 @@ const fastify = Fastify({
   logger: getLoggerConfig(),
 });
 
-fastify.addHook('onRequest', (req, reply, done) => {
-  runWithLogger({ logger: req.log }, done);
-});
-
+await fastify.register(posthogRequestEvent);
 await registerPlugins(fastify);
 await registerRoutes(fastify);
 
@@ -26,16 +23,12 @@ fastify.setErrorHandler(errorHandler);
 fastify.setNotFoundHandler(notFoundHandler);
 
 const gracefulShutdown = async (signal) => {
-  fastify.log.info(`Received ${signal}. Starting graceful shutdown...`);
-
   try {
     await fastify.close();
     await disconnectDatabase();
     await posthog.shutdown();
-    fastify.log.info('Graceful shutdown completed.');
     process.exit(0);
-  } catch (error) {
-    fastify.log.error({ err: error }, 'Error during shutdown');
+  } catch {
     process.exit(1);
   }
 };
@@ -50,7 +43,7 @@ const start = async () => {
 
     await fastify.listen({ port: Number(port), host });
   } catch (err) {
-    fastify.log.error({ err }, 'Failed to start server');
+    console.error('Failed to start server:', err);
     process.exit(1);
   }
 };

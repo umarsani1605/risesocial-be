@@ -1,8 +1,6 @@
 import midtrans from 'midtrans-client';
-import { getLogger } from '../utils/loggerContext.js';
 
 const mode = process.env.MIDTRANS_MODE;
-const logger = getLogger();
 
 const serverKey = mode === 'PRODUCTION' ? process.env.MIDTRANS_SERVER_KEY : process.env.MIDTRANS_SANDBOX_SERVER_KEY;
 const clientKey = mode === 'PRODUCTION' ? process.env.MIDTRANS_CLIENT_KEY : process.env.MIDTRANS_SANDBOX_CLIENT_KEY;

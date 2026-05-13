@@ -2,19 +2,6 @@ import { errorResponse } from '../utils/response.js';
 import posthog from '../config/posthog.js';
 
 export function errorHandler(error, request, reply) {
-  const { log } = request;
-
-  log.error(
-    {
-      err: error,
-      url: request.url,
-      method: request.method,
-      params: request.params,
-      query: request.query,
-    },
-    '[errorHandler] unhandled_error'
-  );
-
   if (error.validation) {
     const messages = error.validation.map((err) => {
       const field = err.instancePath?.replace('/', '') || err.params?.missingProperty || 'field';
@@ -61,9 +48,10 @@ export function errorHandler(error, request, reply) {
 
   const distinctId = request.user?.userId ? String(request.user.userId) : undefined;
   posthog.captureException(error, distinctId, {
-    path: request.url,
+    path: request.routerPath ?? request.url,
     method: request.method,
     status_code: 500,
+    user_role: request.user?.role,
   });
 
   return reply.status(500).send(errorResponse('Internal Server Error', 500));
@@ -72,23 +60,18 @@ export function errorHandler(error, request, reply) {
 function handlePrismaError(error, reply) {
   switch (error.code) {
     case 'P2002':
-      
       return reply.status(409).send(errorResponse('Resource already exists', 409));
 
     case 'P2025':
-      
       return reply.status(404).send(errorResponse('Resource not found', 404));
 
     case 'P2003':
-      
       return reply.status(400).send(errorResponse('Invalid reference to related resource', 400));
 
     case 'P2014':
-      
       return reply.status(400).send(errorResponse('Required relation missing', 400));
 
     default:
-      
       return reply.status(500).send(errorResponse('Database error', 500));
   }
 }
