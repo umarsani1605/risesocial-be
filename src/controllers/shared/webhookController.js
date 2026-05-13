@@ -4,6 +4,7 @@ import { mapMidtransStatus, mapPaymentMethod } from '../../constants/paymentHelp
 import { emailService } from '../../services/shared/emailService.js';
 import { getLogger } from '../../utils/loggerContext.js';
 import prisma from '../../config/database.js';
+import posthog from '../../config/posthog.js';
 
 /**
  * WebhookController - Simplified webhook handler
@@ -140,23 +141,53 @@ export class WebhookController {
 
       this.logger.info('[WebhookController] all layers updated successfully');
 
-      // Step 4b: Fire payment confirmation email (fire-and-forget)
-      if (genericStatus === 'paid') {
+      // Step 4b: Fire payment confirmation email (fire-and-forget) and PostHog event
+      if (genericStatus === 'paid' || genericStatus === 'expired' || genericStatus === 'failed') {
         const transaction = await prisma.transaction.findUnique({
           where: { transaction_code: order_id },
-          select: { customer_email: true, customer_name: true, amount: true, currency: true },
+          select: { user_id: true, customer_email: true, customer_name: true, amount: true, currency: true, product_type: true },
         });
 
-        if (transaction?.customer_email) {
-          emailService
-            .sendPaymentConfirmation({
-              to: transaction.customer_email,
-              name: transaction.customer_name,
-              transactionCode: order_id,
-              amount: transaction.amount,
-              currency: transaction.currency || 'IDR',
-            })
-            .catch((err) => this.logger.error({ err }, '[WebhookController] payment email error'));
+        if (transaction) {
+          const distinctId = transaction.user_id ? String(transaction.user_id) : (transaction.customer_email || order_id);
+
+          if (genericStatus === 'paid') {
+            posthog.capture({
+              distinctId,
+              event: 'payment_completed',
+              properties: {
+                transaction_code: order_id,
+                amount: transaction.amount,
+                currency: transaction.currency || 'IDR',
+                product_type: transaction.product_type,
+                payment_method: paymentMethod,
+              },
+            });
+
+            if (transaction.customer_email) {
+              emailService
+                .sendPaymentConfirmation({
+                  to: transaction.customer_email,
+                  name: transaction.customer_name,
+                  transactionCode: order_id,
+                  amount: transaction.amount,
+                  currency: transaction.currency || 'IDR',
+                })
+                .catch((err) => this.logger.error({ err }, '[WebhookController] payment email error'));
+            }
+          } else {
+            posthog.capture({
+              distinctId,
+              event: 'payment_expired',
+              properties: {
+                transaction_code: order_id,
+                amount: transaction.amount,
+                currency: transaction.currency || 'IDR',
+                product_type: transaction.product_type,
+                status: genericStatus,
+              },
+            });
+          }
         }
       }
 

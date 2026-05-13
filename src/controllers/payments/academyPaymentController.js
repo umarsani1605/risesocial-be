@@ -1,6 +1,7 @@
 import { academyPaymentService } from '../../services/user/academyPaymentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 import prisma from '../../config/database.js';
+import posthog from '../../config/posthog.js';
 
 export class AcademyPaymentController {
   constructor() {
@@ -15,6 +16,18 @@ export class AcademyPaymentController {
       const { academy_id, pricing_id } = request.body;
 
       const result = await this.paymentService.createTransaction(userId, academy_id, pricing_id);
+
+      posthog.capture({
+        distinctId: String(userId),
+        event: 'academy_checkout_started',
+        properties: {
+          academy_id,
+          pricing_id,
+          transaction_code: result.transaction_code,
+          amount: result.amount,
+          currency: result.currency,
+        },
+      });
 
       request.log.info('[academyPaymentController] createTransaction success');
       return reply.status(200).send(

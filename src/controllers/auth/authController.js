@@ -1,5 +1,6 @@
 import { userService } from '../../services/shared/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
+import posthog from '../../config/posthog.js';
 
 export class AuthController {
   async login(request, reply) {
@@ -9,6 +10,24 @@ export class AuthController {
       const { email, password, rememberMe = false } = request.body;
 
       const result = await userService.login(email, password, rememberMe, request.server);
+
+      posthog.identify({
+        distinctId: String(result.user.id),
+        properties: {
+          email: result.user.email,
+          name: `${result.user.first_name} ${result.user.last_name}`.trim(),
+          role: result.user.role,
+        },
+      });
+      posthog.capture({
+        distinctId: String(result.user.id),
+        event: 'user_logged_in',
+        properties: {
+          email: result.user.email,
+          role: result.user.role,
+          remember_me: rememberMe,
+        },
+      });
 
       request.log.info('[authController] login success');
       return reply.send(successResponse(result, 'Login successful'));
@@ -36,6 +55,23 @@ export class AuthController {
       request.log.info('[authController] register start');
       request.log.debug({ body: { email: request.body?.email } }, '[authController] rawBody');
       const result = await userService.register(request.body, request.server);
+
+      posthog.identify({
+        distinctId: String(result.user.id),
+        properties: {
+          email: result.user.email,
+          name: `${result.user.first_name} ${result.user.last_name}`.trim(),
+          role: result.user.role,
+        },
+      });
+      posthog.capture({
+        distinctId: String(result.user.id),
+        event: 'user_signed_up',
+        properties: {
+          email: result.user.email,
+          role: result.user.role,
+        },
+      });
 
       request.log.info('[authController] register success');
       return reply.status(201).send(successResponse(result, 'Registration successful'));
@@ -95,6 +131,12 @@ export class AuthController {
       request.log.info('[authController] logout start');
       const { id: userId, email, role } = request.user;
       request.log.info({ userId, email, role }, '[authController] logout user details');
+
+      posthog.capture({
+        distinctId: String(userId),
+        event: 'user_logged_out',
+        properties: { email, role },
+      });
 
       request.log.info('[authController] logout success');
       return reply.send(successResponse(null, 'Logout successful'));

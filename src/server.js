@@ -7,6 +7,7 @@ import { registerRoutes } from './config/routes.js';
 import { errorHandler, notFoundHandler } from './middleware/index.js';
 import { disconnectDatabase } from './config/database.js';
 import { runWithLogger } from './utils/loggerContext.js';
+import posthog from './config/posthog.js';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ const gracefulShutdown = async (signal) => {
   try {
     await fastify.close();
     await disconnectDatabase();
+    await posthog.shutdown();
     fastify.log.info('Graceful shutdown completed.');
     process.exit(0);
   } catch (error) {

@@ -1,5 +1,6 @@
 import { rylsRegistrationService } from '../../services/user/rylsRegistrationService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
+import posthog from '../../config/posthog.js';
 
 export class UserRylsRegistrationController {
   constructor() {
@@ -17,6 +18,16 @@ export class UserRylsRegistrationController {
       }
 
       const result = await this.registrationService.createRegistration(formData);
+
+      const email = formData.step1?.email;
+      posthog.capture({
+        distinctId: email || String(result.id || 'anonymous'),
+        event: 'ryls_registration_created',
+        properties: {
+          registration_id: result.id,
+          email,
+        },
+      });
 
       request.log.info('[userRylsRegistrationController] createRegistration success');
       return reply.status(201).send(successResponse(result, 'Registration created successfully'));
@@ -42,6 +53,16 @@ export class UserRylsRegistrationController {
       }
 
       const result = await this.registrationService.submitRegistration(formData);
+
+      const email = formData.step1?.email;
+      posthog.capture({
+        distinctId: email || String(result.id || 'anonymous'),
+        event: 'ryls_registration_submitted',
+        properties: {
+          registration_id: result.id,
+          email,
+        },
+      });
 
       request.log.info('[userRylsRegistrationController] submitRegistration success');
       return reply.status(201).send(successResponse(result, 'Registration submitted successfully'));

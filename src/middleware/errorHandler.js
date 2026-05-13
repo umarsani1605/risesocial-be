@@ -1,4 +1,5 @@
 import { errorResponse } from '../utils/response.js';
+import posthog from '../config/posthog.js';
 
 export function errorHandler(error, request, reply) {
   const { log } = request;
@@ -57,6 +58,13 @@ export function errorHandler(error, request, reply) {
   if (error.statusCode) {
     return reply.status(error.statusCode).send(errorResponse(error.message, error.statusCode));
   }
+
+  const distinctId = request.user?.userId ? String(request.user.userId) : undefined;
+  posthog.captureException(error, distinctId, {
+    path: request.url,
+    method: request.method,
+    status_code: 500,
+  });
 
   return reply.status(500).send(errorResponse('Internal Server Error', 500));
 }

@@ -1,5 +1,6 @@
 import { userService } from '../../services/shared/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
+import posthog from '../../config/posthog.js';
 
 export class UserController {
   getCurrentUser = async (request, reply) => {
@@ -121,6 +122,15 @@ export class UserController {
       }
 
       const updatedUser = await userService.updateUserAccount(userId, accountData);
+
+      posthog.capture({
+        distinctId: String(userId),
+        event: 'user_account_updated',
+        properties: {
+          has_avatar_change: !!accountData.avatarFile || accountData.avatar === null,
+        },
+      });
+
       request.log.info('[userUserController] updateUserAccount success');
       return reply.send(successResponse(updatedUser, 'Account updated successfully'));
     } catch (error) {
@@ -150,6 +160,12 @@ export class UserController {
       }
 
       await userService.updateUserPassword(userId, password);
+
+      posthog.capture({
+        distinctId: String(userId),
+        event: 'user_password_changed',
+      });
+
       request.log.info('[userUserController] updateUserPassword success');
       return reply.send(successResponse(null, 'Password updated successfully'));
     } catch (error) {

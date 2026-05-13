@@ -1,5 +1,6 @@
 import { rylsPaymentService } from '../../services/user/rylsPaymentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
+import posthog from '../../config/posthog.js';
 
 /**
  * RylsPaymentController - Updated for 3-layer architecture
@@ -19,6 +20,18 @@ export class RylsPaymentController {
       const data = request.body;
 
       const transactionData = await this.paymentService.createTransaction(data);
+
+      const distinctId = data.registration_id ? String(data.registration_id) : (data.email || 'anonymous');
+      posthog.capture({
+        distinctId,
+        event: 'ryls_checkout_started',
+        properties: {
+          payment_id: transactionData.payment_id,
+          transaction_code: transactionData.transaction_code,
+          amount: transactionData.amount,
+          currency: transactionData.currency,
+        },
+      });
 
       request.log.info('[rylsPaymentController] createTransaction success');
       return reply.status(200).send(
