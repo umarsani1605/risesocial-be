@@ -39,11 +39,7 @@ export class AuthController {
         });
       }
 
-      return reply.status(500).send({
-        success: false,
-        message: 'Login failed',
-        statusCode: 500,
-      });
+      throw error;
     }
   }
 
@@ -77,11 +73,7 @@ export class AuthController {
         });
       }
 
-      return reply.status(500).send({
-        success: false,
-        message: 'Failed to register user',
-        statusCode: 500,
-      });
+      throw error;
     }
   }
 
@@ -103,11 +95,7 @@ export class AuthController {
         });
       }
 
-      return reply.status(500).send({
-        success: false,
-        message: 'Failed to fetch user profile',
-        statusCode: 500,
-      });
+      throw error;
     }
   }
 
@@ -119,7 +107,7 @@ export class AuthController {
 
       return reply.send(successResponse(null, 'Logout successful'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Logout failed', 500, error.message));
+      throw error;
     }
   }
 }

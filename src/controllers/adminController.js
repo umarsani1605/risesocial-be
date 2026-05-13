@@ -24,10 +24,7 @@ export class AdminController {
         data: result,
       });
     } catch (error) {
-      return reply.status(500).json({
-        success: false,
-        message: error.message || 'Failed to upload image',
-      });
+      throw error;
     }
   }
 }

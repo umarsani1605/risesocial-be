@@ -14,7 +14,7 @@ export class UserRylsDraftController {
 
       return reply.status(200).send(successResponse(result, 'Draft saved'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to save draft', 500, error.message));
+      throw error;
     }
   };
 
@@ -29,7 +29,7 @@ export class UserRylsDraftController {
 
       return reply.status(200).send(successResponse(result, 'Draft retrieved'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to get draft', 500, error.message));
+      throw error;
     }
   };
 
@@ -46,7 +46,7 @@ export class UserRylsDraftController {
 
       return reply.status(200).send(successResponse({}, 'Draft deleted'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to delete draft', 500, error.message));
+      throw error;
     }
   };
 }

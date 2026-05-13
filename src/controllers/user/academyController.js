@@ -12,7 +12,7 @@ export class UserAcademyController {
         return reply.send(successResponse(result.data, 'Academies retrieved successfully'));
       }
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch academies', 500, error.message));
+      throw error;
     }
   }
 
@@ -31,7 +31,7 @@ export class UserAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to fetch academy', 500, error.message));
+      throw error;
     }
   }
 
@@ -44,7 +44,7 @@ export class UserAcademyController {
 
       return reply.send(successResponse(pricing, 'Pricing retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch pricing', 500, error.message));
+      throw error;
     }
   }
 
@@ -57,7 +57,7 @@ export class UserAcademyController {
 
       return reply.send(successResponse(features, 'Features retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch features', 500, error.message));
+      throw error;
     }
   }
 
@@ -70,7 +70,7 @@ export class UserAcademyController {
 
       return reply.send(successResponse(instructors, 'Instructors retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch instructors', 500, error.message));
+      throw error;
     }
   }
 
@@ -83,7 +83,7 @@ export class UserAcademyController {
 
       return reply.send(successResponse(themes, 'Themes retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch themes', 500, error.message));
+      throw error;
     }
   }
 
@@ -96,7 +96,7 @@ export class UserAcademyController {
 
       return reply.send(successResponse(topics, 'Topics retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch topics', 500, error.message));
+      throw error;
     }
   }
 
@@ -109,7 +109,7 @@ export class UserAcademyController {
 
       return reply.send(successResponse(testimonials, 'Testimonials retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch testimonials', 500, error.message));
+      throw error;
     }
   }
 
@@ -122,7 +122,7 @@ export class UserAcademyController {
 
       return reply.send(successResponse(faqs, 'FAQs retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch FAQs', 500, error.message));
+      throw error;
     }
   }
 }

@@ -26,7 +26,7 @@ export class AdminAcademyController {
         return reply.status(400).send(errorResponse('Telah ada academy dengan nama yang sama', 400));
       }
 
-      return reply.status(500).send(errorResponse('Failed to create academy', 500, error.message));
+      throw error;
     }
   }
 
@@ -55,7 +55,7 @@ export class AdminAcademyController {
         return reply.status(400).send(errorResponse(error.message, 400));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update academy', 500, error.message));
+      throw error;
     }
   }
 
@@ -73,7 +73,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to delete academy', 500, error.message));
+      throw error;
     }
   }
 
@@ -89,7 +89,7 @@ export class AdminAcademyController {
         return reply.send(successResponse(result.data, 'Academies retrieved successfully'));
       }
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch academies', 500, error.message));
+      throw error;
     }
   }
 
@@ -110,7 +110,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to fetch academy', 500, error.message));
+      throw error;
     }
   }
 
@@ -122,7 +122,7 @@ export class AdminAcademyController {
       const data = await adminAcademyService.getPricings(Number(id));
       return reply.send(successResponse(data, 'Pricings retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch pricings', 500, error.message));
+      throw error;
     }
   }
 
@@ -132,7 +132,7 @@ export class AdminAcademyController {
       const data = await adminAcademyService.getFeatures(Number(id));
       return reply.send(successResponse(data, 'Features retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch features', 500, error.message));
+      throw error;
     }
   }
 
@@ -142,7 +142,7 @@ export class AdminAcademyController {
       const data = await adminAcademyService.getInstructors(Number(id));
       return reply.send(successResponse(data, 'Instructors retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch instructors', 500, error.message));
+      throw error;
     }
   }
 
@@ -152,7 +152,7 @@ export class AdminAcademyController {
       const data = await adminAcademyService.getTopics(Number(id));
       return reply.send(successResponse(data, 'Topics retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch topics', 500, error.message));
+      throw error;
     }
   }
 
@@ -162,7 +162,7 @@ export class AdminAcademyController {
       const data = await adminAcademyService.getTestimonials(Number(id));
       return reply.send(successResponse(data, 'Testimonials retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch testimonials', 500, error.message));
+      throw error;
     }
   }
 
@@ -172,7 +172,7 @@ export class AdminAcademyController {
       const data = await adminAcademyService.getFaqs(Number(id));
       return reply.send(successResponse(data, 'FAQs retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch FAQs', 500, error.message));
+      throw error;
     }
   }
 
@@ -184,7 +184,7 @@ export class AdminAcademyController {
       const data = await adminAcademyService.getThemes(Number(id));
       return reply.send(successResponse(data, 'Themes retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch themes', 500, error.message));
+      throw error;
     }
   }
 
@@ -197,7 +197,7 @@ export class AdminAcademyController {
       if (error.statusCode === 404) {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
-      return reply.status(500).send(errorResponse('Failed to create theme', 500, error.message));
+      throw error;
     }
   }
 
@@ -210,7 +210,7 @@ export class AdminAcademyController {
       if (error.statusCode === 404) {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
-      return reply.status(500).send(errorResponse('Failed to update theme', 500, error.message));
+      throw error;
     }
   }
 
@@ -223,7 +223,7 @@ export class AdminAcademyController {
       if (error.statusCode === 404) {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
-      return reply.status(500).send(errorResponse('Failed to delete theme', 500, error.message));
+      throw error;
     }
   }
 
@@ -245,7 +245,7 @@ export class AdminAcademyController {
         return reply.status(400).send(errorResponse('Failed to create pricing', 400, error.message));
       }
 
-      return reply.status(500).send(errorResponse('Failed to create pricing', 500, error.message));
+      throw error;
     }
   }
 
@@ -268,7 +268,7 @@ export class AdminAcademyController {
         return reply.status(400).send(errorResponse('Failed to update pricing', 400, error.message));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update pricing', 500, error.message));
+      throw error;
     }
   }
 
@@ -286,7 +286,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to delete pricing', 500, error.message));
+      throw error;
     }
   }
 
@@ -303,7 +303,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to create feature', 500, error.message));
+      throw error;
     }
   }
 
@@ -320,7 +320,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update feature', 500, error.message));
+      throw error;
     }
   }
 
@@ -337,7 +337,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to delete feature', 500, error.message));
+      throw error;
     }
   }
 
@@ -360,7 +360,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to add instructor', 500, error.message));
+      throw error;
     }
   }
 
@@ -383,7 +383,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update instructor', 500, error.message));
+      throw error;
     }
   }
 
@@ -400,7 +400,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to remove instructor', 500, error.message));
+      throw error;
     }
   }
 
@@ -417,7 +417,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to add topic', 500, error.message));
+      throw error;
     }
   }
 
@@ -434,7 +434,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update topic', 500, error.message));
+      throw error;
     }
   }
 
@@ -451,7 +451,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to delete topic', 500, error.message));
+      throw error;
     }
   }
 
@@ -474,7 +474,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to add testimonial', 500, error.message));
+      throw error;
     }
   }
 
@@ -497,7 +497,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update testimonial', 500, error.message));
+      throw error;
     }
   }
 
@@ -514,7 +514,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to delete testimonial', 500, error.message));
+      throw error;
     }
   }
 
@@ -531,7 +531,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to add FAQ', 500, error.message));
+      throw error;
     }
   }
 
@@ -548,7 +548,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update FAQ', 500, error.message));
+      throw error;
     }
   }
 
@@ -565,7 +565,7 @@ export class AdminAcademyController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to delete FAQ', 500, error.message));
+      throw error;
     }
   }
 }

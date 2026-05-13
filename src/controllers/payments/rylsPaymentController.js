@@ -51,7 +51,7 @@ export class RylsPaymentController {
         return reply.status(400).send(errorResponse('Invalid registration data', 400, error.message));
       }
 
-      return reply.status(500).send(errorResponse('Failed to create payment transaction', 500, error.message));
+      throw error;
     }
   }
 
@@ -77,7 +77,7 @@ export class RylsPaymentController {
         ),
       );
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to get payment status', 500, error.message));
+      throw error;
     }
   }
 }

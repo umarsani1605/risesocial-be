@@ -126,7 +126,7 @@ export class AdminInstructorController {
 
       return reply.send(successResponse(result, 'Instructor avatar uploaded successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to upload instructor avatar', 500, error.message));
+      throw error;
     }
   }
 }

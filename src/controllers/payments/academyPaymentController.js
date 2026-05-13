@@ -40,7 +40,7 @@ export class AcademyPaymentController {
         return reply.status(400).send(errorResponse(error.message, 400));
       }
 
-      return reply.status(500).send(errorResponse('Failed to create payment transaction', 500, error.message));
+      throw error;
     }
   }
 
@@ -56,7 +56,7 @@ export class AcademyPaymentController {
         successResponse(status, 'Payment status retrieved successfully'),
       );
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to get payment status', 500, error.message));
+      throw error;
     }
   }
 
@@ -73,7 +73,7 @@ export class AcademyPaymentController {
       if (error.message.includes('not found')) {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
-      return reply.status(500).send(errorResponse('Failed to sync transaction status', 500, error.message));
+      throw error;
     }
   }
 
@@ -89,7 +89,7 @@ export class AcademyPaymentController {
         successResponse(result, 'Enrollment status retrieved'),
       );
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to check enrollment', 500, error.message));
+      throw error;
     }
   }
 
@@ -147,7 +147,7 @@ export class AcademyPaymentController {
         },
       });
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to get transactions', 500, error.message));
+      throw error;
     }
   }
 
@@ -196,7 +196,7 @@ export class AcademyPaymentController {
         successResponse(detail, 'Transaction detail retrieved'),
       );
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to get transaction detail', 500, error.message));
+      throw error;
     }
   }
 }

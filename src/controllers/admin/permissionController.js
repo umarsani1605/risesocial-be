@@ -7,7 +7,7 @@ export class AdminPermissionController {
       const data = await adminPermissionService.listRegistry();
       return reply.send(successResponse(data, 'Permission registry retrieved'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve permission registry', 500));
+      throw error;
     }
   }
 

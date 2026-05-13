@@ -41,7 +41,7 @@ export class UserTestimonialsController {
 
       return reply.send(successResponse(testimonial, 'Testimonial retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse(error.message, 500));
+      throw error;
     }
   };
 }

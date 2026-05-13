@@ -14,7 +14,7 @@ export class UserController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to fetch user profile', 500, error.message));
+      throw error;
     }
   };
 
@@ -24,7 +24,7 @@ export class UserController {
       const settings = await userService.getUserSettings(userId);
       return reply.send(successResponse(settings, 'User settings retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch user settings', 500, error.message));
+      throw error;
     }
   };
 
@@ -40,7 +40,7 @@ export class UserController {
       const updatedSettings = await userService.updateUserSettings(userId, settings);
       return reply.send(successResponse(updatedSettings, 'Settings updated successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to update settings', 500, error.message));
+      throw error;
     }
   };
 
@@ -59,7 +59,7 @@ export class UserController {
 
       return reply.send(successResponse(plainPreferences, 'Notification preferences retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to get notification preferences', 500, error.message));
+      throw error;
     }
   };
 
@@ -83,7 +83,7 @@ export class UserController {
 
       return reply.send(successResponse(plainPreferences, 'Notification preferences updated successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to update notification preferences', 500, error.message));
+      throw error;
     }
   };
 
@@ -111,7 +111,7 @@ export class UserController {
         return reply.status(400).send(errorResponse(error.message, 400));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update account', 500, error.message));
+      throw error;
     }
   };
 
@@ -134,7 +134,7 @@ export class UserController {
 
       return reply.send(successResponse(null, 'Password updated successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to update password', 500, error.message));
+      throw error;
     }
   };
 }

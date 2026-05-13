@@ -14,7 +14,7 @@ export class UserCohortController {
 
       return reply.send(successResponse(result.data, 'Cohorts retrieved successfully', result.meta));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve cohorts', 500, error.message));
+      throw error;
     }
   }
 
@@ -28,7 +28,7 @@ export class UserCohortController {
     } catch (error) {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to retrieve cohort', 500, error.message));
+      throw error;
     }
   }
 
@@ -40,7 +40,7 @@ export class UserCohortController {
 
       return reply.send(successResponse(result.data, 'Enrollments retrieved successfully', result.meta));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve enrollments', 500, error.message));
+      throw error;
     }
   }
 
@@ -50,7 +50,7 @@ export class UserCohortController {
       const students = await userCohortService.getCohortStudents(Number(id));
       return reply.send(successResponse(students, 'Students retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve students', 500, error.message));
+      throw error;
     }
   }
 
@@ -72,7 +72,7 @@ export class UserCohortController {
 
       if (error.statusCode === 403) return reply.status(403).send(errorResponse(error.message, 403));
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to retrieve modules', 500, error.message));
+      throw error;
     }
   }
 
@@ -88,7 +88,7 @@ export class UserCohortController {
 
       if (error.statusCode === 403) return reply.status(403).send(errorResponse(error.message, 403));
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to retrieve module', 500, error.message));
+      throw error;
     }
   }
 
@@ -101,7 +101,7 @@ export class UserCohortController {
 
       return reply.send(successResponse(sessions, 'Upcoming sessions retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve upcoming sessions', 500, error.message));
+      throw error;
     }
   }
 
@@ -113,7 +113,7 @@ export class UserCohortController {
       if (!result) return reply.status(404).send(errorResponse('Certificate not found', 404));
       return reply.send(successResponse(result, 'Certificate info retrieved'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to get certificate info', 500));
+      throw error;
     }
   }
 
@@ -133,7 +133,7 @@ export class UserCohortController {
     } catch (error) {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to download certificate', 500, error.message));
+      throw error;
     }
   }
 
@@ -147,7 +147,7 @@ export class UserCohortController {
     } catch (error) {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to verify certificate', 500, error.message));
+      throw error;
     }
   }
 }

@@ -29,7 +29,7 @@ export class UserRylsRegistrationController {
         return reply.status(400).send(errorResponse('Validation failed', 400, error.message));
       }
 
-      return reply.status(500).send(errorResponse('Failed to create registration', 500, error.message));
+      throw error;
     }
   };
 
@@ -55,7 +55,7 @@ export class UserRylsRegistrationController {
         return reply.status(400).send(errorResponse('Validation failed', 400, error.message));
       }
 
-      return reply.status(500).send(errorResponse('Failed to submit registration', 500, error.message));
+      throw error;
     }
   };
 
@@ -75,7 +75,7 @@ export class UserRylsRegistrationController {
 
       return reply.send(successResponse(result, 'Registration retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve registration', 500, error.message));
+      throw error;
     }
   };
 
@@ -91,7 +91,7 @@ export class UserRylsRegistrationController {
 
       return reply.send(successResponse(result, 'Email check completed'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to check email', 500, error.message));
+      throw error;
     }
   };
 
@@ -101,7 +101,7 @@ export class UserRylsRegistrationController {
 
       return reply.send(successResponse(result, 'Registration service is healthy'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Registration service health check failed', 500, error.message));
+      throw error;
     }
   };
 }

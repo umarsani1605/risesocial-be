@@ -7,7 +7,7 @@ export class AdminTransactionController {
       const result = await adminTransactionService.getTransactions(request.query);
       return reply.send(successResponse(result.data, 'Transactions retrieved successfully', result.meta));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch transactions', 500, error.message));
+      throw error;
     }
   };
 
@@ -21,7 +21,7 @@ export class AdminTransactionController {
       reply.header('Content-Length', buffer.length);
       return reply.send(buffer);
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to export transactions', 500, error.message));
+      throw error;
     }
   };
 
@@ -34,7 +34,7 @@ export class AdminTransactionController {
       if (error.statusCode === 404) {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
-      return reply.status(500).send(errorResponse('Failed to fetch transaction', 500, error.message));
+      throw error;
     }
   };
 }

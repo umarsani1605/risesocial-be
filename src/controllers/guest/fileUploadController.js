@@ -14,7 +14,7 @@ export class FileUploadController {
 
       return reply.status(201).send(successResponse(uploadResult, 'Essay file uploaded successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to upload essay file', 500, error.message));
+      throw error;
     }
   }
 
@@ -27,7 +27,7 @@ export class FileUploadController {
 
       return reply.status(201).send(successResponse(uploadResult, 'Headshot file uploaded successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to upload headshot file', 500, error.message));
+      throw error;
     }
   }
 
@@ -42,7 +42,7 @@ export class FileUploadController {
 
       return reply.status(201).send(successResponse(uploadResult, 'Payment proof file uploaded successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to upload payment proof file', 500, error.message));
+      throw error;
     }
   }
 
@@ -69,7 +69,7 @@ export class FileUploadController {
         return reply.status(404).send(errorResponse('File not found', 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to download file', 500, error.message));
+      throw error;
     }
   }
 
@@ -85,7 +85,7 @@ export class FileUploadController {
 
       return reply.status(200).send(successResponse(fileInfo, 'File information retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to get file information', 500, error.message));
+      throw error;
     }
   }
 
@@ -106,7 +106,7 @@ export class FileUploadController {
         return reply.status(404).send(errorResponse('File not found', 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to delete file', 500, error.message));
+      throw error;
     }
   }
 
@@ -135,7 +135,7 @@ export class FileUploadController {
         }),
       );
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve files', 500, error.message));
+      throw error;
     }
   }
 
@@ -149,7 +149,7 @@ export class FileUploadController {
         }),
       );
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve upload statistics', 500, error.message));
+      throw error;
     }
   }
 
@@ -177,7 +177,7 @@ export class FileUploadController {
 
       return reply.status(200).send(successResponse(health, 'Upload service is healthy'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Upload service health check failed', 500, error.message));
+      throw error;
     }
   }
 
@@ -191,7 +191,7 @@ export class FileUploadController {
         }),
       );
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to cleanup orphaned files', 500, error.message));
+      throw error;
     }
   }
 }

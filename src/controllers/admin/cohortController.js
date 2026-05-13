@@ -15,7 +15,7 @@ export class AdminCohortController {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
       if (error.statusCode === 400) return reply.status(400).send(errorResponse(error.message, 400));
-      return reply.status(500).send(errorResponse('Failed to create cohort', 500, error.message));
+      throw error;
     }
   }
 
@@ -30,7 +30,7 @@ export class AdminCohortController {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
       if (error.statusCode === 400) return reply.status(400).send(errorResponse(error.message, 400));
-      return reply.status(500).send(errorResponse('Failed to update cohort', 500, error.message));
+      throw error;
     }
   }
 
@@ -44,7 +44,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to delete cohort', 500, error.message));
+      throw error;
     }
   }
 
@@ -55,7 +55,7 @@ export class AdminCohortController {
 
       return reply.send(successResponse(result.data, 'Cohorts retrieved successfully', result.meta));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve cohorts', 500, error.message));
+      throw error;
     }
   }
 
@@ -75,7 +75,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to retrieve cohort', 500, error.message));
+      throw error;
     }
   }
 
@@ -92,7 +92,7 @@ export class AdminCohortController {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
       if (error.statusCode === 400) return reply.status(400).send(errorResponse(error.message, 400));
-      return reply.status(500).send(errorResponse('Failed to create module', 500, error.message));
+      throw error;
     }
   }
 
@@ -106,7 +106,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404 || error.message === 'Module not found') return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to update module', 500, error.message));
+      throw error;
     }
   }
 
@@ -120,7 +120,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404 || error.message === 'Module not found') return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to delete module', 500, error.message));
+      throw error;
     }
   }
 
@@ -164,7 +164,7 @@ export class AdminCohortController {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
       if (error.statusCode === 400) return reply.status(400).send(errorResponse(error.message, 400));
-      return reply.status(500).send(errorResponse('Failed to create attachment', 500, error.message));
+      throw error;
     }
   }
 
@@ -178,7 +178,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404 || error.message === 'Attachment not found') return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to update attachment', 500, error.message));
+      throw error;
     }
   }
 
@@ -192,7 +192,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404 || error.message === 'Attachment not found') return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to delete attachment', 500, error.message));
+      throw error;
     }
   }
 
@@ -206,7 +206,7 @@ export class AdminCohortController {
 
       return reply.send(successResponse(result.data, 'Enrollments retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve enrollments', 500, error.message));
+      throw error;
     }
   }
 
@@ -222,7 +222,7 @@ export class AdminCohortController {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
       if (error.statusCode === 400) return reply.status(400).send(errorResponse(error.message, 400));
-      return reply.status(500).send(errorResponse('Failed to enroll student', 500, error.message));
+      throw error;
     }
   }
 
@@ -236,7 +236,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404 || error.message === 'Enrollment not found') return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to update enrollment', 500, error.message));
+      throw error;
     }
   }
 
@@ -258,7 +258,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to add mentor', 500, error.message));
+      throw error;
     }
   }
 
@@ -278,7 +278,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404 || error.message === 'Mentor not found') return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to update mentor', 500, error.message));
+      throw error;
     }
   }
 
@@ -292,7 +292,7 @@ export class AdminCohortController {
     } catch (error) {
 
       if (error.statusCode === 404 || error.message === 'Mentor not found') return reply.status(404).send(errorResponse(error.message, 404));
-      return reply.status(500).send(errorResponse('Failed to remove mentor', 500, error.message));
+      throw error;
     }
   }
 
@@ -311,7 +311,7 @@ export class AdminCohortController {
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
       if (error.statusCode === 400) return reply.status(400).send(errorResponse(error.message, 400));
       if (error.statusCode === 409) return reply.status(409).send(errorResponse(error.message, 409));
-      return reply.status(500).send(errorResponse('Failed to generate certificate', 500, error.message));
+      throw error;
     }
   }
 }

@@ -12,7 +12,7 @@ export class AdminUserController {
       reply.header('Content-Length', buffer.length);
       return reply.send(buffer);
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to export users', 500, error.message));
+      throw error;
     }
   };
 
@@ -21,7 +21,7 @@ export class AdminUserController {
       const result = await userService.getAllUsers(request.query);
       return reply.send(successResponse(result.data, 'Users retrieved successfully', result.meta));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to fetch users', 500, error.message));
+      throw error;
     }
   };
 
@@ -36,7 +36,7 @@ export class AdminUserController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to fetch user', 500, error.message));
+      throw error;
     }
   };
 
@@ -50,7 +50,7 @@ export class AdminUserController {
         return reply.status(400).send(errorResponse(error.message, 400));
       }
 
-      return reply.status(500).send(errorResponse('Failed to create user', 500, error.message));
+      throw error;
     }
   };
 
@@ -69,7 +69,7 @@ export class AdminUserController {
         return reply.status(400).send(errorResponse(error.message, 400));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update user', 500, error.message));
+      throw error;
     }
   };
 
@@ -84,7 +84,7 @@ export class AdminUserController {
         return reply.status(404).send(errorResponse(error.message, 404));
       }
 
-      return reply.status(500).send(errorResponse('Failed to delete user', 500, error.message));
+      throw error;
     }
   };
 }

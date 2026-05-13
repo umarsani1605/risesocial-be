@@ -29,7 +29,7 @@ export class AdminRylsRegistrationController {
 
       return reply.send(successResponse(result, 'Registrations retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve registrations', 500, error.message));
+      throw error;
     }
   };
 
@@ -45,7 +45,7 @@ export class AdminRylsRegistrationController {
 
       return reply.send(successResponse(result, 'Registration retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve registration', 500, error.message));
+      throw error;
     }
   };
 
@@ -63,7 +63,7 @@ export class AdminRylsRegistrationController {
         return reply.status(404).send(errorResponse('Registration not found', 404, error.message));
       }
 
-      return reply.status(500).send(errorResponse('Failed to update registration status', 500, error.message));
+      throw error;
     }
   };
 
@@ -80,7 +80,7 @@ export class AdminRylsRegistrationController {
         return reply.status(404).send(errorResponse('Registration not found', 404, error.message));
       }
 
-      return reply.status(500).send(errorResponse('Failed to delete registration', 500, error.message));
+      throw error;
     }
   };
 
@@ -90,7 +90,7 @@ export class AdminRylsRegistrationController {
 
       return reply.send(successResponse(result, 'Registration statistics retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve statistics', 500, error.message));
+      throw error;
     }
   };
 
@@ -111,7 +111,7 @@ export class AdminRylsRegistrationController {
 
       return reply.send(successResponse(result, 'Registrations retrieved successfully'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve registrations by date range', 500, error.message));
+      throw error;
     }
   };
 
@@ -131,7 +131,7 @@ export class AdminRylsRegistrationController {
 
       return reply.send(result);
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to export registrations', 500, error.message));
+      throw error;
     }
   };
 
@@ -156,7 +156,7 @@ export class AdminRylsRegistrationController {
 
       return reply.send(excelBuffer);
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to export registrations to Excel', 500, error.message));
+      throw error;
     }
   };
 
@@ -171,7 +171,7 @@ export class AdminRylsRegistrationController {
         ),
       );
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve drafts', 500, error.message));
+      throw error;
     }
   };
 
@@ -180,7 +180,7 @@ export class AdminRylsRegistrationController {
       const result = await rylsDraftService.getDraftStats();
       return reply.send(successResponse(result, 'Draft stats retrieved'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve draft stats', 500, error.message));
+      throw error;
     }
   };
 
@@ -189,7 +189,7 @@ export class AdminRylsRegistrationController {
       const count = await rylsDraftService.cleanupExpired();
       return reply.send(successResponse({ deleted: count }, 'Expired drafts cleaned up'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to cleanup expired drafts', 500, error.message));
+      throw error;
     }
   };
   getAnalyticsSummary = async (request, reply) => {
@@ -198,7 +198,7 @@ export class AdminRylsRegistrationController {
       const result = await this.registrationService.getAnalyticsSummary({ period, startDate, endDate });
       return reply.send(successResponse(result, 'Summary retrieved'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve analytics summary', 500, error.message));
+      throw error;
     }
   };
 
@@ -208,7 +208,7 @@ export class AdminRylsRegistrationController {
       const result = await this.registrationService.getAnalyticsTrend({ period, startDate, endDate });
       return reply.send(successResponse(result, 'Trend retrieved'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve analytics trend', 500, error.message));
+      throw error;
     }
   };
 
@@ -218,7 +218,7 @@ export class AdminRylsRegistrationController {
       const result = await this.registrationService.getAnalyticsDemographics({ period, startDate, endDate });
       return reply.send(successResponse(result, 'Demographics retrieved'));
     } catch (error) {
-      return reply.status(500).send(errorResponse('Failed to retrieve analytics demographics', 500, error.message));
+      throw error;
     }
   };
 }
