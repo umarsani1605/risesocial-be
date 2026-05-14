@@ -24,6 +24,7 @@ export const academyEntitySchema = {
     certificate: { type: 'boolean' },
     portfolio: { type: 'boolean' },
     status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'] },
+    pixel_id: { type: 'string', nullable: true },
     ...timestampFieldsSchema.properties,
   },
 };
@@ -196,6 +197,7 @@ export const userAcademyWithRelationsSchema = {
     certificate: { type: 'boolean' },
     portfolio: { type: 'boolean' },
     status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'] },
+    pixel_id: { type: 'string', nullable: true },
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
 
@@ -371,6 +373,7 @@ export const adminAcademyWithRelationsSchema = {
     certificate: { type: 'boolean' },
     portfolio: { type: 'boolean' },
     status: { type: 'string', enum: ['DRAFT', 'ACTIVE', 'ARCHIVED'] },
+    pixel_id: { type: 'string', nullable: true },
     created_at: { type: 'string', format: 'date-time' },
     updated_at: { type: 'string', format: 'date-time' },
 
