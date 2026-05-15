@@ -78,17 +78,11 @@ const jobUpdateInputSchema = {
 export const getAdminJobsSchema = {
   tags: ['Admin Jobs'],
   summary: 'Get all jobs for admin',
-  description: 'Retrieve all jobs with optional status filter and pagination',
+  description: 'Retrieve all jobs with optional pagination',
   querystring: {
     type: 'object',
     properties: {
       ...paginationQuerySchema.properties,
-      status: {
-        type: 'string',
-        enum: ['active', 'inactive', 'all'],
-        default: 'all',
-        description: 'Filter by job status',
-      },
     },
   },
   response: {

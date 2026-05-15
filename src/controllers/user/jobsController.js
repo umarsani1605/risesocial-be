@@ -11,20 +11,17 @@ class JobsController {
       const {
         page,
         limit,
-        featured,
         search = '',
         query = '',
         location = '',
         jobType = '',
         experienceLevel = '',
-        minSalary = '',
-        maxSalary = '',
         isRemote = '',
+        company = '',
         companyName = '',
         companySlug = '',
         jobSlug = '',
         industry = '',
-        skills = '',
         sortBy = 'postedDate',
         sortOrder = 'desc',
       } = request.query;
@@ -34,14 +31,12 @@ class JobsController {
         location,
         jobType,
         experienceLevel,
-        salaryMin: minSalary ? Number(minSalary) : undefined,
-        salaryMax: maxSalary ? Number(maxSalary) : undefined,
+        status: 'active',
         isRemote: isRemote === 'true' ? true : isRemote === 'false' ? false : undefined,
-        company: companyName,
+        company: companyName || company,
         companySlug,
         jobSlug,
         industry,
-        skills: skills ? skills.split(',').map((skill) => skill.trim()) : undefined,
         sortBy,
         sortOrder,
       };
@@ -50,10 +45,6 @@ class JobsController {
       if (page !== undefined && limit !== undefined) {
         options.page = parseInt(page);
         options.limit = parseInt(limit);
-      }
-
-      if (featured !== undefined) {
-        options.featured = featured === 'true' || featured === true;
       }
 
       const result = await this.jobsService.searchJobs(options);
@@ -66,7 +57,8 @@ class JobsController {
         return reply.send(successResponse(result.data, 'Jobs retrieved successfully'));
       }
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
@@ -83,7 +75,8 @@ class JobsController {
 
       return reply.send(successResponse(job, 'Job retrieved successfully'));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
@@ -92,7 +85,8 @@ class JobsController {
       const categories = await this.jobsService.getJobCategories();
       return reply.send(successResponse(categories, 'Job categories retrieved successfully'));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
@@ -128,7 +122,8 @@ class JobsController {
       const result = await this.jobsService.getCompanies(options);
       return reply.send(successResponse(result.data, 'Companies retrieved successfully', result.meta));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
@@ -142,7 +137,8 @@ class JobsController {
 
       return reply.send(successResponse(recommendations, 'Job recommendations retrieved successfully'));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 }

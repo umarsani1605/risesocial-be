@@ -8,13 +8,7 @@ class JobsController {
 
   getJobs = async (request, reply) => {
     try {
-
-      const { status = 'all', ...otherParams } = request.query;
-
-      const options = {
-        status,
-        ...otherParams,
-      };
+      const options = { ...request.query };
 
       if (options.page !== undefined) {
         options.page = parseInt(options.page);
@@ -27,7 +21,8 @@ class JobsController {
 
       return reply.send(successResponse(result.data, 'Jobs retrieved successfully', result.meta));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
@@ -45,7 +40,8 @@ class JobsController {
 
       return reply.send(successResponse(job, 'Job retrieved successfully'));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
@@ -76,7 +72,7 @@ class JobsController {
 
       return reply.send(successResponse(job, 'Job updated successfully'));
     } catch (error) {
-      const statusCode = error.message === 'Job not found' ? 404 : 500;
+      const statusCode = error.statusCode || 500;
       return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
@@ -91,7 +87,7 @@ class JobsController {
 
       return reply.send(successResponse(null, 'Job deleted successfully'));
     } catch (error) {
-      const statusCode = error.message === 'Job not found' ? 404 : 500;
+      const statusCode = error.statusCode || 500;
       return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
@@ -108,7 +104,8 @@ class JobsController {
 
       return reply.send(successResponse(result, 'LinkedIn jobs sync completed successfully'));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
@@ -120,7 +117,8 @@ class JobsController {
       const stats = await this.jobsService.getJobStatistics(jobId);
       return reply.send(successResponse(stats, 'Job statistics retrieved successfully'));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
@@ -129,7 +127,8 @@ class JobsController {
       const stats = await this.jobsService.getAllJobsStatistics();
       return reply.send(successResponse(stats, 'All jobs statistics retrieved successfully'));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 
@@ -138,7 +137,8 @@ class JobsController {
       const stats = await this.jobsService.getJobsStatistics();
       return reply.send(successResponse(stats, 'Jobs statistics retrieved successfully'));
     } catch (error) {
-      return reply.send(errorResponse(error.message, 500));
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send(errorResponse(error.message, statusCode));
     }
   };
 }

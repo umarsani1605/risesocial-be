@@ -9,32 +9,7 @@ export class JobsService {
   }
 
   async getJobsForAdmin(options = {}) {
-    const { status = 'all', ...otherOptions } = options;
-
-    const searchOptions = {
-      ...otherOptions,
-    };
-
-    if (status !== 'all') {
-      searchOptions.status = status;
-    }
-
-    const result = await jobsRepository.searchJobs(searchOptions);
-    return result;
-  }
-  async getJobsForAdmin(options = {}) {
-    const { status = 'all', ...otherOptions } = options;
-
-    const searchOptions = {
-      ...otherOptions,
-    };
-
-    if (status !== 'all') {
-      searchOptions.status = status;
-    }
-
-    const result = await jobsRepository.searchJobs(searchOptions);
-    return result;
+    return await jobsRepository.searchJobs(options);
   }
 
   async getJobBySlug(slug) {
@@ -51,7 +26,11 @@ export class JobsService {
 
   async getJobById(id) {
     const job = await jobsRepository.findById(id);
-    if (!job) throw new Error('Job not found');
+    if (!job) {
+      const error = new Error('Job not found');
+      error.statusCode = 404;
+      throw error;
+    }
     return job;
   }
 
@@ -59,7 +38,9 @@ export class JobsService {
     // Get the current job to find similar ones
     const currentJob = await jobsRepository.findById(jobId);
     if (!currentJob) {
-      throw new Error('Job not found');
+      const error = new Error('Job not found');
+      error.statusCode = 404;
+      throw error;
     }
 
     // Find similar jobs based on company industry, excluding current job
@@ -67,6 +48,7 @@ export class JobsService {
       page: 1,
       limit: limit + 1, // Get one extra to filter out current job
       industry: currentJob.company?.industry,
+      status: 'active',
     };
 
     const result = await jobsRepository.searchJobs(options);
@@ -77,7 +59,7 @@ export class JobsService {
     return recommendations;
   }
 
-  async createJob(jobData, userId) {
+  async createJob(jobData, _userId) {
     await this.validateJobData(jobData);
 
     if (!jobData.slug) {
@@ -131,7 +113,6 @@ export class JobsService {
       posted_date: new Date(),
       status: 'active',
       direct_apply: !jobData.external_url,
-      created_by: userId,
     };
 
     return await jobsRepository.create(jobRecord);
@@ -139,15 +120,13 @@ export class JobsService {
 
   async updateJob(id, updateData) {
     const existingJob = await jobsRepository.findById(id);
-    if (!existingJob) throw new Error('Job not found');
-
-    if (updateData.salary_min && updateData.salary_max && updateData.salary_min > updateData.salary_max) {
-      throw new Error('Minimum salary cannot be greater than maximum salary');
+    if (!existingJob) {
+      const error = new Error('Job not found');
+      error.statusCode = 404;
+      throw error;
     }
 
-    if (updateData.title || updateData.description) {
-      await this.validateJobData(updateData, true);
-    }
+    await this.validateJobData(updateData, true);
 
     if (updateData.slug && updateData.slug !== existingJob.slug) {
       const slugExists = await jobsRepository.slugExists(updateData.slug, id);
@@ -161,8 +140,46 @@ export class JobsService {
       updateData.valid_until = new Date(updateData.valid_until);
     }
 
-    // Strip company/location strings — they are not updatable as plain strings via this endpoint
-    const { company, location, ...jobUpdateData } = updateData;
+    const jobUpdateData = { ...updateData };
+
+    if (updateData.company) {
+      const existingCompany = await jobsRepository.findCompanyByName(updateData.company);
+      if (existingCompany) {
+        jobUpdateData.company_id = existingCompany.id;
+      } else {
+        const companySlug = this.generateSlug(updateData.company);
+        const newCompany = await jobsRepository.createCompany({
+          name: updateData.company,
+          slug: companySlug,
+        });
+        jobUpdateData.company_id = newCompany.id;
+      }
+    }
+
+    if (updateData.location) {
+      const parts = updateData.location.split(',').map((s) => s.trim());
+      const city = parts.length > 1 ? parts[0] : null;
+      const country = parts[parts.length - 1];
+      const existingLocation = await jobsRepository.findLocationByDetails({ city, region: null, country });
+
+      if (existingLocation) {
+        jobUpdateData.location_id = existingLocation.id;
+
+        if (typeof updateData.is_remote === 'boolean' && existingLocation.is_remote !== updateData.is_remote) {
+          await jobsRepository.updateLocation(existingLocation.id, { is_remote: updateData.is_remote });
+        }
+      } else {
+        const newLocation = await jobsRepository.createLocation({
+          city,
+          country,
+          is_remote: updateData.is_remote ?? false,
+        });
+        jobUpdateData.location_id = newLocation.id;
+      }
+    }
+
+    delete jobUpdateData.company;
+    delete jobUpdateData.location;
 
     const job = await jobsRepository.updateWithRelations(id, jobUpdateData, null, null);
     return job;
@@ -170,7 +187,11 @@ export class JobsService {
 
   async deleteJob(id) {
     const job = await jobsRepository.findById(id);
-    if (!job) throw new Error('Job not found');
+    if (!job) {
+      const error = new Error('Job not found');
+      error.statusCode = 404;
+      throw error;
+    }
     await jobsRepository.delete(id);
   }
 
@@ -205,22 +226,18 @@ export class JobsService {
       errors.push('Location is required');
     }
 
-    if (data.salary_min && data.salary_max && data.salary_min > data.salary_max) {
-      errors.push('Minimum salary cannot be greater than maximum salary');
-    }
-
-    if (data.application_deadline) {
-      const deadline = new Date(data.application_deadline);
+    if (data.valid_until) {
+      const deadline = new Date(data.valid_until);
       if (deadline < new Date()) {
         errors.push('Application deadline cannot be in the past');
       }
     }
 
-    if (data.job_type && !this.isValidJobType(data.job_type)) {
+    if (data.employment_type && !this.isValidJobType(data.employment_type)) {
       errors.push('Invalid job type');
     }
 
-    if (data.experience_level && !this.isValidExperienceLevel(data.experience_level)) {
+    if (data.seniority_level && !this.isValidExperienceLevel(data.seniority_level)) {
       errors.push('Invalid experience level');
     }
 
@@ -269,13 +286,13 @@ export class JobsService {
   }
 
   isValidJobType(jobType) {
-    const validTypes = ['full-time', 'part-time', 'contract', 'internship', 'freelance', 'temporary'];
-    return validTypes.includes(jobType.toLowerCase());
+    const validTypes = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'FREELANCE', 'REMOTE'];
+    return validTypes.includes(String(jobType).toUpperCase());
   }
 
   isValidExperienceLevel(experienceLevel) {
-    const validLevels = ['entry-level', 'junior', 'mid-level', 'senior', 'lead', 'executive'];
-    return validLevels.includes(experienceLevel.toLowerCase());
+    const validLevels = ['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR', 'LEAD', 'MANAGER', 'DIRECTOR'];
+    return validLevels.includes(String(experienceLevel).toUpperCase());
   }
 
   generateSlug(title) {

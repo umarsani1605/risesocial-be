@@ -23,6 +23,10 @@ const jobEntitySchema = {
       type: 'string',
       description: 'Job title',
     },
+    slug: {
+      type: 'string',
+      description: 'Job slug',
+    },
     description: {
       type: 'string',
       description: 'Detailed job description',
@@ -40,86 +44,45 @@ const jobEntitySchema = {
       description: 'Job location information',
       nullable: true,
     },
-    jobType: {
+    employment_type: {
       type: 'string',
       description: 'Type of employment',
       nullable: true,
     },
-    experienceLevel: {
+    seniority_level: {
       type: 'string',
       description: 'Required experience level',
       nullable: true,
     },
-    minSalary: {
-      type: 'integer',
-      minimum: 0,
-      nullable: true,
-      description: 'Minimum salary range',
-    },
-    maxSalary: {
-      type: 'integer',
-      minimum: 0,
-      nullable: true,
-      description: 'Maximum salary range',
-    },
-    skills: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'Required skills',
-    },
-    requirements: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'Job requirements',
-    },
-    benefits: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'Job benefits',
-    },
-    isRemote: {
-      type: 'boolean',
-      default: false,
-      description: 'Whether the job is remote',
-    },
-    applicationDeadline: {
+    status: {
       type: 'string',
-      format: 'date-time',
-      nullable: true,
-      description: 'Application deadline',
+      description: 'Job status',
     },
-    applicationUrl: {
+    direct_apply: {
+      type: 'boolean',
+      description: 'Whether the job supports direct apply',
+    },
+    external_url: {
       type: 'string',
       format: 'uri',
       nullable: true,
       description: 'External application URL',
     },
-    contactEmail: {
-      type: 'string',
-      format: 'email',
-      nullable: true,
-      description: 'Contact email for applications',
-    },
-    companyDescription: {
+    salary_raw: {
       type: 'string',
       nullable: true,
-      description: 'Brief company description',
+      description: 'Raw salary text',
     },
-    companyWebsite: {
+    posted_date: {
       type: 'string',
-      format: 'uri',
-      nullable: true,
-      description: 'Company website URL',
+      format: 'date-time',
+      description: 'Posted date',
     },
-    companySize: {
+    valid_until: {
       type: 'string',
+      format: 'date-time',
       nullable: true,
-      description: 'Company size range',
-    },
-    isActive: {
-      type: 'boolean',
-      default: true,
-      description: 'Whether the job is active',
+      description: 'Application deadline',
     },
     ...timestampFieldsSchema,
   },
@@ -148,6 +111,10 @@ const jobsQuerySchema = {
       type: 'string',
       description: 'Filter by company (partial match)',
     },
+    companyName: {
+      type: 'string',
+      description: 'Filter by company name (partial match)',
+    },
     companySlug: {
       type: 'string',
       description: 'Filter by company slug (exact match)',
@@ -160,24 +127,10 @@ const jobsQuerySchema = {
       type: 'boolean',
       description: 'Filter remote jobs only',
     },
-    minSalary: {
-      type: 'integer',
-      minimum: 0,
-      description: 'Minimum salary filter',
-    },
-    maxSalary: {
-      type: 'integer',
-      minimum: 0,
-      description: 'Maximum salary filter',
-    },
-    skills: {
+    status: {
       type: 'string',
-      description: 'Comma-separated skills to filter by',
-    },
-    isActive: {
-      type: 'boolean',
-      default: true,
-      description: 'Filter active jobs only',
+      enum: ['active', 'inactive'],
+      description: 'Filter by job status',
     },
   },
 };
@@ -277,7 +230,7 @@ export const getCompaniesSchema = {
 // User Jobs Schemas
 export const getUserJobsSchema = {
   summary: 'Get all jobs for users',
-  description: 'Retrieve paginated list of active jobs for public users. Supports optional pagination and filtering by featured status.',
+  description: 'Retrieve paginated list of active jobs for public users.',
   tags: ['User Jobs'],
   querystring: {
     type: 'object',
@@ -294,10 +247,6 @@ export const getUserJobsSchema = {
         maximum: 100,
         description: 'Items per page (optional - omit for all results)',
       },
-      featured: {
-        type: 'boolean',
-        description: 'Filter by featured jobs only',
-      },
       search: {
         type: 'string',
         maxLength: 255,
@@ -308,22 +257,6 @@ export const getUserJobsSchema = {
   response: {
     200: createPaginatedResponseSchema(jobEntitySchema, 'Jobs retrieved successfully'),
     400: createErrorResponseSchema(400, 'Bad Request - Invalid query parameters'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
-export const getFeaturedJobsSchema = {
-  summary: 'Get featured jobs',
-  description: 'Retrieve list of featured/highlighted jobs',
-  tags: ['User Jobs'],
-  querystring: {
-    type: 'object',
-    properties: {
-      limit: { type: 'integer', minimum: 1, maximum: 50, default: 10, description: 'Number of jobs to return' },
-    },
-  },
-  response: {
-    200: createSuccessResponseSchema({ type: 'array', items: jobEntitySchema }, 'Featured jobs retrieved'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };

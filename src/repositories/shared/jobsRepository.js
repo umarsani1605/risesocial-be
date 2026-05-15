@@ -16,15 +16,11 @@ export class JobsRepository extends BaseRepository {
       location,
       jobType,
       experienceLevel,
-      salaryMin,
-      salaryMax,
       company,
       companySlug,
       jobSlug,
       industry,
-      skills,
       isRemote,
-      featured,
       status,
       sortBy = 'postedDate',
       sortOrder = 'desc',
@@ -36,16 +32,8 @@ export class JobsRepository extends BaseRepository {
 
     const where = {};
 
-    // Status filter - default to 'active' for public API
     if (status) {
       where.status = status;
-    } else {
-      where.status = 'active';
-    }
-
-    // Featured filter
-    if (featured !== undefined) {
-      where.featured = Boolean(featured);
     }
 
     // Full-text search across multiple fields
@@ -81,15 +69,12 @@ export class JobsRepository extends BaseRepository {
       where.seniority_level = { contains: experienceLevel, mode: 'insensitive' };
     }
 
-    if (salaryMin || salaryMax) {
-      where.salary_min = {};
-      if (salaryMin) where.salary_min.gte = Number(salaryMin);
-      if (salaryMax) where.salary_max = { lte: Number(salaryMax) };
-    }
-
     // Company name filter
     if (company) {
-      where.company = { name: { contains: company, mode: 'insensitive' } };
+      where.company = {
+        ...where.company,
+        name: { contains: company, mode: 'insensitive' }
+      };
     }
 
     // Company slug filter (exact match)
@@ -111,12 +96,6 @@ export class JobsRepository extends BaseRepository {
         ...where.company,
         industry: { contains: industry, mode: 'insensitive' },
       };
-    }
-
-    if (skills && Array.isArray(skills) && skills.length > 0) {
-      where.AND = skills.map((skill) => ({
-        skills: { array_contains: skill },
-      }));
     }
 
     if (isRemote !== undefined) {
@@ -182,13 +161,10 @@ export class JobsRepository extends BaseRepository {
           location,
           jobType,
           experienceLevel,
-          salaryRange: salaryMin || salaryMax ? { min: salaryMin, max: salaryMax } : null,
           company,
           companySlug,
           jobSlug,
-          skills,
           isRemote,
-          featured,
           status,
         },
       };
@@ -202,24 +178,36 @@ export class JobsRepository extends BaseRepository {
 
     const where = {};
 
-    if (skills.length > 0) {
-      where.OR = skills.map((skill) => ({
-        skills: { array_contains: skill },
-      }));
-    }
-
     if (preferredLocation) {
-      where.location = { contains: preferredLocation, mode: 'insensitive' };
+      where.location = {
+        OR: [
+          { city: { contains: preferredLocation, mode: 'insensitive' } },
+          { region: { contains: preferredLocation, mode: 'insensitive' } },
+          { country: { contains: preferredLocation, mode: 'insensitive' } },
+        ],
+      };
     }
 
     if (experienceLevel) {
-      where.experience_level = experienceLevel;
+      where.seniority_level = experienceLevel;
+    }
+
+    if (skills.length > 0) {
+      where.OR = [
+        ...(where.OR || []),
+        ...skills.map((skill) => ({
+          title: { contains: skill, mode: 'insensitive' },
+        })),
+        ...skills.map((skill) => ({
+          description: { contains: skill, mode: 'insensitive' },
+        })),
+      ];
     }
 
     return await this.model.findMany({
       where,
       take: Number(limit),
-      orderBy: [{ posted_date: 'desc' }, { salary_max: 'desc' }],
+      orderBy: [{ posted_date: 'desc' }],
       include: {
         company: true,
         location: true,
@@ -312,6 +300,13 @@ export class JobsRepository extends BaseRepository {
   async createLocation(locationData) {
     return await prisma.jobLocation.create({
       data: locationData,
+    });
+  }
+
+  async updateLocation(id, data) {
+    return await prisma.jobLocation.update({
+      where: { id },
+      data,
     });
   }
 
