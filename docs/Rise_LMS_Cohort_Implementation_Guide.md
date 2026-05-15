@@ -98,9 +98,7 @@ if (!placement) throw new Error('You are not enrolled in this cohort');
 | --- | --- | --- | --- |
 | `GET` | `/admin/academy-enrollments` | `admin.cohort VIEWER` | List all enrollments (filterable) |
 | `GET` | `/admin/academy-enrollments/:id` | `admin.cohort VIEWER` | Enrollment detail |
-| `POST` | `/admin/academy-enrollments/:id/assign` | `admin.cohort EDITOR` | Assign to cohort |
-| `POST` | `/admin/academy-enrollments/:id/cancel` | `admin.cohort EDITOR` | Cancel enrollment |
-| `POST` | `/admin/cohort-placements/:id/transfer` | `admin.cohort EDITOR` | Transfer to different cohort |
+| `POST` | `/admin/academy-enrollments/:id/assign` | `admin.cohort EDITOR` | Assign to cohort (re-assign for transfer) |
 | `POST` | `/admin/cohort-placements/:id/drop` | `admin.cohort EDITOR` | Drop from cohort (enrollment stays active) |
 
 ### Admin Cohort Endpoints
@@ -109,7 +107,8 @@ if (!placement) throw new Error('You are not enrolled in this cohort');
 | --- | --- | --- | --- |
 | `GET` | `/admin/cohorts` | `admin.cohort VIEWER` | List cohorts |
 | `POST` | `/admin/cohorts` | `admin.cohort EDITOR` | Create cohort |
-| `PUT` | `/admin/cohorts/:id` | `admin.cohort EDITOR` | Update cohort (set status=completed triggers cascade) |
+| `PUT` | `/admin/cohorts/:id` | `admin.cohort EDITOR` | Update cohort name/description/dates (status not editable) |
+| `POST` | `/admin/cohorts/:id/complete` | `admin.cohort EDITOR` | Complete cohort + issue certificates (irreversible) |
 | `DELETE` | `/admin/cohorts/:id` | `admin.cohort EDITOR` | Delete cohort |
 | `POST` | `/admin/cohorts/:id/placements/:placementId/certificate` | `admin.cohort EDITOR` | Generate certificate |
 
@@ -144,7 +143,7 @@ if (!placement) throw new Error('You are not enrolled in this cohort');
 
 ### Completion Cascade
 
-When admin sets cohort `status = 'completed'` via `PUT /admin/cohorts/:id`:
+When admin completes cohort via `POST /admin/cohorts/:id/complete`:
 
 1. `Cohort.status` → `completed`
 2. All `CohortPlacement` rows for that cohort are retained (not deleted)

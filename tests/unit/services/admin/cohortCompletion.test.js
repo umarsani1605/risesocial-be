@@ -241,41 +241,22 @@ describe('AdminCohortService.completeCohort', () => {
 });
 
 // ----------------------------------------------------------
-describe('AdminCohortService.updateCohort with status=completed', () => {
+describe('AdminCohortService.completeCohort idempotency', () => {
   let service;
 
   beforeEach(() => {
     vi.clearAllMocks();
     service = new AdminCohortService();
-
-    mockAdminCohortRepository.findById.mockResolvedValue(baseCohort);
-    vi.spyOn(service, 'completeCohort').mockResolvedValue({
-      cohort: { ...baseCohort, status: 'completed' },
-      certificatesGenerated: 2,
-    });
   });
 
-  it('delegates cascade to completeCohort when status is completed', async () => {
-    await service.updateCohort(5, { status: 'completed' });
+  it('returns early without re-triggering when cohort is already completed', async () => {
+    const completedCohort = { ...baseCohort, status: 'completed' };
+    mockAdminCohortRepository.findByIdWithDetails.mockResolvedValue(completedCohort);
 
-    expect(service.completeCohort).toHaveBeenCalledWith(5);
-  });
+    const result = await service.completeCohort(5);
 
-  it('returns the updated cohort from completeCohort result', async () => {
-    const result = await service.updateCohort(5, { status: 'completed' });
-
-    expect(result.status).toBe('completed');
-  });
-
-  it('applies other field updates via repository before calling completeCohort', async () => {
-    mockAdminCohortRepository.update.mockResolvedValue({ ...baseCohort, name: 'Updated Name' });
-
-    await service.updateCohort(5, { status: 'completed', name: 'Updated Name' });
-
-    expect(mockAdminCohortRepository.update).toHaveBeenCalledWith(
-      5,
-      expect.objectContaining({ name: 'Updated Name' }),
-    );
-    expect(service.completeCohort).toHaveBeenCalledWith(5);
+    expect(result.cohort.status).toBe('completed');
+    expect(result.certificatesGenerated).toBe(0);
+    expect(mockPrisma.cohortPlacement.findMany).not.toHaveBeenCalled();
   });
 });

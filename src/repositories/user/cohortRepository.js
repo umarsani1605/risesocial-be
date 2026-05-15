@@ -12,7 +12,7 @@ export class UserCohortRepository extends BaseRepository {
     const skip = (page - 1) * limit;
     const where = {};
     if (academy_id) where.academy_id = Number(academy_id);
-    if (status) where.status = status;
+    where.status = status ?? { not: 'completed' };
 
     const [data, total] = await Promise.all([
       this.model.findMany({

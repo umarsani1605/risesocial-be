@@ -34,6 +34,17 @@ export class AdminCohortController {
     }
   }
 
+  async completeCohort(request, reply) {
+    try {
+      const { id } = request.params;
+      const result = await adminCohortService.completeCohort(Number(id));
+      return reply.send(successResponse(result, 'Cohort completed successfully'));
+    } catch (error) {
+      if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
+      throw error;
+    }
+  }
+
   async deleteCohort(request, reply) {
     try {
 

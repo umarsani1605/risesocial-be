@@ -25,7 +25,7 @@ export class AcademyRepository extends BaseRepository {
         testimonials: { orderBy: { order: 'asc' } },
         faqs: { orderBy: { order: 'asc' } },
         cohorts: {
-          where: { status: 'not_started' },
+          where: { status: { not: 'completed' } },
           take: 1,
           select: { id: true },
         },

@@ -9,8 +9,6 @@ function makeError(message, statusCode) {
   return err;
 }
 
-const VALID_COHORT_STATUSES = ['not_started', 'ongoing'];
-
 export class AdminPlacementService {
 
   async listAcademyEnrollments({ page = 1, limit = 20, placed, academy_id, user_id } = {}) {
@@ -67,8 +65,8 @@ export class AdminPlacementService {
     if (cohort.academy_id !== enrollment.academy_id) {
       throw makeError('Cohort belongs to a different academy', 422);
     }
-    if (!VALID_COHORT_STATUSES.includes(cohort.status)) {
-      throw makeError(`Cannot assign to cohort with status '${cohort.status}'`, 422);
+    if (cohort.status === 'completed') {
+      throw makeError('Cannot assign to a completed cohort', 422);
     }
 
     const existingByUserCohort = await cohortPlacementRepository.findByUserCohort(enrollment.user_id, cohortId);

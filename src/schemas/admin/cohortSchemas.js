@@ -216,7 +216,6 @@ export const createCohortSchema = {
       academy_id: { type: 'integer' },
       name: { type: 'string', minLength: 1 },
       description: { type: 'string' },
-      status: { type: 'string', enum: ['not_started', 'ongoing', 'completed'], default: 'not_started' },
       start_date: { type: 'string', format: 'date' },
       end_date: { type: 'string', format: 'date' },
     },
@@ -245,7 +244,6 @@ export const updateCohortSchema = {
     properties: {
       name: { type: 'string', minLength: 1 },
       description: { type: 'string' },
-      status: { type: 'string', enum: ['not_started', 'ongoing', 'completed'] },
       start_date: { type: 'string', format: 'date' },
       end_date: { type: 'string', format: 'date' },
     },
@@ -255,6 +253,32 @@ export const updateCohortSchema = {
     200: createSuccessResponseSchema(cohortEntitySchema, 'Cohort updated'),
     404: createErrorResponseSchema(404, 'Not Found'),
     400: createErrorResponseSchema(400, 'Bad Request'),
+    401: createErrorResponseSchema(401, 'Unauthorized'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const completeCohortSchema = {
+  tags: ['Admin - Cohorts'],
+  summary: 'Complete cohort (issue certificates)',
+  security: [{ bearerAuth: [] }],
+  params: {
+    type: 'object',
+    required: ['id'],
+    properties: { id: { type: 'integer' } },
+  },
+  response: {
+    200: createSuccessResponseSchema(
+      {
+        type: 'object',
+        properties: {
+          cohort: cohortEntitySchema,
+          certificatesGenerated: { type: 'integer' },
+        },
+      },
+      'Cohort completed'
+    ),
+    404: createErrorResponseSchema(404, 'Not Found'),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },

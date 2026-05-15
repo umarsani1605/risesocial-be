@@ -7,6 +7,7 @@ import {
   getAdminCohortByIdSchema,
   createCohortSchema,
   updateCohortSchema,
+  completeCohortSchema,
   deleteCohortSchema,
   createModuleSchema,
   updateModuleSchema,
@@ -37,6 +38,7 @@ export default async function adminCohortRoutes(fastify) {
   fastify.get('/:id', { schema: getAdminCohortByIdSchema, preHandler: VIEW, handler: adminCohortController.getCohortById });
   fastify.post('/', { schema: createCohortSchema, preHandler: EDIT, handler: adminCohortController.createCohort });
   fastify.put('/:id', { schema: updateCohortSchema, preHandler: EDIT, handler: adminCohortController.updateCohort });
+  fastify.post('/:id/complete', { schema: completeCohortSchema, preHandler: EDIT, handler: adminCohortController.completeCohort });
   fastify.delete('/:id', { schema: deleteCohortSchema, preHandler: EDIT, handler: adminCohortController.deleteCohort });
 
   // Modules

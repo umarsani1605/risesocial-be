@@ -74,21 +74,10 @@ export class AdminCohortService {
       const updateData = {};
       if (data.name !== undefined) updateData.name = data.name;
       if (data.description !== undefined) updateData.description = data.description;
-      if (data.status !== undefined) updateData.status = data.status;
       if (data.start_date !== undefined) updateData.start_date = data.start_date ? new Date(data.start_date) : null;
       if (data.end_date !== undefined) updateData.end_date = data.end_date ? new Date(data.end_date) : null;
 
-      let cohort;
-      if (updateData.status === 'completed') {
-        const { status, ...otherFields } = updateData;
-        if (Object.keys(otherFields).length > 0) {
-          await this.repository.update(id, otherFields);
-        }
-        const result = await this.completeCohort(id);
-        cohort = result.cohort;
-      } else {
-        cohort = await this.repository.update(id, updateData);
-      }
+      const cohort = await this.repository.update(id, updateData);
       return cohort;
     } catch (error) {
       throw error;
@@ -102,6 +91,10 @@ export class AdminCohortService {
         const err = new Error('Cohort not found');
         err.statusCode = 404;
         throw err;
+      }
+
+      if (cohort.status === 'completed') {
+        return { cohort, certificatesGenerated: 0 };
       }
 
       const placements = await prisma.cohortPlacement.findMany({

@@ -78,7 +78,6 @@ describe('Cohort E2E Tests', () => {
           academy_id: academy.id,
           name: 'Batch 1',
           description: 'First batch',
-          status: 'not_started',
           start_date: '2026-04-01',
           end_date: '2026-06-30',
         },
