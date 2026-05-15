@@ -9,12 +9,11 @@ const mockCohortPlacementRepository = {
   findByCohort: vi.fn(),
   deletePlacement: vi.fn(),
   replacePlacement: vi.fn(),
-  transferPlacement: vi.fn(),
+  hasCertificate: vi.fn(),
 };
 
 const mockAcademyEnrollmentRepository = {
   findById: vi.fn(),
-  updateStatus: vi.fn(),
 };
 
 const mockPrisma = {
@@ -157,39 +156,6 @@ describe('AdminPlacementService', () => {
   });
 
   // ----------------------------------------------------------
-  describe('cancelEnrollment', () => {
-    it('deletes placement and cancels enrollment when placement exists', async () => {
-      mockAcademyEnrollmentRepository.findById.mockResolvedValue({
-        ...baseEnrollment,
-        placement: basePlacement,
-      });
-      mockCohortPlacementRepository.deletePlacement.mockResolvedValue(basePlacement);
-      mockAcademyEnrollmentRepository.updateStatus.mockResolvedValue({ ...baseEnrollment, status: 'cancelled' });
-
-      await service.cancelEnrollment(10, { reason: 'No show', adminId: 1 });
-
-      expect(mockCohortPlacementRepository.deletePlacement).toHaveBeenCalledWith(basePlacement.id);
-      expect(mockAcademyEnrollmentRepository.updateStatus).toHaveBeenCalledWith(10, 'cancelled', expect.any(Object));
-    });
-
-    it('cancels enrollment directly when no placement exists', async () => {
-      mockAcademyEnrollmentRepository.findById.mockResolvedValue({ ...baseEnrollment, placement: null });
-      mockAcademyEnrollmentRepository.updateStatus.mockResolvedValue({ ...baseEnrollment, status: 'cancelled' });
-
-      await service.cancelEnrollment(10, { adminId: 1 });
-
-      expect(mockCohortPlacementRepository.deletePlacement).not.toHaveBeenCalled();
-      expect(mockAcademyEnrollmentRepository.updateStatus).toHaveBeenCalledWith(10, 'cancelled', expect.any(Object));
-    });
-
-    it('throws 404 when enrollment not found', async () => {
-      mockAcademyEnrollmentRepository.findById.mockResolvedValue(null);
-
-      await expect(service.cancelEnrollment(999, { adminId: 1 })).rejects.toMatchObject({ statusCode: 404 });
-    });
-  });
-
-  // ----------------------------------------------------------
   describe('dropPlacement', () => {
     it('hard deletes placement, enrollment stays active', async () => {
       mockCohortPlacementRepository.deletePlacement.mockResolvedValue(basePlacement);
@@ -203,7 +169,6 @@ describe('AdminPlacementService', () => {
       await service.dropPlacement(20, { reason: 'Wrong cohort', adminId: 1 });
 
       expect(mockCohortPlacementRepository.deletePlacement).toHaveBeenCalledWith(20);
-      expect(mockAcademyEnrollmentRepository.updateStatus).not.toHaveBeenCalled();
     });
 
     it('throws 404 when placement not found', async () => {

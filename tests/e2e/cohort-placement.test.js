@@ -241,11 +241,11 @@ describe('Skenario 3 — Block re-purchase saat masih active', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Skenario 4 — Transfer student antar cohort
+// Skenario 4 — Re-assign student antar cohort (via /assign replace logic)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Skenario 4 — Transfer student antar cohort', () => {
-  it('transfers placement from cohort A to cohort B, access follows', async () => {
+describe('Skenario 4 — Re-assign student antar cohort', () => {
+  it('re-assigns placement from cohort A to cohort B, access follows', async () => {
     // Setup: active enrollment + placement in cohort A
     const { enrollment } = await createActiveEnrollment(regularUser.id, academy.id);
     const placement = await createPlacement(enrollment.id, cohortA.id, regularUser.id, academy.id);
@@ -254,17 +254,16 @@ describe('Skenario 4 — Transfer student antar cohort', () => {
     let modulesRes = await getModules(cohortA.id);
     expect(modulesRes.statusCode).toBe(200);
 
-    // Step 2: Admin transfers to cohort B
-    const transferRes = await app.inject({
+    // Step 2: Admin re-assigns to cohort B (replace existing placement atomically)
+    const assignRes = await app.inject({
       method: 'POST',
-      url: `/admin/cohort-placements/${placement.id}/transfer`,
+      url: `/admin/academy-enrollments/${enrollment.id}/assign`,
       headers: { authorization: `Bearer ${adminToken}` },
       payload: { cohort_id: cohortB.id, notes: 'Schedule conflict resolved' },
     });
-    expect(transferRes.statusCode).toBe(200);
-    const transferBody = JSON.parse(transferRes.body);
-    // Service returns the new placement record with cohort_id = new cohort
-    expect(transferBody.data.cohort_id).toBe(cohortB.id);
+    expect(assignRes.statusCode).toBe(200);
+    const assignBody = JSON.parse(assignRes.body);
+    expect(assignBody.data.cohort_id).toBe(cohortB.id);
 
     // Step 3: Old placement gone
     const oldPlacement = await prisma.cohortPlacement.findUnique({ where: { id: placement.id } });
@@ -283,74 +282,6 @@ describe('Skenario 4 — Transfer student antar cohort', () => {
     // Step 6: Cohort B is now 200
     modulesRes = await getModules(cohortB.id);
     expect(modulesRes.statusCode).toBe(200);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Skenario 5 — Cancel pre-placement (active, no cohort yet)
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe('Skenario 5 — Cancel pre-placement', () => {
-  it('cancels an active enrollment with no placement, allows re-purchase', async () => {
-    // Setup: active enrollment (paid transaction), no placement
-    const { enrollment } = await createActiveEnrollment(regularUser.id, academy.id);
-    expect(enrollment).not.toBeNull();
-
-    // Admin cancels
-    const cancelRes = await app.inject({
-      method: 'POST',
-      url: `/admin/academy-enrollments/${enrollment.id}/cancel`,
-      headers: { authorization: `Bearer ${adminToken}` },
-      payload: { reason: 'Student requested refund' },
-    });
-    expect(cancelRes.statusCode).toBe(200);
-
-    // Enrollment record is deleted after cancel
-    const deleted = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
-    expect(deleted).toBeNull();
-
-    // User can repurchase
-    const txRes = await createTransaction(userToken, academy.id, pricing.id);
-    expect(txRes.statusCode).toBe(200);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Skenario 6 — Cancel post-placement (has active cohort)
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe('Skenario 6 — Cancel post-placement', () => {
-  it('cancels enrollment and removes placement, blocks cohort access', async () => {
-    // Setup: active enrollment + placement
-    const { enrollment } = await createActiveEnrollment(regularUser.id, academy.id);
-    await createPlacement(enrollment.id, cohortA.id, regularUser.id, academy.id);
-
-    // Confirm access before cancel
-    let modulesRes = await getModules(cohortA.id);
-    expect(modulesRes.statusCode).toBe(200);
-
-    // Admin cancels
-    const cancelRes = await app.inject({
-      method: 'POST',
-      url: `/admin/academy-enrollments/${enrollment.id}/cancel`,
-      headers: { authorization: `Bearer ${adminToken}` },
-      payload: { reason: 'Admin override' },
-    });
-    expect(cancelRes.statusCode).toBe(200);
-
-    // Enrollment record is deleted after cancel
-    const deleted = await prisma.academyEnrollment.findUnique({ where: { id: enrollment.id } });
-    expect(deleted).toBeNull();
-
-    // Placement also removed
-    const placement = await prisma.cohortPlacement.findFirst({
-      where: { academy_enrollment_id: enrollment.id },
-    });
-    expect(placement).toBeNull();
-
-    // Access revoked
-    modulesRes = await getModules(cohortA.id);
-    expect(modulesRes.statusCode).toBe(403);
   });
 });
 
@@ -375,17 +306,11 @@ describe('Skenario 7 — Cohort completion → archive access + certificate', ()
     let modulesRes = await getModules(ongoingCohort.id);
     expect(modulesRes.statusCode).toBe(200);
 
-    // Admin completes cohort (SUPERADMIN to bypass requirePermission; full body required by schema)
+    // Admin completes cohort via dedicated endpoint
     const completeRes = await app.inject({
-      method: 'PUT',
-      url: `/admin/cohorts/${ongoingCohort.id}`,
+      method: 'POST',
+      url: `/admin/cohorts/${ongoingCohort.id}/complete`,
       headers: { authorization: `Bearer ${superadminToken}` },
-      payload: {
-        name: ongoingCohort.name,
-        status: 'completed',
-        start_date: '2026-05-01',
-        end_date: '2026-08-01',
-      },
     });
     expect(completeRes.statusCode).toBe(200);
 

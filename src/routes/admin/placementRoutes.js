@@ -1,5 +1,5 @@
 import { adminPlacementController } from '../../controllers/admin/placementController.js';
-import { listEnrollmentsSchema, getEnrollmentSchema, assignToCohortSchema, cancelEnrollmentSchema } from '../../schemas/admin/placementSchemas.js';
+import { listEnrollmentsSchema, getEnrollmentSchema, assignToCohortSchema } from '../../schemas/admin/placementSchemas.js';
 import { adminMiddleware } from '../../middleware/auth.js';
 
 export default async function placementRoutes(fastify) {
@@ -18,10 +18,5 @@ export default async function placementRoutes(fastify) {
   fastify.post('/:id/assign', {
     schema: assignToCohortSchema,
     handler: adminPlacementController.assignToCohort,
-  });
-
-  fastify.post('/:id/cancel', {
-    schema: cancelEnrollmentSchema,
-    handler: adminPlacementController.cancelEnrollment,
   });
 }

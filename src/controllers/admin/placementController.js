@@ -46,39 +46,6 @@ export class AdminPlacementController {
     }
   };
 
-  cancelEnrollment = async (request, reply) => {
-    try {
-      const { reason } = request.body ?? {};
-      const updated = await adminPlacementService.cancelEnrollment(
-        Number(request.params.id),
-        { reason, adminId: request.user?.userId },
-      );
-      return reply.send(successResponse(updated, 'Enrollment cancelled successfully'));
-    } catch (error) {
-      const code = error.statusCode;
-      if (code === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      throw error;
-    }
-  };
-
-  transferPlacement = async (request, reply) => {
-    try {
-      const { cohort_id, notes } = request.body;
-      const placement = await adminPlacementService.transferPlacement(
-        Number(request.params.id),
-        Number(cohort_id),
-        { notes, adminId: request.user?.userId },
-      );
-      return reply.send(successResponse(placement, 'Placement transferred successfully'));
-    } catch (error) {
-      const code = error.statusCode;
-      if (code === 404) return reply.status(404).send(errorResponse(error.message, 404));
-      if (code === 409) return reply.status(409).send(errorResponse(error.message, 409));
-      if (code === 422) return reply.status(422).send(errorResponse(error.message, 422));
-      throw error;
-    }
-  };
-
   dropPlacement = async (request, reply) => {
     try {
       const { reason } = request.body ?? {};

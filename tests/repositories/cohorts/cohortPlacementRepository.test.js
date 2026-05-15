@@ -200,32 +200,6 @@ describe('CohortPlacementRepository', () => {
     });
   });
 
-  describe('transferPlacement', () => {
-    it('atomically moves placement to new cohort', async () => {
-      const newCohort = await createCohort({ name: 'Cohort B' });
-      const placement = await prisma.cohortPlacement.create({
-        data: {
-          academy_enrollment_id: enrollment.id,
-          cohort_id: cohort.id,
-          user_id: user.id,
-          academy_id: academy.id,
-        },
-      });
-
-      const transferred = await cohortPlacementRepository.transferPlacement(
-        placement.id,
-        newCohort.id,
-      );
-
-      expect(transferred.cohort_id).toBe(newCohort.id);
-      expect(transferred.academy_enrollment_id).toBe(enrollment.id);
-      expect(transferred.user_id).toBe(user.id);
-
-      const old = await prisma.cohortPlacement.findUnique({ where: { id: placement.id } });
-      expect(old).toBeNull();
-    });
-  });
-
   describe('unique constraint: academy_enrollment_id', () => {
     it('rejects duplicate academy_enrollment_id', async () => {
       const cohort2 = await createCohort({ name: 'Cohort C' });
