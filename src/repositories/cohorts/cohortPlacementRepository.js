@@ -75,20 +75,12 @@ export class CohortPlacementRepository {
     }
   }
 
-  async transferPlacement(placementId, newCohortId) {
-    const current = await this.findById(placementId);
-    if (!current) {
-      const err = new Error('Placement not found');
-      err.code = 'P2025';
-      throw err;
-    }
-    return this.replacePlacement(placementId, {
-      cohortId: newCohortId,
-      userId: current.user_id,
-      academyId: current.academy_id,
-      academyEnrollmentId: current.academy_enrollment_id,
-      notes: current.notes,
+  async hasCertificate(placementId) {
+    const cert = await prisma.cohortCertificate.findFirst({
+      where: { placement_id: placementId },
+      select: { id: true },
     });
+    return !!cert;
   }
 
   async replacePlacement(currentId, { cohortId, userId, academyId, academyEnrollmentId, notes }) {

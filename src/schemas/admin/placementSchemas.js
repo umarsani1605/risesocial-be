@@ -61,6 +61,12 @@ const enrollmentItemSchema = {
             status: { type: 'string' },
           },
         },
+        certificate: {
+          type: ['object', 'null'],
+          properties: {
+            id: { type: 'integer' },
+          },
+        },
       },
     },
   },
@@ -127,60 +133,6 @@ export const assignToCohortSchema = {
   response: {
     200: createSuccessResponseSchema(placementSchema, 'Placement created'),
     400: createErrorResponseSchema(400, 'Bad Request'),
-    401: createErrorResponseSchema(401, 'Unauthorized'),
-    403: createErrorResponseSchema(403, 'Forbidden'),
-    404: createErrorResponseSchema(404, 'Not Found'),
-    409: createErrorResponseSchema(409, 'Conflict'),
-    422: createErrorResponseSchema(422, 'Unprocessable Entity'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
-export const cancelEnrollmentSchema = {
-  tags: ['Admin - Placements'],
-  summary: 'Cancel enrollment',
-  params: {
-    type: 'object',
-    required: ['id'],
-    properties: { id: { type: 'integer' } },
-    additionalProperties: false,
-  },
-  body: {
-    type: 'object',
-    properties: {
-      reason: { type: 'string' },
-    },
-    additionalProperties: false,
-  },
-  response: {
-    200: createSuccessResponseSchema({ type: 'object' }, 'Enrollment cancelled'),
-    401: createErrorResponseSchema(401, 'Unauthorized'),
-    403: createErrorResponseSchema(403, 'Forbidden'),
-    404: createErrorResponseSchema(404, 'Not Found'),
-    500: createErrorResponseSchema(500, 'Internal Server Error'),
-  },
-};
-
-export const transferPlacementSchema = {
-  tags: ['Admin - Placements'],
-  summary: 'Transfer placement to a different cohort',
-  params: {
-    type: 'object',
-    required: ['id'],
-    properties: { id: { type: 'integer' } },
-    additionalProperties: false,
-  },
-  body: {
-    type: 'object',
-    required: ['cohort_id'],
-    properties: {
-      cohort_id: { type: 'integer' },
-      notes: { type: 'string' },
-    },
-    additionalProperties: false,
-  },
-  response: {
-    200: createSuccessResponseSchema(placementSchema, 'Placement transferred'),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     403: createErrorResponseSchema(403, 'Forbidden'),
     404: createErrorResponseSchema(404, 'Not Found'),

@@ -34,7 +34,10 @@ export class AdminPlacementService {
           academy: { select: { id: true, title: true, slug: true } },
           transaction: { select: { id: true, status: true, paid_at: true, transaction_code: true } },
           placement: {
-            include: { cohort: { select: { id: true, name: true, status: true } } },
+            include: {
+              cohort: { select: { id: true, name: true, status: true } },
+              certificate: { select: { id: true } },
+            },
           },
         },
       }),
@@ -75,6 +78,13 @@ export class AdminPlacementService {
 
     let placement;
     if (existingPlacement) {
+      const hasCert = await cohortPlacementRepository.hasCertificate(existingPlacement.id);
+      if (hasCert) {
+        throw makeError(
+          'Cannot transfer student who already has a certificate. Revoke the certificate first.',
+          409
+        );
+      }
       // Re-assign: atomically move to the new cohort
       placement = await cohortPlacementRepository.replacePlacement(existingPlacement.id, {
         cohortId,
@@ -103,41 +113,15 @@ export class AdminPlacementService {
     return placement;
   }
 
-  async cancelEnrollment(enrollmentId, { reason, adminId } = {}) {
-
-    const enrollment = await academyEnrollmentRepository.findById(enrollmentId);
-    if (!enrollment) throw makeError('Enrollment not found', 404);
-
-    if (enrollment.placement) {
-      await cohortPlacementRepository.deletePlacement(enrollment.placement.id);
-    }
-
-    await prisma.academyEnrollment.delete({ where: { id: enrollmentId } });
-
-    return { message: 'Enrollment cancelled' };
-  }
-
-  async transferPlacement(placementId, cohortId, { notes, adminId } = {}) {
-    try {
-      const previous = await cohortPlacementRepository.findById(placementId);
-      const transferred = await cohortPlacementRepository.transferPlacement(placementId, cohortId);
-
-      captureEvent(adminId, 'cohort.placement_transferred', {
-        placement_id: placementId,
-        from_cohort_id: previous?.cohort_id,
-        to_cohort_id: cohortId,
-        admin_user_id: adminId,
-      });
-
-      return transferred;
-    } catch (error) {
-      if (error.code === 'P2025') throw makeError('Placement not found', 404);
-      throw error;
-    }
-  }
-
   async dropPlacement(placementId, { reason, adminId } = {}) {
     try {
+      const hasCert = await cohortPlacementRepository.hasCertificate(placementId);
+      if (hasCert) {
+        throw makeError(
+          'Cannot unassign student who already has a certificate. Revoke the certificate first.',
+          409
+        );
+      }
       const existing = await cohortPlacementRepository.findById(placementId);
       const deleted = await cohortPlacementRepository.deletePlacement(placementId);
 
