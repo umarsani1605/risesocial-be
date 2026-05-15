@@ -65,6 +65,14 @@ vi.mock('../../../../src/services/shared/fileUploadService.js', () => ({
   },
 }));
 
+vi.mock('../../../../src/config/database.js', () => ({
+  default: {
+    cohort: {
+      count: vi.fn(),
+    },
+  },
+}));
+
 // Mock logger
 
 describe('AdminAcademyService', () => {
@@ -72,6 +80,7 @@ describe('AdminAcademyService', () => {
   let mockAdminRepo;
   let mockSharedRepo;
   let mockFileUploadService;
+  let mockPrisma;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -80,10 +89,12 @@ describe('AdminAcademyService', () => {
     const { adminAcademyRepository } = await import('../../../../src/repositories/admin/academyRepository.js');
     const { academyRepository } = await import('../../../../src/repositories/shared/academyRepository.js');
     const { fileUploadService } = await import('../../../../src/services/shared/fileUploadService.js');
+    const prismaMod = await import('../../../../src/config/database.js');
 
     mockAdminRepo = adminAcademyRepository;
     mockSharedRepo = academyRepository;
     mockFileUploadService = fileUploadService;
+    mockPrisma = prismaMod.default;
 
     // Create service instance
     service = new AdminAcademyService();
@@ -268,6 +279,7 @@ describe('AdminAcademyService', () => {
     it('should verify academy exists before deletion', async () => {
       const existingAcademy = getMockAcademy({ id: 1 });
       mockSharedRepo.findById.mockResolvedValue(existingAcademy);
+      mockPrisma.cohort.count.mockResolvedValue(0);
       mockAdminRepo.delete.mockResolvedValue(undefined);
 
       await service.deleteAcademy(1);
@@ -288,6 +300,35 @@ describe('AdminAcademyService', () => {
       }
 
       expect(mockAdminRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw 409 error if academy has cohorts', async () => {
+      const existingAcademy = getMockAcademy({ id: 1 });
+      mockSharedRepo.findById.mockResolvedValue(existingAcademy);
+      mockPrisma.cohort.count.mockResolvedValue(3);
+
+      try {
+        await service.deleteAcademy(1);
+        expect.fail('Should have thrown error');
+      } catch (error) {
+        expect(error.message).toBe('Academy with cohorts cannot be deleted');
+        expect(error.statusCode).toBe(409);
+      }
+
+      expect(mockPrisma.cohort.count).toHaveBeenCalledWith({ where: { academy_id: 1 } });
+      expect(mockAdminRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it('should delete academy when cohort count is zero', async () => {
+      const existingAcademy = getMockAcademy({ id: 1 });
+      mockSharedRepo.findById.mockResolvedValue(existingAcademy);
+      mockPrisma.cohort.count.mockResolvedValue(0);
+      mockAdminRepo.delete.mockResolvedValue(undefined);
+
+      await service.deleteAcademy(1);
+
+      expect(mockPrisma.cohort.count).toHaveBeenCalledWith({ where: { academy_id: 1 } });
+      expect(mockAdminRepo.delete).toHaveBeenCalledWith(1);
     });
   });
 

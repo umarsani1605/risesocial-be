@@ -1,6 +1,7 @@
 import { adminAcademyRepository } from '../../repositories/admin/academyRepository.js';
 import { academyRepository } from '../../repositories/shared/academyRepository.js';
 import { fileUploadService } from '../shared/fileUploadService.js';
+import prisma from '../../config/database.js';
 
 export class AdminAcademyService {
   constructor() {
@@ -94,6 +95,13 @@ export class AdminAcademyService {
       if (!academy) {
         const error = new Error('Academy tidak ditemukan');
         error.statusCode = 404;
+        throw error;
+      }
+
+      const cohortCount = await prisma.cohort.count({ where: { academy_id: id } });
+      if (cohortCount > 0) {
+        const error = new Error('Academy with cohorts cannot be deleted');
+        error.statusCode = 409;
         throw error;
       }
 

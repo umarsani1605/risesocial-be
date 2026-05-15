@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { getTestPrisma, resetDatabase, closeConnection } from '../../../helpers/testDb.js';
 import { seedAcademy, seedAcademyWithRelations, resetFixtureState } from '../../../helpers/academyFixtures.js';
+import { createCohort } from '../../../helpers/cohortFixtures.js';
 import { AdminAcademyService } from '../../../../src/services/admin/academyService.js';
 import { AdminAcademyRepository } from '../../../../src/repositories/admin/academyRepository.js';
 import { AcademyRepository } from '../../../../src/repositories/shared/academyRepository.js';
@@ -166,6 +167,22 @@ describe('AdminAcademyService Integration Tests', { concurrent: false }, () => {
         expect(error.statusCode).toBe(404);
         expect(error.message).toBe('Academy tidak ditemukan');
       }
+    });
+
+    it('should throw 409 when academy has cohorts', async () => {
+      const academy = await seedAcademy({ slug: 'has-cohorts' });
+      await createCohort(academy.id);
+
+      try {
+        await adminAcademyService.deleteAcademy(academy.id);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error.statusCode).toBe(409);
+        expect(error.message).toBe('Academy with cohorts cannot be deleted');
+      }
+
+      const stillExists = await academyRepository.findById(academy.id);
+      expect(stillExists).not.toBeNull();
     });
   });
 
