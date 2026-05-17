@@ -10,9 +10,8 @@
  *   FULLY_FUNDED: even index
  *   SELF_FUNDED:  odd index
  *
- * Expiry distribution:
- *   i < 200:  active drafts (expires 1–30 days from seeding date)
- *   i >= 200: expired drafts (expired 1–25 days ago)
+ * Persistence:
+ *   Drafts do not expire and remain available until submitted or deleted.
  */
 
 const NATIONALITY_POOL = [
@@ -56,7 +55,7 @@ const DISCOVER_SOURCES = ['RISE_INSTAGRAM', 'RISE_INSTAGRAM', 'FRIENDS', 'OTHER_
 const DISCOVER_OTHERS = ['LinkedIn', 'TikTok', 'Campus Poster', 'Twitter'];
 const GENDERS = ['MALE', 'FEMALE', 'FEMALE', 'MALE', 'PREFER_NOT_TO_SAY'];
 
-// Fixed seed date for deterministic expires_at values
+// Fixed seed date for deterministic created_at values
 const SEED_DATE = new Date('2026-05-01T00:00:00.000Z');
 
 function makeToken(i) {
@@ -85,9 +84,6 @@ function generateDraft(i) {
   // Spread 225 drafts over last 7 months (210 days): oldest first, newest last
   const daysBackCreated = Math.round((224 - i) * (210 / 224));
   const createdAt = new Date(SEED_DATE.getTime() - daysBackCreated * 24 * 60 * 60 * 1000);
-
-  // expires_at = created_at + 30 days (matches DRAFT_EXPIRY_DAYS in service)
-  const expiresAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const step1Data = {
     full_name: fullName,
@@ -119,7 +115,6 @@ function generateDraft(i) {
     current_step: step,
     form_data: formData,
     scholarship_type: scholarshipType,
-    expires_at: expiresAt,
     created_at: createdAt,
   };
 }

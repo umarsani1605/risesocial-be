@@ -6,6 +6,17 @@ const createTransactionBodySchema = {
   properties: {
     academy_id: { type: 'integer', description: 'Academy ID' },
     pricing_id: { type: 'integer', description: 'Pricing tier ID' },
+    customer_details: {
+      type: 'object',
+      description: 'Optional customer details from checkout form. Used for Midtrans payload and to backfill empty User fields.',
+      properties: {
+        first_name: { type: 'string' },
+        last_name: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        phone: { type: 'string' },
+      },
+      additionalProperties: false,
+    },
   },
 };
 

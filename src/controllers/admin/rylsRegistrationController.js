@@ -184,14 +184,24 @@ export class AdminRylsRegistrationController {
     }
   };
 
-  cleanupExpiredDrafts = async (request, reply) => {
+  exportDraftsExcel = async (request, reply) => {
     try {
-      const count = await rylsDraftService.cleanupExpired();
-      return reply.send(successResponse({ deleted: count }, 'Expired drafts cleaned up'));
+      const drafts = await rylsDraftService.getDraftsForExport();
+      const excelBuffer = await rylsDraftService.generateExcelFile(drafts);
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `ryls-drafts-${timestamp}.xlsx`;
+
+      reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+      reply.header('Content-Length', excelBuffer.length);
+
+      return reply.send(excelBuffer);
     } catch (error) {
       throw error;
     }
   };
+
   getAnalyticsSummary = async (request, reply) => {
     try {
       const { period, startDate, endDate } = request.query;

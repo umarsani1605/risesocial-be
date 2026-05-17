@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import { createTestApp, generateSuperadminToken } from '../helpers/testServer.js';
+import { createTestApp, generateAdminToken, generateSuperadminToken } from '../helpers/testServer.js';
 import { getTestPrisma, resetDatabase, closeConnection } from '../helpers/testDb.js';
 import { createDraftRegistration, createFileUpload } from '../helpers/rylsFixtures.js';
+import * as XLSX from 'xlsx';
 
 // testServer.js registers userRylsRegistrationRoutes with prefix '/ryls'
 // so draft routes are at /ryls/draft, /ryls/draft/resume/:token, /ryls/draft/:token
@@ -114,7 +115,7 @@ describe('RYLS Draft E2E — User Routes', () => {
       const body = JSON.parse(res.body);
       expect(body.data.currentStep).toBe(draft.current_step);
       expect(body.data.formData).toBeDefined();
-      expect(body.data.expiresAt).toBeDefined();
+      expect(body.data.email).toBe(draft.email);
     });
 
     it('mengembalikan 404 untuk token yang tidak ada', async () => {
@@ -125,14 +126,14 @@ describe('RYLS Draft E2E — User Routes', () => {
       expect(res.statusCode).toBe(404);
     });
 
-    it('mengembalikan 404 dan menghapus draft jika sudah expired', async () => {
-      await createDraftRegistration({ resume_token: 'exp-e2e', expires_at: new Date(Date.now() - 1000) });
+    it('draft lama tetap bisa di-resume selama token valid', async () => {
+      await createDraftRegistration({ resume_token: 'exp-e2e', created_at: new Date('2025-01-01T00:00:00.000Z') });
       const res = await app.inject({
         method: 'GET',
         url: '/ryls/draft/resume/exp-e2e',
       });
-      expect(res.statusCode).toBe(404);
-      expect(await prisma.rylsDraftRegistration.findUnique({ where: { resume_token: 'exp-e2e' } })).toBeNull();
+      expect(res.statusCode).toBe(200);
+      expect(await prisma.rylsDraftRegistration.findUnique({ where: { resume_token: 'exp-e2e' } })).not.toBeNull();
     });
   });
 
@@ -246,6 +247,7 @@ describe('RYLS Draft E2E — User Routes', () => {
 
   describe('Admin: Draft Endpoints', () => {
     let adminToken;
+    let noPermissionAdminToken;
 
     beforeEach(async () => {
       const superadminUser = await prisma.user.create({
@@ -259,6 +261,18 @@ describe('RYLS Draft E2E — User Routes', () => {
         },
       });
       adminToken = await generateSuperadminToken(superadminUser.id, superadminUser.email);
+
+      const noPermissionAdmin = await prisma.user.create({
+        data: {
+          username: `admin_no_perm_draft_${Date.now()}`,
+          first_name: 'No',
+          last_name: 'Perm',
+          email: `admin.no.perm.draft.${Date.now()}@test.com`,
+          password: 'hashed',
+          role: 'ADMIN',
+        },
+      });
+      noPermissionAdminToken = await generateAdminToken(noPermissionAdmin.id, noPermissionAdmin.email);
     });
 
     it('GET /admin/ryls/drafts — mengembalikan 401 tanpa auth', async () => {
@@ -300,7 +314,7 @@ describe('RYLS Draft E2E — User Routes', () => {
       expect(res.statusCode).toBe(401);
     });
 
-    it('GET /admin/ryls/drafts/stats — mengembalikan count draft aktif', async () => {
+    it('GET /admin/ryls/drafts/stats — mengembalikan count semua draft', async () => {
       await createDraftRegistration({ resume_token: `stat-tok-${Date.now()}` });
 
       const res = await app.inject({
@@ -314,39 +328,73 @@ describe('RYLS Draft E2E — User Routes', () => {
       expect(body.data.count).toBeGreaterThanOrEqual(1);
     });
 
-    it('DELETE /admin/ryls/drafts/cleanup — mengembalikan 401 tanpa auth', async () => {
-      const res = await app.inject({ method: 'DELETE', url: '/admin/ryls/drafts/cleanup' });
+    it('GET /admin/ryls/drafts/export-excel — mengembalikan 401 tanpa auth', async () => {
+      const res = await app.inject({ method: 'GET', url: '/admin/ryls/drafts/export-excel' });
       expect(res.statusCode).toBe(401);
     });
 
-    it('DELETE /admin/ryls/drafts/cleanup — menghapus expired, tidak hapus yang valid', async () => {
-      const expToken = `exp-cleanup-${Date.now()}`;
-      const valToken = `val-cleanup-${Date.now()}`;
-      await createDraftRegistration({ resume_token: expToken, expires_at: new Date(Date.now() - 1000) });
-      await createDraftRegistration({ resume_token: valToken });
-
+    it('GET /admin/ryls/drafts/export-excel — mengembalikan 403 tanpa permission admin.ryls', async () => {
       const res = await app.inject({
-        method: 'DELETE',
-        url: '/admin/ryls/drafts/cleanup',
-        headers: { authorization: `Bearer ${adminToken}` },
+        method: 'GET',
+        url: '/admin/ryls/drafts/export-excel',
+        headers: { authorization: `Bearer ${noPermissionAdminToken}` },
       });
-      expect(res.statusCode).toBe(200);
-      const body = JSON.parse(res.body);
-      expect(body.data.deleted).toBeGreaterThanOrEqual(1);
-      expect(await prisma.rylsDraftRegistration.findUnique({ where: { resume_token: expToken } })).toBeNull();
-      expect(await prisma.rylsDraftRegistration.findUnique({ where: { resume_token: valToken } })).not.toBeNull();
+
+      expect(res.statusCode).toBe(403);
     });
 
-    it('DELETE /admin/ryls/drafts/cleanup — mengembalikan deleted: 0 jika tidak ada yang expired', async () => {
-      await createDraftRegistration({ resume_token: `no-exp-${Date.now()}` });
+    it('GET /admin/ryls/drafts/export-excel — export semua draft dengan filename yang benar', async () => {
+      const completeDraft = await createDraftRegistration({
+        resume_token: `active-complete-${Date.now()}`,
+        email: 'active-complete@test.com',
+        current_step: 3,
+        form_data: { step1: { fullName: 'Active Complete' } },
+        scholarship_type: 'SELF_FUNDED',
+      });
+      const partialDraft = await createDraftRegistration({
+        resume_token: `active-partial-${Date.now()}`,
+        email: 'active-partial@test.com',
+        current_step: 1,
+        form_data: {},
+        scholarship_type: null,
+      });
+      await createDraftRegistration({
+        resume_token: `second-draft-${Date.now()}`,
+        email: 'second@test.com',
+        form_data: { step1: { fullName: 'Expired User' } },
+      });
+
+      await prisma.rylsDraftRegistration.update({
+        where: { id: completeDraft.id },
+        data: { updated_at: new Date('2026-05-14T10:00:00.000Z') },
+      });
+      await prisma.rylsDraftRegistration.update({
+        where: { id: partialDraft.id },
+        data: { updated_at: new Date('2026-05-14T11:00:00.000Z') },
+      });
 
       const res = await app.inject({
-        method: 'DELETE',
-        url: '/admin/ryls/drafts/cleanup',
+        method: 'GET',
+        url: '/admin/ryls/drafts/export-excel',
         headers: { authorization: `Bearer ${adminToken}` },
       });
+
       expect(res.statusCode).toBe(200);
-      expect(JSON.parse(res.body).data.deleted).toBe(0);
+      expect(res.headers['content-type']).toContain('spreadsheetml');
+      expect(res.headers['content-disposition']).toMatch(/^attachment; filename="ryls-drafts-\d{4}-\d{2}-\d{2}\.xlsx"$/);
+
+      const workbook = XLSX.read(res.rawPayload, { type: 'buffer' });
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets.Drafts, { header: 1 });
+
+      expect(rows[0]).toEqual(['Email', 'Full Name', 'Current Step', 'Scholarship Type', 'Updated At']);
+      expect(rows).toHaveLength(4);
+      expect(rows[1][0]).toBe('active-partial@test.com');
+      expect(rows[1][1]).toBe('-');
+      expect(rows[1][3]).toBe('-');
+      expect(rows[2][0]).toBe('active-complete@test.com');
+      expect(rows[2][1]).toBe('Active Complete');
+      expect(rows[2][3]).toBe('SELF_FUNDED');
+      expect(rows[3][0]).toBe('second@test.com');
     });
   });
 });

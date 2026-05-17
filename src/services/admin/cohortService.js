@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const FRIENDLY_COHORT_DATE_RANGE_MESSAGE = 'Please set the start date before the end date';
 
 export class AdminCohortService {
   constructor() {
@@ -33,18 +34,29 @@ export class AdminCohortService {
       }
 
       if (data.start_date && data.end_date && new Date(data.start_date) >= new Date(data.end_date)) {
-        const err = new Error('start_date must be before end_date');
+        const err = new Error(FRIENDLY_COHORT_DATE_RANGE_MESSAGE);
         err.statusCode = 400;
         throw err;
       }
 
-      const cohort = await this.repository.create({
-        academy_id: data.academy_id,
-        name: data.name,
-        description: data.description || null,
-        status: data.status || 'not_started',
-        start_date: data.start_date ? new Date(data.start_date) : null,
-        end_date: data.end_date ? new Date(data.end_date) : null,
+      const cohort = await prisma.$transaction(async (tx) => {
+        const created = await tx.cohort.create({
+          data: {
+            academy_id: data.academy_id,
+            name: data.name,
+            description: data.description || null,
+            status: data.status || 'not_started',
+            start_date: data.start_date ? new Date(data.start_date) : null,
+            end_date: data.end_date ? new Date(data.end_date) : null,
+          },
+        });
+
+        if (data.copy_from_academy === true) {
+          await this.repository.bulkCreateModulesFromAcademyTopics(tx, created.id, created.academy_id);
+          await this.repository.bulkCreateMentorsFromAcademyInstructors(tx, created.id, created.academy_id);
+        }
+
+        return created;
       });
 
       return cohort;
@@ -66,7 +78,7 @@ export class AdminCohortService {
       const endDate = data.end_date ? new Date(data.end_date) : existing.end_date;
 
       if (startDate && endDate && startDate >= endDate) {
-        const err = new Error('start_date must be before end_date');
+        const err = new Error(FRIENDLY_COHORT_DATE_RANGE_MESSAGE);
         err.statusCode = 400;
         throw err;
       }
@@ -437,8 +449,8 @@ export class AdminCohortService {
 
       if (data.avatarFile) {
         try {
-          const publicUrl = this.fileUploadService.generatePublicFileUrl(data.avatarFile);
-          data.avatar = publicUrl;
+          const uploaded = await this.fileUploadService.upload(data.avatarFile);
+          data.avatar = uploaded.publicUrl;
         } catch (uploadErr) {
           throw new Error('Failed to upload mentor avatar');
         }
@@ -456,8 +468,8 @@ export class AdminCohortService {
     try {
       if (data.avatarFile) {
         try {
-          const publicUrl = this.fileUploadService.generatePublicFileUrl(data.avatarFile);
-          data.avatar = publicUrl;
+          const uploaded = await this.fileUploadService.upload(data.avatarFile);
+          data.avatar = uploaded.publicUrl;
         } catch (uploadErr) {
           throw new Error('Failed to upload mentor avatar');
         }

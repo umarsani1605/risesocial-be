@@ -7,7 +7,7 @@ export class RylsDraftRepository extends BaseRepository {
   }
 
 
-  async createDraft({ email, resumeToken, currentStep, formData, scholarshipType, expiresAt }) {
+  async createDraft({ email, resumeToken, currentStep, formData, scholarshipType }) {
     try {
       const result = await prisma.rylsDraftRegistration.create({
         data: {
@@ -16,7 +16,6 @@ export class RylsDraftRepository extends BaseRepository {
           current_step: currentStep,
           form_data: formData,
           scholarship_type: scholarshipType ?? null,
-          expires_at: expiresAt,
         },
       });
       return result;
@@ -36,23 +35,12 @@ export class RylsDraftRepository extends BaseRepository {
     }
   }
 
-  async findLatestByEmail(email) {
-    try {
-      const result = await prisma.rylsDraftRegistration.findFirst({
-        where: { email },
-        orderBy: { updated_at: 'desc' },
-      });
-      return result;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async updateByToken(token, { currentStep, formData, scholarshipType }) {
+  async updateByToken(token, { email, currentStep, formData, scholarshipType }) {
     try {
       const result = await prisma.rylsDraftRegistration.update({
         where: { resume_token: token },
         data: {
+          email,
           current_step: currentStep,
           form_data: formData,
           scholarship_type: scholarshipType ?? null,
@@ -75,17 +63,6 @@ export class RylsDraftRepository extends BaseRepository {
     }
   }
 
-  async deleteExpired() {
-    try {
-      const result = await prisma.rylsDraftRegistration.deleteMany({
-        where: { expires_at: { lt: new Date() } },
-      });
-      return result.count;
-    } catch (error) {
-      throw error;
-    }
-  }
-
   async getDrafts({ page = 1, limit = 20 } = {}) {
     try {
       const skip = (page - 1) * limit;
@@ -98,6 +75,25 @@ export class RylsDraftRepository extends BaseRepository {
         prisma.rylsDraftRegistration.count(),
       ]);
       return { data, total };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getDraftsForExport() {
+    try {
+      return await prisma.rylsDraftRegistration.findMany({
+        select: {
+          email: true,
+          current_step: true,
+          form_data: true,
+          scholarship_type: true,
+          updated_at: true,
+        },
+        orderBy: {
+          updated_at: 'desc',
+        },
+      });
     } catch (error) {
       throw error;
     }

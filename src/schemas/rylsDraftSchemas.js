@@ -23,7 +23,6 @@ const draftResponseDataSchema = {
     currentStep: { type: 'integer' },
     formData: { type: 'object' },
     scholarshipType: { type: ['string', 'null'] },
-    expiresAt: { type: 'string', format: 'date-time' },
     email: { type: 'string' },
   },
 };
@@ -120,7 +119,7 @@ export const adminGetDraftStatsSchema = {
 };
 
 export const adminCleanupDraftsSchema = {
-  description: 'Admin: delete all expired draft registrations',
+  description: 'Admin: delete draft registrations',
   tags: ['Admin RYLS Draft'],
   response: {
     200: createSuccessResponseSchema(statsResponseDataSchema, 'Cleanup complete', 200),

@@ -135,6 +135,34 @@ export class UserService {
     const existingUser = await userRepository.findById(id);
     if (!existingUser) throw new Error('User not found');
 
+    if (updateData.avatarFile) {
+      try {
+        const publicUrl = this.fileUploadService.generatePublicFileUrl(updateData.avatarFile);
+        updateData.avatar = publicUrl;
+      } catch (uploadError) {
+        throw new Error('Failed to upload avatar');
+      }
+      delete updateData.avatarFile;
+    } else if (updateData.avatar === '') {
+      updateData.avatar = null;
+    }
+
+    const NULLABLE_FIELDS = [
+      'phone',
+      'gender',
+      'country',
+      'province',
+      'city',
+      'last_education',
+      'current_job',
+      'current_company',
+    ];
+    for (const field of NULLABLE_FIELDS) {
+      if (updateData[field] === '') {
+        updateData[field] = null;
+      }
+    }
+
     if (updateData.role) {
       updateData.role = String(updateData.role).toUpperCase();
     }

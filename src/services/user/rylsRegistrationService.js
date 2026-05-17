@@ -432,7 +432,7 @@ export class RylsRegistrationService {
 
       const [submitted, drafts] = await Promise.all([
         this.registrationRepository.model.count({ where: whereClause }),
-        rylsDraftService.repo.model.count({ where: { expires_at: { gte: new Date() } } }),
+        rylsDraftService.repo.model.count(),
       ]);
 
       return { submitted, drafts };

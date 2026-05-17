@@ -29,7 +29,6 @@ describe('RylsDraftRepository Integration Tests', { concurrent: false }, () => {
         currentStep: 1,
         formData: { step1: { fullName: 'X' } },
         scholarshipType: 'FULLY_FUNDED',
-        expiresAt: new Date(Date.now() + 86400000),
       });
       expect(result.id).toBeDefined();
       expect(result.resume_token).toBe('tok-create');
@@ -75,27 +74,6 @@ describe('RylsDraftRepository Integration Tests', { concurrent: false }, () => {
     });
   });
 
-  describe('deleteExpired', () => {
-    it('menghapus hanya draft yang expires_at sudah lewat', async () => {
-      await createDraftRegistration({ resume_token: 'exp-1', expires_at: new Date(Date.now() - 1000) });
-      await createDraftRegistration({ resume_token: 'exp-2', expires_at: new Date(Date.now() - 2000) });
-      await createDraftRegistration({ resume_token: 'valid-1' });
-
-      const count = await repo.deleteExpired();
-
-      expect(count).toBeGreaterThanOrEqual(2);
-      expect(await prisma.rylsDraftRegistration.findUnique({ where: { resume_token: 'exp-1' } })).toBeNull();
-      expect(await prisma.rylsDraftRegistration.findUnique({ where: { resume_token: 'exp-2' } })).toBeNull();
-      expect(await prisma.rylsDraftRegistration.findUnique({ where: { resume_token: 'valid-1' } })).not.toBeNull();
-    });
-
-    it('mengembalikan 0 jika tidak ada yang expired', async () => {
-      await createDraftRegistration({ resume_token: 'no-exp' });
-      const count = await repo.deleteExpired();
-      expect(count).toBe(0);
-    });
-  });
-
   describe('getDrafts', () => {
     it('mengembalikan array data dan total', async () => {
       await createDraftRegistration({ resume_token: 'pg-1', email: 'pg1@test.com' });
@@ -119,6 +97,45 @@ describe('RylsDraftRepository Integration Tests', { concurrent: false }, () => {
       const result = await repo.getDrafts({ page: 1, limit: 10 });
       const times = result.data.map((d) => new Date(d.updated_at).getTime());
       expect(times[0]).toBeGreaterThanOrEqual(times[1]);
+    });
+  });
+
+  describe('getDraftsForExport', () => {
+    it('mengembalikan semua draft dengan field export yang dibutuhkan', async () => {
+      await createDraftRegistration({
+        resume_token: 'export-active',
+        email: 'active@test.com',
+        current_step: 2,
+        form_data: { step1: { fullName: 'Active User' } },
+      });
+      await createDraftRegistration({
+        resume_token: 'export-second',
+        email: 'second@test.com',
+      });
+
+      const drafts = await repo.getDraftsForExport();
+
+      expect(drafts).toHaveLength(2);
+      expect(drafts[0]).not.toHaveProperty('resume_token');
+    });
+
+    it('mengurutkan hasil berdasarkan updated_at descending', async () => {
+      await createDraftRegistration({ resume_token: 'export-order-1', email: 'order1@test.com' });
+      await createDraftRegistration({ resume_token: 'export-order-2', email: 'order2@test.com' });
+
+      await prisma.rylsDraftRegistration.update({
+        where: { resume_token: 'export-order-1' },
+        data: { updated_at: new Date(Date.now() - 10_000) },
+      });
+      await prisma.rylsDraftRegistration.update({
+        where: { resume_token: 'export-order-2' },
+        data: { updated_at: new Date() },
+      });
+
+      const drafts = await repo.getDraftsForExport();
+
+      expect(drafts[0].email).toBe('order2@test.com');
+      expect(drafts[1].email).toBe('order1@test.com');
     });
   });
 });

@@ -19,7 +19,7 @@ const mockAcademyEnrollmentRepository = {
 const mockPrisma = {
   $transaction: vi.fn(),
   academy: { findFirst: vi.fn() },
-  user: { findUnique: vi.fn() },
+  user: { findUnique: vi.fn(), update: vi.fn() },
   transaction: { findFirst: vi.fn(), update: vi.fn() },
 };
 
@@ -75,6 +75,7 @@ function makeTx({ enrollmentId = 50 } = {}) {
       create: vi.fn().mockResolvedValue({ id: enrollmentId }),
       update: vi.fn().mockResolvedValue({ id: enrollmentId }),
     },
+    user: { update: vi.fn().mockResolvedValue({}) },
   };
 }
 
@@ -224,6 +225,127 @@ describe('AcademyPaymentService', () => {
       );
       // No cohortEnrollment in tx
       expect(tx).not.toHaveProperty('cohortEnrollment');
+    });
+
+    // ----- customer_details form integration -----
+
+    it('passes form customer_details to Midtrans (overrides DB user values)', async () => {
+      const form = {
+        first_name: 'Andi',
+        last_name: 'Wijaya',
+        email: 'andi@new.example',
+        phone: '08129999111',
+      };
+
+      await service.createTransaction(100, 1, 10, form);
+
+      expect(mockMidtransService.createSnapTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customerDetails: {
+            first_name: 'Andi',
+            last_name: 'Wijaya',
+            email: 'andi@new.example',
+            phone: '08129999111',
+          },
+        }),
+      );
+    });
+
+    it('writes form customer values into Transaction.customer_email and customer_phone', async () => {
+      const tx = makeTx();
+      mockPrisma.$transaction.mockImplementation(async (fn) => fn(tx));
+
+      await service.createTransaction(100, 1, 10, {
+        first_name: 'Andi',
+        last_name: 'Wijaya',
+        email: 'andi@new.example',
+        phone: '08129999111',
+      });
+
+      expect(tx.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            customer_email: 'andi@new.example',
+            customer_phone: '08129999111',
+          }),
+        }),
+      );
+    });
+
+    it('backfills empty user fields when form provides values (DB phone is empty)', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ ...baseUser, phone: null });
+      const tx = makeTx();
+      mockPrisma.$transaction.mockImplementation(async (fn) => fn(tx));
+
+      await service.createTransaction(100, 1, 10, {
+        first_name: baseUser.first_name,
+        last_name: baseUser.last_name,
+        email: baseUser.email,
+        phone: '08111222333',
+      });
+
+      expect(tx.user.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: { phone: '08111222333' },
+      });
+    });
+
+    it('does not backfill when DB field already has a value (form override is per-transaction only)', async () => {
+      const tx = makeTx();
+      mockPrisma.$transaction.mockImplementation(async (fn) => fn(tx));
+
+      await service.createTransaction(100, 1, 10, {
+        first_name: baseUser.first_name,
+        last_name: baseUser.last_name,
+        email: baseUser.email,
+        phone: 'NEW-PHONE-123',
+      });
+
+      expect(tx.user.update).not.toHaveBeenCalled();
+    });
+
+    it('falls back to DB user values when form customer_details is not provided', async () => {
+      await service.createTransaction(100, 1, 10);
+
+      expect(mockMidtransService.createSnapTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customerDetails: {
+            first_name: baseUser.first_name,
+            last_name: baseUser.last_name,
+            email: baseUser.email,
+            phone: baseUser.phone,
+          },
+        }),
+      );
+    });
+
+    it('backfills user fields on valid-token reuse path when form has values for empty DB fields', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ ...baseUser, phone: null });
+      mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
+        id: 99,
+        status: 'pending',
+        transaction: {
+          id: 5,
+          transaction_code: 'AE01ABCD1234',
+          amount: 3000000,
+          expired_at: futureDate,
+          midtrans_data: { snap_token: 'existing-token', redirect_url: 'https://existing.url' },
+        },
+      });
+
+      const result = await service.createTransaction(100, 1, 10, {
+        first_name: baseUser.first_name,
+        last_name: baseUser.last_name,
+        email: baseUser.email,
+        phone: '0812NEW',
+      });
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: { phone: '0812NEW' },
+      });
+      expect(result.token).toBe('existing-token');
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
   });
 

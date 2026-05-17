@@ -2,6 +2,7 @@ import { adminUserController } from '../../controllers/admin/userController.js';
 import { adminPermissionController } from '../../controllers/admin/permissionController.js';
 import { adminMiddleware, authorizeRoles } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/permissionMiddleware.js';
+import { createUploadMiddleware } from '../../middleware/uploadMiddleware.js';
 import {
   getUserPermissionsSchema,
   setUserPermissionsSchema,
@@ -10,6 +11,7 @@ import {
 
 export default async function adminUserRoutes(fastify) {
   const userTag = { tags: ['Admin Users'] };
+  const uploadUserAvatar = createUploadMiddleware('user_avatar');
 
   fastify.addHook('preHandler', adminMiddleware);
 
@@ -111,29 +113,19 @@ export default async function adminUserRoutes(fastify) {
       schema: {
         ...userTag,
         description: 'Update user by ID (Admin only)',
+        consumes: ['application/json', 'multipart/form-data'],
         params: {
           type: 'object',
           properties: { id: { type: 'integer', minimum: 1 } },
           required: ['id'],
         },
-        body: {
-          type: 'object',
-          properties: {
-            first_name: { type: 'string' },
-            last_name: { type: 'string' },
-            email: { type: 'string', format: 'email' },
-            username: { type: 'string' },
-            password: { type: 'string', minLength: 6 },
-            role: { type: 'string', enum: ['user', 'admin'] },
-            status: { type: 'string', enum: ['active', 'inactive'] },
-          },
-        },
+        // body schema omitted so multipart uploads with optional avatar file can pass through.
         response: {
           200: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, data: { type: 'object' }, timestamp: { type: 'string' } } },
           404: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, timestamp: { type: 'string' } } },
         },
       },
-      preHandler: requirePermission('admin.users', 'EDITOR'),
+      preHandler: [requirePermission('admin.users', 'EDITOR'), uploadUserAvatar],
     },
     adminUserController.updateUser
   );

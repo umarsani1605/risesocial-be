@@ -7,7 +7,30 @@ import { captureEvent } from '../../config/posthog.js';
 
 export class AcademyPaymentService {
 
-  async createTransaction(userId, academyId, pricingId) {
+  _mergeCustomerDetails(user, formCustomerDetails) {
+    const form = formCustomerDetails || {};
+    const firstName = form.first_name ?? user.first_name ?? '';
+    return {
+      first_name: firstName || 'Customer',
+      last_name: form.last_name ?? user.last_name ?? '',
+      email: form.email ?? user.email,
+      phone: form.phone ?? user.phone ?? '',
+    };
+  }
+
+  _computeBackfillData(user, formCustomerDetails) {
+    if (!formCustomerDetails) return null;
+    const updateData = {};
+    for (const field of ['first_name', 'last_name', 'email', 'phone']) {
+      const formValue = formCustomerDetails[field];
+      if (formValue && !user[field]) {
+        updateData[field] = formValue;
+      }
+    }
+    return Object.keys(updateData).length ? updateData : null;
+  }
+
+  async createTransaction(userId, academyId, pricingId, formCustomerDetails = null) {
 
     try {
       // Step 1: Validate academy exists and is active
@@ -25,7 +48,14 @@ export class AcademyPaymentService {
         throw new Error('Pricing tier not found');
       }
 
-      // Step 3: Check for existing pending or active enrollment
+      // Step 3: Fetch user (needed for both existing-enrollment backfill and new transaction)
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw new Error('User not found');
+      }
+      const backfillData = this._computeBackfillData(user, formCustomerDetails);
+
+      // Step 4: Check for existing pending or active enrollment
       const existingEnrollment = await academyEnrollmentRepository.findActiveByUserAcademy(userId, academyId);
       if (existingEnrollment) {
         if (existingEnrollment.transaction?.status === 'paid') {
@@ -37,6 +67,10 @@ export class AcademyPaymentService {
           !existingEnrollment.transaction?.expired_at || existingEnrollment.transaction.expired_at < new Date();
 
         if (!tokenExpired) {
+          // Reuse existing snap token. Backfill empty user fields if form provided values.
+          if (backfillData) {
+            await prisma.user.update({ where: { id: userId }, data: backfillData });
+          }
           return {
             enrollment_id: existingEnrollment.id,
             transaction_code: existingEnrollment.transaction.transaction_code,
@@ -56,23 +90,12 @@ export class AcademyPaymentService {
         // Fall through to create a new transaction and reset the enrollment below
       }
 
-      // Step 4: Get user data for customer details
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (!user) {
-        throw new Error('User not found');
-      }
-
       // Step 5: Determine amount
       const amount = pricing.discount_price > 0 ? pricing.discount_price : pricing.original_price;
 
-      // Step 6: Prepare customer details
-      const customerName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Customer';
-      const customerDetails = {
-        first_name: user.first_name || 'Customer',
-        last_name: user.last_name || '',
-        email: user.email,
-        phone: user.phone || '',
-      };
+      // Step 6: Prepare customer details — form values override DB; empty DB fields will be backfilled below
+      const customerDetails = this._mergeCustomerDetails(user, formCustomerDetails);
+      const customerName = `${customerDetails.first_name} ${customerDetails.last_name}`.trim() || 'Customer';
 
       // Midtrans enforces a 50-character max on item_details.name
       const itemName = `${academy.title} - ${pricing.name}`.substring(0, 50);
@@ -111,8 +134,8 @@ export class AcademyPaymentService {
               status: 'pending',
               provider: 'midtrans',
               customer_name: customerName,
-              customer_email: user.email,
-              customer_phone: user.phone || null,
+              customer_email: customerDetails.email,
+              customer_phone: customerDetails.phone || null,
               user_id: userId,
               product_type: 'academy_enrollment',
               product_type_id: existingEnrollment.id,
@@ -146,6 +169,10 @@ export class AcademyPaymentService {
             where: { id: existingEnrollment.id },
             data: { transaction_id: newTransaction.id, updated_at: new Date() },
           });
+
+          if (backfillData) {
+            await tx.user.update({ where: { id: userId }, data: backfillData });
+          }
         });
 
         enrollmentId = existingEnrollment.id;
@@ -181,8 +208,8 @@ export class AcademyPaymentService {
               status: 'pending',
               provider: 'midtrans',
               customer_name: customerName,
-              customer_email: user.email,
-              customer_phone: user.phone || null,
+              customer_email: customerDetails.email,
+              customer_phone: customerDetails.phone || null,
               user_id: userId,
               product_type: 'academy_enrollment',
               product_type_id: 0,
@@ -229,6 +256,10 @@ export class AcademyPaymentService {
             where: { id: newTransaction.id },
             data: { product_type_id: enrollment.id },
           });
+
+          if (backfillData) {
+            await tx.user.update({ where: { id: userId }, data: backfillData });
+          }
         });
 
         captureEvent(userId, 'enrollment.created', {

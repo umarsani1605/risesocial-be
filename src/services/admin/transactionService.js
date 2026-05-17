@@ -87,7 +87,7 @@ export class AdminTransactionService {
     }
 
     // Reshape flat Prisma result into nested API structure
-    const { user, items, cohort_enrollment, ryls_payment, ...base } = tx;
+    const { user, items, academy_enrollment, ryls_payment, ...base } = tx;
 
     return {
       id: base.id,
@@ -116,8 +116,15 @@ export class AdminTransactionService {
       product_details: {
         type: base.product_type,
         items,
-        enrollment: cohort_enrollment?.cohort
-          ? { cohort_id: cohort_enrollment.cohort.id, cohort_name: cohort_enrollment.cohort.name }
+        enrollment: academy_enrollment
+          ? {
+              academy_enrollment_id: academy_enrollment.id,
+              academy_id: academy_enrollment.academy?.id ?? null,
+              academy_title: academy_enrollment.academy?.title ?? null,
+              placement_id: academy_enrollment.placement?.id ?? null,
+              cohort_id: academy_enrollment.placement?.cohort?.id ?? null,
+              cohort_name: academy_enrollment.placement?.cohort?.name ?? null,
+            }
           : null,
         ryls_registration: ryls_payment?.registration ?? null,
       },

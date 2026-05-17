@@ -81,10 +81,10 @@ export default async function adminRylsRegistrationRoutes(fastify) {
     handler: adminRylsRegistrationController.getDraftStats,
   });
 
-  fastify.delete('/drafts/cleanup', {
-    schema: { ...tag, description: 'Delete all expired draft registrations (Admin only)' },
+  fastify.get('/drafts/export-excel', {
+    schema: { ...tag, description: 'Export draft registrations to Excel (Admin only)' },
     preHandler: requirePermission('admin.ryls'),
-    handler: adminRylsRegistrationController.cleanupExpiredDrafts,
+    handler: adminRylsRegistrationController.exportDraftsExcel,
   });
 
   const analyticsPeriodQuerystring = {

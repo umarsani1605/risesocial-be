@@ -12,9 +12,9 @@ export class AcademyPaymentController {
 
     try {
       const userId = request.user.userId;
-      const { academy_id, pricing_id } = request.body;
+      const { academy_id, pricing_id, customer_details } = request.body;
 
-      const result = await this.paymentService.createTransaction(userId, academy_id, pricing_id);
+      const result = await this.paymentService.createTransaction(userId, academy_id, pricing_id, customer_details);
 
       captureEvent(userId, 'payment.transaction_created', {
         product_type: 'academy',

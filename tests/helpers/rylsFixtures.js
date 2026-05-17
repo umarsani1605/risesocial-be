@@ -159,14 +159,16 @@ export async function createSelfFundedRegistration(overrides = {}) {
  */
 export async function createDraftRegistration(overrides = {}) {
   const prisma = getTestPrisma();
+  const uniqueSuffix = overrides.resume_token ?? `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
   return prisma.rylsDraftRegistration.create({
     data: {
-      email: overrides.email ?? 'draft@example.com',
+      email: overrides.email ?? `draft.${uniqueSuffix}@example.com`,
       resume_token: overrides.resume_token ?? `test-token-${Date.now()}`,
       current_step: overrides.current_step ?? 1,
       form_data: overrides.form_data ?? { step1: { fullName: 'Draft User', scholarshipType: 'FULLY_FUNDED' } },
       scholarship_type: overrides.scholarship_type ?? 'FULLY_FUNDED',
-      expires_at: overrides.expires_at ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      ...(overrides.created_at ? { created_at: overrides.created_at } : {}),
+      ...(overrides.updated_at ? { updated_at: overrides.updated_at } : {}),
     },
   });
 }

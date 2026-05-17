@@ -326,6 +326,50 @@ export class AdminCohortRepository extends BaseRepository {
     await prisma.cohortMentor.delete({ where: { id: mentorId } });
     return { message: 'Mentor removed successfully' };
   }
+
+  // --- Bulk copy from academy (used on cohort create) ---
+
+  async bulkCreateModulesFromAcademyTopics(tx, cohortId, academyId) {
+    const topics = await tx.academyTopic.findMany({
+      where: { academy_id: academyId },
+      include: { theme: { select: { order: true } } },
+      orderBy: [{ theme: { order: 'asc' } }, { order: 'asc' }],
+    });
+
+    if (topics.length === 0) return 0;
+
+    const data = topics.map((topic, index) => ({
+      cohort_id: cohortId,
+      academy_id: academyId,
+      title: topic.title,
+      description: topic.description,
+      order: index + 1,
+      is_published: false,
+    }));
+
+    const result = await tx.cohortModule.createMany({ data });
+    return result.count;
+  }
+
+  async bulkCreateMentorsFromAcademyInstructors(tx, cohortId, academyId) {
+    const instructors = await tx.academyInstructor.findMany({
+      where: { academy_id: academyId },
+      orderBy: { order: 'asc' },
+    });
+
+    if (instructors.length === 0) return 0;
+
+    const data = instructors.map((inst) => ({
+      cohort_id: cohortId,
+      academy_id: academyId,
+      name: inst.name,
+      avatar: inst.avatar_url,
+      job_title: inst.job_title,
+    }));
+
+    const result = await tx.cohortMentor.createMany({ data });
+    return result.count;
+  }
 }
 
 export const adminCohortRepository = new AdminCohortRepository();

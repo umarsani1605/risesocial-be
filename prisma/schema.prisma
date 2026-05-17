@@ -469,12 +469,10 @@ model RylsDraftRegistration {
   current_step     Int      @default(1)
   form_data        Json
   scholarship_type String?  @db.VarChar(50)
-  expires_at       DateTime
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
   @@index([email])
-  @@index([expires_at])
   @@map("ryls_draft_registrations")
 }
 

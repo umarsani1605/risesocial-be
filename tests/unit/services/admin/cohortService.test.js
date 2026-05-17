@@ -41,7 +41,7 @@ vi.mock('../../../../src/repositories/shared/academyRepository.js', () => ({
 }));
 
 const mockFileUploadService = {
-  generatePublicFileUrl: vi.fn(),
+  upload: vi.fn(),
 };
 
 vi.mock('../../../../src/services/shared/fileUploadService.js', () => ({
@@ -129,7 +129,7 @@ describe('AdminCohortService', () => {
           end_date: '2026-05-01',
         }),
       ).rejects.toMatchObject({
-        message: 'start_date must be before end_date',
+        message: 'Please set the start date before the end date',
         statusCode: 400,
       });
 
@@ -159,6 +159,98 @@ describe('AdminCohortService', () => {
       await adminCohortService.deleteCohort(1);
 
       expect(mockCohortRepository.delete).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('updateCohort()', () => {
+    it('should throw 400 with a friendly date-range message when start_date >= end_date', async () => {
+      mockCohortRepository.findById.mockResolvedValue({
+        id: 1,
+        start_date: new Date('2026-05-01'),
+        end_date: new Date('2026-06-01'),
+      });
+
+      await expect(
+        adminCohortService.updateCohort(1, {
+          start_date: '2026-06-01',
+          end_date: '2026-06-01',
+        }),
+      ).rejects.toMatchObject({
+        message: 'Please set the start date before the end date',
+        statusCode: 400,
+      });
+
+      expect(mockCohortRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createMentor()', () => {
+    it('should upload the mentor avatar and persist the returned public URL', async () => {
+      const cohort = { id: 7, academy_id: 3 };
+      const mentor = { id: 11, cohort_id: 7, academy_id: 3, name: 'Jane Mentor', avatar: 'https://api.example.com/uploads/instructors/mentor.jpg' };
+      const avatarFile = { originalName: 'mentor.jpg' };
+
+      mockCohortRepository.findById.mockResolvedValue(cohort);
+      mockFileUploadService.upload.mockResolvedValue({
+        publicUrl: 'https://api.example.com/uploads/instructors/mentor.jpg',
+      });
+      mockCohortRepository.createMentor.mockResolvedValue(mentor);
+
+      const result = await adminCohortService.createMentor(7, {
+        name: 'Jane Mentor',
+        job_title: 'Senior Consultant',
+        avatarFile,
+      });
+
+      expect(result).toEqual(mentor);
+      expect(mockFileUploadService.upload).toHaveBeenCalledWith(avatarFile);
+      expect(mockCohortRepository.createMentor).toHaveBeenCalledWith(
+        7,
+        3,
+        expect.objectContaining({
+          name: 'Jane Mentor',
+          job_title: 'Senior Consultant',
+          avatar: 'https://api.example.com/uploads/instructors/mentor.jpg',
+        }),
+      );
+      expect(mockCohortRepository.createMentor).toHaveBeenCalledWith(
+        7,
+        3,
+        expect.not.objectContaining({ avatarFile: expect.anything() }),
+      );
+    });
+  });
+
+  describe('updateMentor()', () => {
+    it('should upload the replacement avatar and persist the returned public URL', async () => {
+      const mentor = { id: 11, cohort_id: 7, academy_id: 3, name: 'Jane Mentor', avatar: 'https://api.example.com/uploads/instructors/mentor-2.jpg' };
+      const avatarFile = { originalName: 'mentor-2.jpg' };
+
+      mockFileUploadService.upload.mockResolvedValue({
+        publicUrl: 'https://api.example.com/uploads/instructors/mentor-2.jpg',
+      });
+      mockCohortRepository.updateMentor.mockResolvedValue(mentor);
+
+      const result = await adminCohortService.updateMentor(7, 11, {
+        name: 'Jane Mentor',
+        avatarFile,
+      });
+
+      expect(result).toEqual(mentor);
+      expect(mockFileUploadService.upload).toHaveBeenCalledWith(avatarFile);
+      expect(mockCohortRepository.updateMentor).toHaveBeenCalledWith(
+        7,
+        11,
+        expect.objectContaining({
+          name: 'Jane Mentor',
+          avatar: 'https://api.example.com/uploads/instructors/mentor-2.jpg',
+        }),
+      );
+      expect(mockCohortRepository.updateMentor).toHaveBeenCalledWith(
+        7,
+        11,
+        expect.not.objectContaining({ avatarFile: expect.anything() }),
+      );
     });
   });
 

@@ -57,7 +57,13 @@ export class AdminUserController {
   updateUser = async (request, reply) => {
     try {
       const { id } = request.params;
-      const user = await userService.updateUser(Number(id), request.body);
+      const updateData = request.body || {};
+
+      if (request.uploadedFile) {
+        updateData.avatarFile = request.uploadedFile;
+      }
+
+      const user = await userService.updateUser(Number(id), updateData);
       return reply.send(successResponse(user, 'User updated successfully'));
     } catch (error) {
 

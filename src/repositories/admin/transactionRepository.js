@@ -80,9 +80,16 @@ export class AdminTransactionRepository {
           },
           orderBy: { id: 'asc' },
         },
-        cohort_enrollment: {
+        academy_enrollment: {
           select: {
-            cohort: { select: { id: true, name: true } },
+            id: true,
+            academy: { select: { id: true, title: true } },
+            placement: {
+              select: {
+                id: true,
+                cohort: { select: { id: true, name: true } },
+              },
+            },
           },
         },
         ryls_payment: {

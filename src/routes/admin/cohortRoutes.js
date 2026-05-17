@@ -57,8 +57,8 @@ export default async function adminCohortRoutes(fastify) {
   fastify.put('/:id/enrollments/:enrollmentId', { schema: updateEnrollmentSchema, preHandler: EDIT, handler: adminCohortController.updateEnrollment });
 
   // Mentors
-  fastify.post('/:id/mentors', { schema: createMentorSchema, preHandler: [EDIT, uploadInstructorAvatar], handler: adminCohortController.createMentor });
-  fastify.put('/:id/mentors/:mentorId', { schema: updateMentorSchema, preHandler: [EDIT, uploadInstructorAvatar], handler: adminCohortController.updateMentor });
+  fastify.post('/:id/mentors', { schema: createMentorSchema, preValidation: [uploadInstructorAvatar], preHandler: EDIT, handler: adminCohortController.createMentor });
+  fastify.put('/:id/mentors/:mentorId', { schema: updateMentorSchema, preValidation: [uploadInstructorAvatar], preHandler: EDIT, handler: adminCohortController.updateMentor });
   fastify.delete('/:id/mentors/:mentorId', { schema: deleteMentorSchema, preHandler: EDIT, handler: adminCohortController.deleteMentor });
 
   // Certificate generation

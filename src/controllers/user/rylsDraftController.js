@@ -24,7 +24,7 @@ export class UserRylsDraftController {
 
       const result = await this.service.getDraft(token);
       if (!result) {
-        return reply.status(404).send(errorResponse('Draft not found or expired', 404));
+        return reply.status(404).send(errorResponse('Draft not found', 404));
       }
 
       return reply.status(200).send(successResponse(result, 'Draft retrieved'));
@@ -39,7 +39,7 @@ export class UserRylsDraftController {
 
       const existing = await this.service.getDraft(token);
       if (!existing) {
-        return reply.status(404).send(errorResponse('Draft not found or expired', 404));
+        return reply.status(404).send(errorResponse('Draft not found', 404));
       }
 
       await this.service.deleteDraft(token);

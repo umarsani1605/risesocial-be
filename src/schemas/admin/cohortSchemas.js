@@ -218,6 +218,7 @@ export const createCohortSchema = {
       description: { type: 'string' },
       start_date: { type: 'string', format: 'date' },
       end_date: { type: 'string', format: 'date' },
+      copy_from_academy: { type: 'boolean', default: false },
     },
     additionalProperties: false,
   },

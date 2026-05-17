@@ -1,16 +1,8 @@
 import crypto from 'crypto';
 import { rylsDraftRepository } from '../repositories/rylsDraftRepository.js';
 
-const DRAFT_EXPIRY_DAYS = 30;
-
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
-}
-
-function expiresAt() {
-  const date = new Date();
-  date.setDate(date.getDate() + DRAFT_EXPIRY_DAYS);
-  return date;
 }
 
 export class RylsDraftService {
@@ -25,6 +17,7 @@ export class RylsDraftService {
         const existing = await this.repo.findByResumeToken(resumeToken);
         if (existing) {
           const updated = await this.repo.updateByToken(resumeToken, {
+            email,
             currentStep: step,
             formData,
             scholarshipType: scholarshipType ?? null,
@@ -40,7 +33,6 @@ export class RylsDraftService {
         currentStep: step,
         formData,
         scholarshipType: scholarshipType ?? null,
-        expiresAt: expiresAt(),
       });
       return { resumeToken: token, currentStep: created.current_step, savedAt: created.created_at };
     } catch (error) {
@@ -53,17 +45,11 @@ export class RylsDraftService {
       const draft = await this.repo.findByResumeToken(resumeToken);
       if (!draft) return null;
 
-      if (draft.expires_at < new Date()) {
-        await this.repo.deleteByToken(resumeToken).catch(() => {});
-        return null;
-      }
-
       return {
         resumeToken: draft.resume_token,
         currentStep: draft.current_step,
         formData: draft.form_data,
         scholarshipType: draft.scholarship_type,
-        expiresAt: draft.expires_at,
         email: draft.email,
       };
     } catch (error) {
@@ -80,15 +66,6 @@ export class RylsDraftService {
     }
   }
 
-  async cleanupExpired() {
-    try {
-      const count = await this.repo.deleteExpired();
-      return count;
-    } catch (error) {
-      throw error;
-    }
-  }
-
   async getDrafts(options) {
     try {
       const result = await this.repo.getDrafts(options);
@@ -100,13 +77,83 @@ export class RylsDraftService {
 
   async getDraftStats() {
     try {
-      const count = await this.repo.model.count({
-        where: { expires_at: { gte: new Date() } },
-      });
+      const count = await this.repo.model.count();
       return { count };
     } catch (error) {
       throw error;
     }
+  }
+
+  async getDraftsForExport() {
+    try {
+      return await this.repo.getDraftsForExport();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async generateExcelFile(drafts) {
+    try {
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.utils.book_new();
+      const sheetData = this.prepareDraftExportSheetData(drafts);
+      const sheet = XLSX.utils.aoa_to_sheet(sheetData);
+
+      sheet['!cols'] = this.calculateColumnWidths(sheetData);
+
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Drafts');
+
+      return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    } catch (error) {
+      throw new Error('Failed to generate draft Excel file');
+    }
+  }
+
+  prepareDraftExportSheetData(drafts) {
+    const headers = ['Email', 'Full Name', 'Current Step', 'Scholarship Type', 'Updated At'];
+    const rows = [headers];
+
+    drafts.forEach((draft) => {
+      rows.push([
+        this.getCellValue(draft.email),
+        this.getCellValue(draft.form_data?.step1?.fullName),
+        this.getCellValue(draft.current_step),
+        this.getCellValue(draft.scholarship_type),
+        this.formatDateCell(draft.updated_at),
+      ]);
+    });
+
+    return rows;
+  }
+
+  getCellValue(value) {
+    return value == null || value === '' ? '-' : value;
+  }
+
+  formatDateCell(value) {
+    return value ? new Date(value).toISOString() : '-';
+  }
+
+  calculateColumnWidths(sheetData) {
+    if (!sheetData?.length) return [];
+
+    const numColumns = sheetData[0].length;
+    const columnWidths = [];
+
+    for (let col = 0; col < numColumns; col++) {
+      let maxWidth = 0;
+
+      for (const row of sheetData) {
+        if (row?.[col]) {
+          maxWidth = Math.max(maxWidth, String(row[col]).length);
+        }
+      }
+
+      const optimalWidth = Math.min(Math.max(maxWidth + 2, 8), 50);
+      columnWidths.push({ width: optimalWidth, wch: optimalWidth });
+    }
+
+    return columnWidths;
   }
 }
 
