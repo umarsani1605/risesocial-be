@@ -1,13 +1,10 @@
 import { fileUploadRepository } from '../../repositories/shared/fileUploadRepository.js';
 import { UPLOAD_CONFIG } from '../../config/uploadConfig.js';
 import { captureEvent } from '../../config/posthog.js';
+import { r2Service } from './r2Service.js';
+import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const uploadsBaseDir = path.join(__dirname, '../../../uploads');
 
 export class FileUploadService {
   constructor() {
@@ -239,81 +236,86 @@ export class FileUploadService {
   }
 
   /**
-   * Unified atomic upload method.
-   * Writes file to disk, then inserts DB record.
-   * If DB insert fails, deletes the physical file (atomicity fix).
+   * Unified atomic upload method (R2).
+   * Uploads file to Cloudflare R2, then inserts DB record.
+   * If DB insert fails, deletes the R2 object (atomicity).
    *
    * @param {Object} uploadedFile - from createUploadMiddleware: { buffer, originalName, mimeType, size, uploadType }
    * @param {Object} entityRefs   - optional entity FKs: { cohortModuleId, academyId }
-   * @returns {Promise<Object>} file record with relativePath and publicUrl
+   * @returns {Promise<Object>} file record with relativePath and publicUrl (built from R2_PUBLIC_BASE)
    */
   async upload(uploadedFile, entityRefs = {}) {
-    try {
-      const config = UPLOAD_CONFIG[uploadedFile.uploadType];
-      if (!config) {
-        const err = new Error(`Unknown upload type: ${uploadedFile.uploadType}`);
-        err.statusCode = 400;
-        throw err;
-      }
-
-      const storageDir = path.join(uploadsBaseDir, config.storagePath);
-      const ext = path.extname(uploadedFile.originalName).toLowerCase();
-      const baseName = path.basename(uploadedFile.originalName, ext)
-        .replace(/[^a-zA-Z0-9._-]/g, '_')
-        .replace(/_+/g, '_')
-        .slice(0, 100);
-      let candidateName = `${baseName}${ext}`;
-      let counter = 1;
-      while (await fs.pathExists(path.join(storageDir, candidateName))) {
-        counter++;
-        candidateName = `${baseName}_${counter}${ext}`;
-      }
-      const uniqueName = candidateName;
-      const absolutePath = path.join(storageDir, uniqueName);
-      const relativePath = `${config.storagePath}/${uniqueName}`;
-
-      await fs.ensureDir(storageDir);
-      await fs.writeFile(absolutePath, uploadedFile.buffer);
-
-      let record;
-      try {
-        record = await this.fileUploadRepository.createFileUpload({
-          originalName: uploadedFile.originalName,
-          path: relativePath,
-          size: uploadedFile.size,
-          mimeType: uploadedFile.mimeType,
-          uploadType: uploadedFile.uploadType,
-          cohortModuleId: entityRefs.cohortModuleId || null,
-          academyId: entityRefs.academyId || null,
-        });
-      } catch (dbErr) {
-        // Atomicity: remove physical file if DB insert fails
-        await fs.remove(absolutePath).catch(() => {});
-        captureEvent('system', 'upload.failed', {
-          endpoint: 'upload',
-          upload_type: uploadedFile.uploadType,
-          reason: dbErr.message,
-          file_size: uploadedFile.size,
-        });
-        throw dbErr;
-      }
-
-      const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-      const publicUrl = `${baseUrl}/uploads/${relativePath}`;
-
-      return {
-        id: record.id,
-        originalName: record.original_name,
-        relativePath,
-        absolutePath,
-        fileSize: record.file_size,
-        mimeType: record.mime_type,
-        uploadType: record.upload_type,
-        publicUrl,
-      };
-    } catch (error) {
-      throw error;
+    const config = UPLOAD_CONFIG[uploadedFile.uploadType];
+    if (!config) {
+      const err = new Error(`Unknown upload type: ${uploadedFile.uploadType}`);
+      err.statusCode = 400;
+      throw err;
     }
+
+    const ext = path.extname(uploadedFile.originalName).toLowerCase();
+    const base = path.basename(uploadedFile.originalName, ext)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'file';
+    const filename = `${base}-${uuidv4()}${ext}`;
+    const relativePath = `${config.storagePath}/${filename}`;
+
+    await r2Service.putObject(relativePath, uploadedFile.buffer, uploadedFile.mimeType);
+
+    let record;
+    try {
+      record = await this.fileUploadRepository.createFileUpload({
+        originalName: uploadedFile.originalName,
+        path: relativePath,
+        size: uploadedFile.size,
+        mimeType: uploadedFile.mimeType,
+        uploadType: uploadedFile.uploadType,
+        cohortModuleId: entityRefs.cohortModuleId || null,
+        academyId: entityRefs.academyId || null,
+      });
+    } catch (dbErr) {
+      await r2Service.deleteObject(relativePath);
+      captureEvent('system', 'upload.failed', {
+        endpoint: 'upload',
+        upload_type: uploadedFile.uploadType,
+        reason: dbErr.message,
+        file_size: uploadedFile.size,
+      });
+      throw dbErr;
+    }
+
+    const publicBase = (process.env.R2_PUBLIC_BASE || '').replace(/\/$/, '');
+    const publicUrl = `${publicBase}/${relativePath}`;
+
+    return {
+      id: record.id,
+      originalName: record.original_name,
+      relativePath,
+      fileSize: record.file_size,
+      mimeType: record.mime_type,
+      uploadType: record.upload_type,
+      publicUrl,
+    };
+  }
+
+  /**
+   * Best-effort delete of a file by its stored relative path.
+   * - Skips if path is empty, full URL (legacy), or created before R2_CUTOVER_AT.
+   * - Never throws; returns true on R2 delete success, false otherwise.
+   */
+  async deleteByPath(relativePath, createdAt) {
+    if (!relativePath) return false;
+    if (/^https?:\/\//i.test(relativePath)) return false;
+
+    const cutoffRaw = process.env.R2_CUTOVER_AT;
+    if (cutoffRaw && createdAt) {
+      const cutoff = new Date(cutoffRaw);
+      const created = new Date(createdAt);
+      if (created.getTime() < cutoff.getTime()) return false;
+    }
+
+    return r2Service.deleteObject(relativePath);
   }
 }
 

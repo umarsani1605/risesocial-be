@@ -3,7 +3,9 @@ import { userRepository } from '../../repositories/shared/userRepository.js';
 import { userSettingsRepository } from '../../repositories/shared/userSettingsRepository.js';
 import { fileUploadService } from './fileUploadService.js';
 import { emailService } from './emailService.js';
+import { r2Service } from './r2Service.js';
 import { generateToken } from '../../utils/jwt.js';
+import { extractR2Key } from '../../utils/assetUrl.js';
 import prisma from '../../config/database.js';
 
 export class UserService {
@@ -135,15 +137,18 @@ export class UserService {
     const existingUser = await userRepository.findById(id);
     if (!existingUser) throw new Error('User not found');
 
+    let oldAvatarUrl = null;
     if (updateData.avatarFile) {
+      oldAvatarUrl = existingUser.avatar;
       try {
-        const publicUrl = this.fileUploadService.generatePublicFileUrl(updateData.avatarFile);
-        updateData.avatar = publicUrl;
+        const uploaded = await this.fileUploadService.upload(updateData.avatarFile);
+        updateData.avatar = uploaded.publicUrl;
       } catch (uploadError) {
         throw new Error('Failed to upload avatar');
       }
       delete updateData.avatarFile;
     } else if (updateData.avatar === '') {
+      oldAvatarUrl = existingUser.avatar;
       updateData.avatar = null;
     }
 
@@ -177,6 +182,18 @@ export class UserService {
     }
 
     const user = await userRepository.update(id, updateData);
+
+    if (oldAvatarUrl) {
+      const oldKey = extractR2Key(oldAvatarUrl);
+      if (oldKey) {
+        try {
+          await r2Service.deleteObject(oldKey);
+        } catch (cleanupError) {
+          // best-effort cleanup; do not fail the request
+        }
+      }
+    }
+
     return this.excludePassword(user);
   }
 
@@ -328,15 +345,21 @@ export class UserService {
 
   async updateUserAccount(userId, accountData) {
     try {
+      const existingUser = await userRepository.findById(userId);
+      if (!existingUser) throw new Error('User not found');
+
+      let oldAvatarUrl = null;
       if (accountData.avatarFile) {
+        oldAvatarUrl = existingUser.avatar;
         try {
-          const publicUrl = this.fileUploadService.generatePublicFileUrl(accountData.avatarFile);
-          accountData.avatar = publicUrl;
+          const uploaded = await this.fileUploadService.upload(accountData.avatarFile);
+          accountData.avatar = uploaded.publicUrl;
         } catch (uploadError) {
           throw new Error('Failed to upload avatar');
         }
         delete accountData.avatarFile;
       } else if (accountData.avatar === '') {
+        oldAvatarUrl = existingUser.avatar;
         accountData.avatar = null;
       }
 
@@ -356,6 +379,18 @@ export class UserService {
       }
 
       const updatedUser = await userRepository.update(userId, accountData);
+
+      if (oldAvatarUrl) {
+        const oldKey = extractR2Key(oldAvatarUrl);
+        if (oldKey) {
+          try {
+            await r2Service.deleteObject(oldKey);
+          } catch (cleanupError) {
+            // best-effort cleanup; do not fail the request
+          }
+        }
+      }
+
       return this.excludePassword(updatedUser);
     } catch (error) {
       throw error;

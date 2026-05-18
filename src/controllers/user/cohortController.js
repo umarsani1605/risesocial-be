@@ -1,10 +1,6 @@
 import { userCohortService } from '../../services/user/cohortService.js';
-import { successResponse, errorResponse, toFileUrl } from '../../utils/response.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { successResponse, errorResponse } from '../../utils/response.js';
+import { buildAssetUrl } from '../../utils/assetUrl.js';
 
 export class UserCohortController {
   async getAllCohorts(request, reply) {
@@ -63,7 +59,7 @@ export class UserCohortController {
 
       for (const module of modules) {
         for (const att of module.attachments ?? []) {
-          att.file_url = toFileUrl(att.file_path);
+          att.file_url = buildAssetUrl(att.file_path, att.created_at);
         }
       }
 
@@ -122,14 +118,9 @@ export class UserCohortController {
 
       const { id } = request.params;
       const userId = request.user.userId;
-      const { absolutePath, cert } = await userCohortService.downloadCertificate(Number(id), userId);
+      const { url } = await userCohortService.downloadCertificate(Number(id), userId);
 
-      const filename = path.basename(absolutePath);
-
-      return reply
-        .header('Content-Type', 'application/pdf')
-        .header('Content-Disposition', `attachment; filename="${filename}"`)
-        .sendFile(filename, path.dirname(absolutePath));
+      return reply.redirect(302, url);
     } catch (error) {
 
       if (error.statusCode === 404) return reply.status(404).send(errorResponse(error.message, 404));
