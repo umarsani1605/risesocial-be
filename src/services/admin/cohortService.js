@@ -2,6 +2,8 @@ import { adminCohortRepository } from '../../repositories/admin/cohortRepository
 import { academyRepository } from '../../repositories/shared/academyRepository.js';
 import { fileUploadService } from '../shared/fileUploadService.js';
 import { emailService } from '../shared/emailService.js';
+import { r2Service } from '../shared/r2Service.js';
+import { extractR2Key } from '../../utils/assetUrl.js';
 import { formatCertificateCode, safeFilename, formatIssuedDate } from '../../utils/certificateHelpers.js';
 import { toFileUrl } from '../../utils/response.js';
 import prisma from '../../config/database.js';
@@ -466,7 +468,11 @@ export class AdminCohortService {
 
   async updateMentor(cohortId, mentorId, data) {
     try {
+      const existingMentor = await prisma.cohortMentor.findUnique({ where: { id: mentorId } });
+
+      let oldAvatarUrl = null;
       if (data.avatarFile) {
+        oldAvatarUrl = existingMentor?.avatar || null;
         try {
           const uploaded = await this.fileUploadService.upload(data.avatarFile);
           data.avatar = uploaded.publicUrl;
@@ -475,10 +481,17 @@ export class AdminCohortService {
         }
         delete data.avatarFile;
       } else if (data.avatar === '') {
+        oldAvatarUrl = existingMentor?.avatar || null;
         data.avatar = null;
       }
 
       const mentor = await this.repository.updateMentor(cohortId, mentorId, data);
+
+      if (oldAvatarUrl) {
+        const oldKey = extractR2Key(oldAvatarUrl);
+        if (oldKey) await r2Service.deleteObject(oldKey);
+      }
+
       return mentor;
     } catch (error) {
       throw error;
