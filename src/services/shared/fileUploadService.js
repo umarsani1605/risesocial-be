@@ -298,6 +298,25 @@ export class FileUploadService {
       publicUrl,
     };
   }
+
+  /**
+   * Best-effort delete of a file by its stored relative path.
+   * - Skips if path is empty, full URL (legacy), or created before R2_CUTOVER_AT.
+   * - Never throws; returns true on R2 delete success, false otherwise.
+   */
+  async deleteByPath(relativePath, createdAt) {
+    if (!relativePath) return false;
+    if (/^https?:\/\//i.test(relativePath)) return false;
+
+    const cutoffRaw = process.env.R2_CUTOVER_AT;
+    if (cutoffRaw && createdAt) {
+      const cutoff = new Date(cutoffRaw);
+      const created = new Date(createdAt);
+      if (created.getTime() < cutoff.getTime()) return false;
+    }
+
+    return r2Service.deleteObject(relativePath);
+  }
 }
 
 export const fileUploadService = new FileUploadService();
