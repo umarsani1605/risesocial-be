@@ -2,15 +2,25 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } fr
 
 export class R2Service {
   constructor() {
-    this.bucket = process.env.R2_BUCKET;
-    this.client = new S3Client({
-      region: 'auto',
-      endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-      },
-    });
+    this._client = null;
+  }
+
+  get bucket() {
+    return process.env.R2_BUCKET;
+  }
+
+  get client() {
+    if (!this._client) {
+      this._client = new S3Client({
+        region: 'auto',
+        endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: process.env.R2_ACCESS_KEY_ID,
+          secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+        },
+      });
+    }
+    return this._client;
   }
 
   async putObject(key, body, contentType) {
