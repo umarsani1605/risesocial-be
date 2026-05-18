@@ -1,6 +1,7 @@
 import { adminCohortService } from '../../services/admin/cohortService.js';
 import { fileUploadService } from '../../services/shared/fileUploadService.js';
-import { successResponse, errorResponse, paginationMeta, toFileUrl } from '../../utils/response.js';
+import { successResponse, errorResponse, paginationMeta } from '../../utils/response.js';
+import { buildAssetUrl } from '../../utils/assetUrl.js';
 
 export class AdminCohortController {
   // --- Cohort CRUD ---
@@ -78,7 +79,7 @@ export class AdminCohortController {
 
       for (const module of cohort.modules ?? []) {
         for (const att of module.attachments ?? []) {
-          att.file_url = toFileUrl(att.file_path);
+          att.file_url = buildAssetUrl(att.file_path, att.created_at);
         }
       }
 
@@ -168,7 +169,7 @@ export class AdminCohortController {
       }
 
       const attachment = await adminCohortService.createAttachment(Number(id), Number(moduleId), data);
-      attachment.file_url = toFileUrl(attachment.file_path);
+      attachment.file_url = buildAssetUrl(attachment.file_path, attachment.created_at);
 
       return reply.status(201).send(successResponse(attachment, 'Attachment created successfully'));
     } catch (error) {

@@ -1,12 +1,6 @@
 import { userCohortRepository } from '../../repositories/user/cohortRepository.js';
-import { toFileUrl } from '../../utils/response.js';
+import { buildAssetUrl } from '../../utils/assetUrl.js';
 import prisma from '../../config/database.js';
-import path from 'path';
-import fs from 'fs-extra';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export class UserCohortService {
   constructor() {
@@ -68,7 +62,7 @@ export class UserCohortService {
             cohortId
               ? prisma.cohortCertificate.findFirst({
                   where: { cohort_id: cohortId, user_id: enrollment.user_id },
-                  select: { id: true, file_path: true },
+                  select: { id: true, file_path: true, created_at: true },
                 })
               : Promise.resolve(null),
           ]);
@@ -98,7 +92,7 @@ export class UserCohortService {
             total_modules: _count?.modules ?? 0,
             completed_modules: completedModules,
             has_certificate: !!certificate,
-            certificate_url: toFileUrl(certificate?.file_path) ?? null,
+            certificate_url: buildAssetUrl(certificate?.file_path, certificate?.created_at) ?? null,
           };
         }),
       );
@@ -199,7 +193,7 @@ export class UserCohortService {
     try {
       const cert = await this.repository.findCertificateByCohortAndUser(cohortId, userId);
       if (!cert?.file_path) return null;
-      return { certificate_url: toFileUrl(cert.file_path) };
+      return { certificate_url: buildAssetUrl(cert.file_path, cert.created_at) };
     } catch (error) {
       throw error;
     }
@@ -220,14 +214,14 @@ export class UserCohortService {
         throw err;
       }
 
-      const absolutePath = path.join(__dirname, '../../../uploads', cert.file_path.replace(/^\/uploads\//, ''));
-      if (!(await fs.pathExists(absolutePath))) {
-        const err = new Error('Certificate file not found');
+      const url = buildAssetUrl(cert.file_path, cert.created_at);
+      if (!url) {
+        const err = new Error('Certificate file unavailable');
         err.statusCode = 404;
         throw err;
       }
 
-      return { absolutePath, cert };
+      return { url, cert };
     } catch (error) {
       throw error;
     }
@@ -249,7 +243,7 @@ export class UserCohortService {
         cohort_name: cert.cohort_name,
         grades_transcript: cert.grades_transcript,
         issued_at: cert.created_at,
-        file_url: toFileUrl(cert.file_path),
+        file_url: buildAssetUrl(cert.file_path, cert.created_at),
       };
     } catch (error) {
       throw error;
