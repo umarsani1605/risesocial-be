@@ -3,9 +3,8 @@ import { academyRepository } from '../../repositories/shared/academyRepository.j
 import { fileUploadService } from '../shared/fileUploadService.js';
 import { emailService } from '../shared/emailService.js';
 import { r2Service } from '../shared/r2Service.js';
-import { extractR2Key } from '../../utils/assetUrl.js';
+import { extractR2Key, buildAssetUrl } from '../../utils/assetUrl.js';
 import { formatCertificateCode, safeFilename, formatIssuedDate } from '../../utils/certificateHelpers.js';
-import { toFileUrl } from '../../utils/response.js';
 import prisma from '../../config/database.js';
 import { captureEvent } from '../../config/posthog.js';
 import path from 'path';
@@ -165,16 +164,12 @@ export class AdminCohortService {
       });
 
       // Generate PDFs and finalize certificate codes outside the transaction
-      const certDir = path.join(__dirname, `../../../uploads/certificates/${cohortId}`);
-      await fs.ensureDir(certDir);
-
       for (const { record } of certRecords) {
         const certCode = formatCertificateCode(record.id, record.created_at);
         const filename = safeFilename(certCode);
-        const absolutePath = path.join(certDir, filename);
         const relPath = `certificates/${cohortId}/${filename}`;
 
-        await this._generatePDF(absolutePath, {
+        await this._generatePDF(relPath, {
           studentName: record.student_name,
           certCode,
           academyName: academy.title,
@@ -389,7 +384,7 @@ export class AdminCohortService {
         academy_id: e.academy_enrollment?.academy_id ?? e.academy_id,
         academy_enrollment: undefined,
         certificate: e.certificate
-          ? { ...e.certificate, file_url: toFileUrl(e.certificate.file_path) }
+          ? { ...e.certificate, file_url: buildAssetUrl(e.certificate.file_path, e.certificate.created_at) }
           : null,
       }));
       return result;
@@ -538,9 +533,6 @@ export class AdminCohortService {
         final_score: grades.final_score ?? null,
       };
 
-      const certDir = path.join(__dirname, `../../../uploads/certificates/${cohortId}`);
-      await fs.ensureDir(certDir);
-
       const cert = await prisma.$transaction(async (tx) => {
         await tx.cohortCertificate.deleteMany({ where: { placement_id: placementId } });
 
@@ -561,10 +553,9 @@ export class AdminCohortService {
 
         const certCode = formatCertificateCode(record.id, record.created_at);
         const filename = safeFilename(certCode);
-        const absolutePath = path.join(certDir, filename);
         const relPath = `certificates/${cohortId}/${filename}`;
 
-        await this._generatePDF(absolutePath, {
+        await this._generatePDF(relPath, {
           studentName,
           certCode,
           academyName: academy.title,
@@ -592,13 +583,13 @@ export class AdminCohortService {
         })
         .catch(() => {});
 
-      return { ...cert, file_url: toFileUrl(cert.file_path) };
+      return { ...cert, file_url: buildAssetUrl(cert.file_path, cert.created_at) };
     } catch (error) {
       throw error;
     }
   }
 
-  async _generatePDF(outputPath, { studentName, certCode, academyName, issuedDate, grades }) {
+  async _generatePDF(r2Key, { studentName, certCode, academyName, issuedDate, grades }) {
     const { PDFDocument, rgb } = await import('pdf-lib');
     const fontkit = (await import('@pdf-lib/fontkit')).default;
     const hex = (h) => rgb(parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255);
@@ -688,7 +679,8 @@ export class AdminCohortService {
       color: gradeColor,
     });
 
-    await fs.writeFile(outputPath, await pdfDoc.save());
+    const pdfBytes = await pdfDoc.save();
+    await r2Service.putObject(r2Key, Buffer.from(pdfBytes), 'application/pdf');
   }
 }
 
