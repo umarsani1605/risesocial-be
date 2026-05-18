@@ -1,6 +1,8 @@
 import { adminAcademyRepository } from '../../repositories/admin/academyRepository.js';
 import { academyRepository } from '../../repositories/shared/academyRepository.js';
 import { fileUploadService } from '../shared/fileUploadService.js';
+import { r2Service } from '../shared/r2Service.js';
+import { extractR2Key } from '../../utils/assetUrl.js';
 import prisma from '../../config/database.js';
 
 export class AdminAcademyService {
@@ -72,7 +74,9 @@ export class AdminAcademyService {
         }
       }
 
+      let oldImageUrl = null;
       if (updateData.imageFile) {
+        oldImageUrl = existingAcademy.image_url;
         try {
           const uploaded = await this.fileUploadService.upload(updateData.imageFile);
           updateData.image_url = uploaded.publicUrl;
@@ -83,12 +87,21 @@ export class AdminAcademyService {
       }
 
       const academy = await this.adminAcademyRepository.update(id, updateData);
+
+      // Best-effort cleanup of old R2 object
+      if (oldImageUrl) {
+        const oldKey = extractR2Key(oldImageUrl);
+        if (oldKey) await r2Service.deleteObject(oldKey);
+      }
+
       return academy;
     } catch (error) {
       throw error;
     }
   }
 
+  // TODO: cascade R2 cleanup for academy assets (image + instructor/testimonial avatars)
+  // on deleteAcademy — out of scope for current task.
   async deleteAcademy(id) {
     try {
       const academy = await this.academyRepository.findById(id);
@@ -285,15 +298,26 @@ export class AdminAcademyService {
 
   async updateInstructor(academyId, instructorId, data) {
     try {
+      const oldInstructor = await prisma.academyInstructor.findUnique({ where: { id: instructorId } });
+
+      let oldAvatarUrl = null;
       if (data.avatarFile) {
+        oldAvatarUrl = oldInstructor?.avatar_url || null;
         const uploaded = await this.fileUploadService.upload(data.avatarFile);
         data.avatar_url = uploaded.publicUrl;
         delete data.avatarFile;
       } else if (data.avatar_url === '') {
+        oldAvatarUrl = oldInstructor?.avatar_url || null;
         data.avatar_url = null;
       }
 
       const instructor = await this.adminAcademyRepository.updateInstructor(academyId, instructorId, data);
+
+      if (oldAvatarUrl) {
+        const oldKey = extractR2Key(oldAvatarUrl);
+        if (oldKey) await r2Service.deleteObject(oldKey);
+      }
+
       return instructor;
     } catch (error) {
       throw error;
@@ -373,15 +397,26 @@ export class AdminAcademyService {
 
   async updateTestimonial(academyId, testimonialId, data) {
     try {
+      const oldTestimonial = await prisma.academyTestimonial.findUnique({ where: { id: testimonialId } });
+
+      let oldAvatarUrl = null;
       if (data.avatarFile) {
+        oldAvatarUrl = oldTestimonial?.avatar_url || null;
         const uploaded = await this.fileUploadService.upload(data.avatarFile);
         data.avatar_url = uploaded.publicUrl;
         delete data.avatarFile;
       } else if (data.avatar_url === '') {
+        oldAvatarUrl = oldTestimonial?.avatar_url || null;
         data.avatar_url = null;
       }
 
       const testimonial = await this.adminAcademyRepository.updateTestimonial(academyId, testimonialId, data);
+
+      if (oldAvatarUrl) {
+        const oldKey = extractR2Key(oldAvatarUrl);
+        if (oldKey) await r2Service.deleteObject(oldKey);
+      }
+
       return testimonial;
     } catch (error) {
       throw error;

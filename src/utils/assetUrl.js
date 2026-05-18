@@ -53,3 +53,18 @@ export function transformAssetUrls(record, fields, timestampField = 'created_at'
   }
   return record;
 }
+
+/**
+ * Extract the R2 object key from a full R2 URL (if it matches R2_PUBLIC_BASE).
+ * Returns null for URLs that don't match the R2 base (legacy backend URLs, external URLs, etc.).
+ *
+ * @param {string|null|undefined} url - full URL to parse
+ * @returns {string|null} relative key (e.g. "academies/images/foo.png") or null
+ */
+export function extractR2Key(url) {
+  if (!url) return null;
+  const base = (process.env.R2_PUBLIC_BASE || '').replace(/\/$/, '');
+  if (!base) return null;
+  if (!url.startsWith(base + '/')) return null;
+  return url.slice(base.length + 1);
+}
