@@ -167,11 +167,7 @@ async function main(options = {}) {
     logTestCredentials([
       { role: 'Superadmin', email: 'superadmin@risesocial.org', password: 'password' },
       { role: 'Admin (academy+cohort)', email: 'admin.academy@risesocial.org', password: 'password' },
-      { role: 'Admin (finance)', email: 'admin.finance@risesocial.org', password: 'password' },
-      { role: 'Admin (jobs viewer)', email: 'admin.jobs@risesocial.org', password: 'password' },
-      { role: 'Admin (full viewer)', email: 'admin.viewer@risesocial.org', password: 'password' },
-      { role: 'Admin', email: 'admin@risesocial.org', password: 'password' },
-      { role: 'User', email: 'user@risesocial.org', password: 'password' },
+      { role: 'Demo user', email: 'demo@risesocial.org', password: 'password' },
     ]);
 
     console.log('\n');

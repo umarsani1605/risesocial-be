@@ -21,34 +21,6 @@ const USER_ASSIGNMENTS = [
       { key: 'admin.cohort',    level: 'EDITOR' },
     ],
   },
-  {
-    email: 'admin.finance@risesocial.org',
-    perms: [
-      { key: 'admin.dashboard',    level: 'VIEWER' },
-      { key: 'admin.transactions', level: 'EDITOR' },
-      { key: 'admin.ryls',         level: 'EDITOR' },
-    ],
-  },
-  {
-    email: 'admin.jobs@risesocial.org',
-    perms: [
-      { key: 'admin.dashboard', level: 'VIEWER' },
-      { key: 'admin.jobs',      level: 'VIEWER' },
-    ],
-  },
-  {
-    email: 'admin.viewer@risesocial.org',
-    perms: [
-      { key: 'admin.dashboard',    level: 'VIEWER' },
-      { key: 'admin.academy',      level: 'VIEWER' },
-      { key: 'admin.cohort',       level: 'VIEWER' },
-      { key: 'admin.transactions', level: 'VIEWER' },
-      { key: 'admin.ryls',         level: 'VIEWER' },
-      { key: 'admin.jobs',         level: 'VIEWER' },
-      { key: 'admin.statistics',   level: 'VIEWER' },
-      { key: 'admin.settings',     level: 'VIEWER' },
-    ],
-  },
 ];
 
 export async function seedPermissions(prisma) {

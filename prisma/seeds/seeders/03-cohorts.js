@@ -1,7 +1,7 @@
 /**
  * Cohort seeder — seeds cohorts, modules, attachments, mentors, enrollments, and certificates.
  * Cohort modules derive titles from academy topics.
- * John Doe (user@risesocial.org) gets 3 special enrollments across 3 different academies.
+ * Demo user (demo@risesocial.org) gets 3 special enrollments across 3 different academies.
  */
 
 import { logSeedStart, logSeedSuccess, logSeedError } from '../utils/logger.js';
@@ -38,7 +38,7 @@ export async function seedCohorts(prisma) {
     let attachmentCount = 0;
     let mentorCount = 0;
 
-    // Track created cohorts for John Doe override
+    // Track created cohorts for demo user override
     // { cohort, academyIndex, status }
     const createdCohorts = [];
 
@@ -83,7 +83,7 @@ export async function seedCohorts(prisma) {
         mentorCount++;
       }
 
-      // Track cohort for John Doe override
+      // Track cohort for demo user override
       const academyIndex = academies.findIndex((a) => a.id === cohort.academy_id);
       createdCohorts.push({ cohort, academyIndex, status: cohort.status });
     }

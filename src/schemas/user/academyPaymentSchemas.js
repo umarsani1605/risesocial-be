@@ -66,6 +66,7 @@ const checkEnrollmentDataSchema = {
   properties: {
     enrolled: { type: 'boolean', description: 'Whether user is enrolled (active or completed)' },
     hasPendingPayment: { type: 'boolean', description: 'Whether user has an incomplete pending payment' },
+    pending_pricing_id: { type: ['integer', 'null'], description: 'Pricing tier id of pending transaction, null if no pending' },
     enrollment_id: { type: 'integer', description: 'Enrollment ID' },
     status: { type: ['string', 'null'], description: 'Enrollment status' },
     payment_status: { type: ['string', 'null'], description: 'Payment status' },

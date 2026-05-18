@@ -9,7 +9,7 @@ export function requirePermission(key, requiredLevel = 'VIEWER') {
 
     const permission = await prisma.userAdminPermission.findUnique({
       where: {
-        user_id_permission_key: { user_id: user.id, permission_key: key },
+        user_id_permission_key: { user_id: user.userId, permission_key: key },
       },
     });
 

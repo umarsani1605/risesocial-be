@@ -2,6 +2,10 @@
 
 Backend API untuk platform Rise Social menggunakan Fastify, Prisma, dan PostgreSQL.
 
+## Deployment
+
+Panduan deployment production tersedia di [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md).
+
 ## 📋 Prerequisites
 
 - Node.js v18 atau lebih baru
@@ -160,4 +164,4 @@ PORT=3002
 # Reinstall dependencies
 rm -rf node_modules package-lock.json
 npm install
-``` 
+```

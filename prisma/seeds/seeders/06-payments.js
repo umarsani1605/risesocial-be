@@ -80,8 +80,8 @@ export async function seedPayments(prisma) {
       return { enrollmentCount: 0, placementCount: 0 };
     }
 
-    const johnDoe = users.find((u) => u.email === 'user@risesocial.org');
-    const otherUsers = users.filter((u) => u.email !== 'user@risesocial.org');
+    const demoUser = users.find((u) => u.email === 'demo@risesocial.org');
+    const otherUsers = users.filter((u) => u.email !== 'demo@risesocial.org');
 
     let enrollmentCount = 0;
     let placementCount = 0;
@@ -187,17 +187,17 @@ export async function seedPayments(prisma) {
       }
     }
 
-    // ── John Doe special enrollments ──────────────────────────────────────────
+    // ── Demo user special enrollments ─────────────────────────────────────────
     // Simulates: completed cohort (with placement), in_progress cohort (placed),
     //            not_started cohort (paid but not yet placed — "Kelas belum dimulai")
-    if (johnDoe) {
+    if (demoUser) {
       const completedCohort = cohorts.find((c) => c.status === 'completed');
       const ongoingCohort = cohorts.find((c) => c.status === 'in_progress');
       const notStartedCohort = cohorts.find((c) => c.status === 'not_started');
 
       if (completedCohort) {
         await createEnrollment({
-          user: johnDoe,
+          user: demoUser,
           cohort: completedCohort,
           enrollStatus: 'completed',
           withPlacement: true,
@@ -205,7 +205,7 @@ export async function seedPayments(prisma) {
       }
       if (ongoingCohort) {
         await createEnrollment({
-          user: johnDoe,
+          user: demoUser,
           cohort: ongoingCohort,
           enrollStatus: 'active',
           withPlacement: true,
@@ -213,7 +213,7 @@ export async function seedPayments(prisma) {
       }
       if (notStartedCohort) {
         await createEnrollment({
-          user: johnDoe,
+          user: demoUser,
           cohort: notStartedCohort,
           enrollStatus: 'active',
           withPlacement: false, // "Kelas belum dimulai" state

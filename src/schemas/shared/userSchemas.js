@@ -9,7 +9,18 @@ const userEntitySchema = {
     email: { type: 'string', format: 'email', description: 'Email address' },
     phone: { type: ['string', 'null'], description: 'Phone number' },
     avatar: { type: ['string', 'null'], description: 'Avatar URL' },
-    role: { type: 'string', enum: ['USER', 'ADMIN'], description: 'User role' },
+    role: { type: 'string', enum: ['USER', 'ADMIN', 'SUPERADMIN'], description: 'User role' },
+    permissions: {
+      type: 'array',
+      description: 'Admin permissions (only present for ADMIN/SUPERADMIN users)',
+      items: {
+        type: 'object',
+        properties: {
+          key: { type: 'string' },
+          access_level: { type: 'string', enum: ['VIEWER', 'EDITOR'] },
+        },
+      },
+    },
     ...timestampFieldsSchema,
   },
 };

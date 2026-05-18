@@ -36,6 +36,7 @@ export class AcademyEnrollmentRepository {
               amount: true,
               expired_at: true,
               midtrans_data: { select: { snap_token: true, redirect_url: true } },
+              items: { select: { product_code: true } },
             },
           },
         },

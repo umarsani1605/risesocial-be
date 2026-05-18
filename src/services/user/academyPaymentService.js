@@ -5,6 +5,19 @@ import { generateTransactionCode, TRANSACTION_CODE_CONFIG, mapMidtransStatus, ma
 import prisma from '../../config/database.js';
 import { captureEvent } from '../../config/posthog.js';
 
+function extractPricingIdFromProductCode(productCode) {
+  const m = productCode?.match(/pricing-(\d+)/);
+  return m ? Number(m[1]) : null;
+}
+
+async function cancelPendingTransaction(transaction) {
+  await midtransService.cancelTransaction(transaction.transaction_code).catch(() => {});
+  await prisma.transaction.update({
+    where: { id: transaction.id },
+    data: { status: 'cancelled', updated_at: new Date() },
+  });
+}
+
 export class AcademyPaymentService {
 
   _mergeCustomerDetails(user, formCustomerDetails) {
@@ -56,7 +69,7 @@ export class AcademyPaymentService {
       const backfillData = this._computeBackfillData(user, formCustomerDetails);
 
       // Step 4: Check for existing pending or active enrollment
-      const existingEnrollment = await academyEnrollmentRepository.findActiveByUserAcademy(userId, academyId);
+      let existingEnrollment = await academyEnrollmentRepository.findActiveByUserAcademy(userId, academyId);
       if (existingEnrollment) {
         if (existingEnrollment.transaction?.status === 'paid') {
           throw new Error('You are already enrolled in this academy');
@@ -66,8 +79,13 @@ export class AcademyPaymentService {
         const tokenExpired =
           !existingEnrollment.transaction?.expired_at || existingEnrollment.transaction.expired_at < new Date();
 
-        if (!tokenExpired) {
-          // Reuse existing snap token. Backfill empty user fields if form provided values.
+        const existingPricingId = extractPricingIdFromProductCode(
+          existingEnrollment.transaction?.items?.[0]?.product_code,
+        );
+        const tierChanged = existingPricingId !== null && existingPricingId !== pricingId;
+
+        if (!tokenExpired && !tierChanged) {
+          // Same tier and token still valid → reuse existing snap token.
           if (backfillData) {
             await prisma.user.update({ where: { id: userId }, data: backfillData });
           }
@@ -81,13 +99,15 @@ export class AcademyPaymentService {
           };
         }
 
-        // Token expired → cancel old transaction on Midtrans (fire and forget)
-        await midtransService.cancelTransaction(existingEnrollment.transaction.transaction_code).catch(() => {});
-        await prisma.transaction.update({
-          where: { id: existingEnrollment.transaction.id },
-          data: { status: 'cancelled', updated_at: new Date() },
-        });
-        // Fall through to create a new transaction and reset the enrollment below
+        // Either token expired OR user switched to a different pricing tier → cancel old transaction.
+        await cancelPendingTransaction(existingEnrollment.transaction);
+
+        if (tierChanged) {
+          // Tier swap: detach old enrollment so a fresh one is created for the new tier
+          // (mirrors the "new" flow rather than the "expired-reset" flow which keeps the row).
+          existingEnrollment = null;
+        }
+        // Fall through to create a new transaction below.
       }
 
       // Step 5: Determine amount
@@ -370,9 +390,14 @@ export class AcademyPaymentService {
       const tokenExpired =
         !enrollment.transaction?.expired_at || enrollment.transaction.expired_at < new Date();
 
+      const pendingPricingId = isPending
+        ? extractPricingIdFromProductCode(enrollment.transaction?.items?.[0]?.product_code)
+        : null;
+
       return {
         enrolled: isPaid,
         hasPendingPayment: isPending,
+        pending_pricing_id: pendingPricingId,
         enrollment_id: enrollment.id,
         status: enrollmentStatus,
         payment_status: txStatus,
