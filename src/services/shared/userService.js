@@ -2,7 +2,6 @@ import bcrypt from 'bcryptjs';
 import { userRepository } from '../../repositories/shared/userRepository.js';
 import { userSettingsRepository } from '../../repositories/shared/userSettingsRepository.js';
 import { fileUploadService } from './fileUploadService.js';
-import { emailService } from './emailService.js';
 import { generateToken } from '../../utils/jwt.js';
 import prisma from '../../config/database.js';
 
@@ -115,15 +114,6 @@ export class UserService {
       }
 
       const user = await userRepository.createWithSettings(userData);
-
-      // Fire-and-forget: jangan await, jangan block response
-      emailService
-        .sendWelcome({
-          to: user.email,
-          name: `${user.first_name} ${user.last_name}`.trim(),
-        })
-        .catch(() => {});
-
       return this.excludePassword(user);
     } catch (error) {
       throw error;

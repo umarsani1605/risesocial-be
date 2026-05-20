@@ -2,9 +2,9 @@
  * RYLS draft registration seed data — 225 records.
  *
  * Step distribution:
- *   Step 1 (i < 90):   90 drafts — basic personal info, no scholarship yet
- *   Step 2 (90–169):   80 drafts — full info + scholarship type chosen
- *   Step 3 (170–224):  55 drafts — form complete, not yet submitted
+ *   Step 1 (i < 90):   90 drafts — step1 partially completed
+ *   Step 2 (90–169):   80 drafts — step1 complete, ready for payment
+ *   Step 3 (170–224):  55 drafts — payment complete, final step draft saved
  *
  * Scholarship type (step 2+):
  *   FULLY_FUNDED: even index
@@ -86,26 +86,40 @@ function generateDraft(i) {
   const createdAt = new Date(SEED_DATE.getTime() - daysBackCreated * 24 * 60 * 60 * 1000);
 
   const step1Data = {
-    full_name: fullName,
+    fullName,
+    email,
     residence,
     nationality,
-    second_nationality: null,
+    secondNationality: '',
+    whatsapp: step >= 2 ? whatsapp : '',
+    institution: step >= 2 ? institution : '',
     gender,
-    date_of_birth: dob,
-    discover_source: discoverSrc,
-    discover_other_text: discoverOther,
+    dateOfBirth: dob,
+    discoverSource: discoverSrc,
+    discoverOtherText: discoverOther ?? '',
+    scholarshipType: scholarshipType ?? '',
   };
 
-  let formData = { ...step1Data };
-  if (step >= 2) {
-    formData = { ...formData, whatsapp, institution, scholarship_type: scholarshipType };
+  let formData = { step1: step1Data };
+  if (step === 3) {
+    formData = {
+      ...formData,
+      payment: {
+        id: `seed-payment-${i + 1}`,
+        type: i % 3 === 0 ? 'MIDTRANS' : 'PAYPAL',
+        status: 'PAID',
+        paymentProof: i % 3 === 0 ? null : `seed-payment-proof-${i + 1}`,
+        midtransData: i % 3 === 0 ? { order_id: `order-${i + 1}`, transaction_status: 'settlement' } : null,
+      },
+    };
   }
   if (step === 3 && scholarshipType === 'SELF_FUNDED') {
     formData = {
       ...formData,
-      passport_number: `${String.fromCharCode(65 + (i % 26))}${String(i + 10000000).slice(1)}`,
-      need_visa: i % 2 === 0,
-      read_policies: true,
+      passportNumber: `${String.fromCharCode(65 + (i % 26))}${String(i + 10000000).slice(1)}`,
+      needVisa: i % 2 === 0 ? 'YES' : 'NO',
+      readPolicies: 'YES',
+      headshotFile: `seed-headshot-${i + 1}`,
     };
   }
 

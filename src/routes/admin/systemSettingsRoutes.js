@@ -5,7 +5,40 @@ import { requirePermission } from '../../middleware/permissionMiddleware.js';
 export async function systemSettingsRoutes(fastify) {
   const tag = { tags: ['Admin System Settings'] };
 
-  fastify.addHook('preHandler', adminMiddleware);
+  fastify.get('/test-email-templates', {
+    schema: {
+      ...tag,
+      description: 'Send all email templates to the fixed test recipient',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                recipient: { type: 'string' },
+                results: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      template: { type: 'string' },
+                      status: { type: 'string' },
+                      error: { type: 'string' },
+                    },
+                    required: ['template', 'status'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    handler: adminSystemSettingsController.sendTestEmailTemplates,
+  });
 
   fastify.get('/', {
     schema: {
@@ -35,7 +68,7 @@ export async function systemSettingsRoutes(fastify) {
         },
       },
     },
-    preHandler: requirePermission('admin.settings'),
+    preHandler: [adminMiddleware, requirePermission('admin.settings')],
     handler: adminSystemSettingsController.getAllSettings,
   });
 
@@ -45,7 +78,7 @@ export async function systemSettingsRoutes(fastify) {
       description: 'Get setting by key (Admin only)',
       params: { type: 'object', properties: { key: { type: 'string' } }, required: ['key'] },
     },
-    preHandler: requirePermission('admin.settings'),
+    preHandler: [adminMiddleware, requirePermission('admin.settings')],
     handler: adminSystemSettingsController.getSetting,
   });
 
@@ -60,7 +93,7 @@ export async function systemSettingsRoutes(fastify) {
         required: ['value'],
       },
     },
-    preHandler: requirePermission('admin.settings', 'EDITOR'),
+    preHandler: [adminMiddleware, requirePermission('admin.settings', 'EDITOR')],
     handler: adminSystemSettingsController.setSetting,
   });
 
@@ -70,7 +103,7 @@ export async function systemSettingsRoutes(fastify) {
       description: 'Delete setting by key (Admin only)',
       params: { type: 'object', properties: { key: { type: 'string' } }, required: ['key'] },
     },
-    preHandler: requirePermission('admin.settings', 'EDITOR'),
+    preHandler: [adminMiddleware, requirePermission('admin.settings', 'EDITOR')],
     handler: adminSystemSettingsController.deleteSetting,
   });
 
@@ -96,7 +129,7 @@ export async function systemSettingsRoutes(fastify) {
         },
       },
     },
-    preHandler: requirePermission('admin.settings'),
+    preHandler: [adminMiddleware, requirePermission('admin.settings')],
     handler: adminSystemSettingsController.getLinkedInRateLimit,
   });
 }

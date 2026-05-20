@@ -19,11 +19,26 @@ export async function registerPlugins(fastify) {
   // cors
   await fastify.register(cors, {
     origin: (origin, cb) => {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrls = (process.env.FRONTEND_URL || "http://localhost:3000")
+        .split(",")
+        .map(url => url.trim())
+        .filter(Boolean);
       const port = process.env.PORT || 8000;
-      const allowedOrigins = [frontendUrl, `http://localhost:${port}`, `http://127.0.0.1:${port}`, `http://0.0.0.0:${port}`];
+      const allowedOrigins = new Set([
+        ...frontendUrls,
+        "http://localhost:" + port,
+        "http://127.0.0.1:" + port,
+        "http://0.0.0.0:" + port,
+      ]);
 
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (process.env.NODE_ENV !== "production") {
+        allowedOrigins.add('http://localhost:3000');
+        allowedOrigins.add('http://127.0.0.1:3000');
+        allowedOrigins.add('http://localhost:3001');
+        allowedOrigins.add('http://127.0.0.1:3001');
+      }
+
+      if (!origin || allowedOrigins.has(origin)) {
         cb(null, true);
         return;
       }

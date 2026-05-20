@@ -10,15 +10,7 @@ vi.mock('../../../src/services/shared/MidtransService.js', () => ({
   },
 }));
 
-vi.mock('../../../src/services/shared/emailService.js', () => ({
-  emailService: {
-    sendPaymentConfirmation: vi.fn().mockResolvedValue({}),
-  },
-}));
-
-
 import { midtransService } from '../../../src/services/shared/MidtransService.js';
-import { emailService } from '../../../src/services/shared/emailService.js';
 import { WebhookController } from '../../../src/controllers/shared/webhookController.js';
 
 // --- Request/reply helpers ---
@@ -97,7 +89,6 @@ describe('WebhookController — handleMidtransWebhook (RS-27)', () => {
     vi.clearAllMocks();
     controller = new WebhookController();
     midtransService.verifyWebhookSignature.mockReturnValue(true);
-    emailService.sendPaymentConfirmation.mockResolvedValue({});
 
     user = await createTestUser();
     academy = await seedAcademy();
@@ -243,36 +234,6 @@ describe('WebhookController — handleMidtransWebhook (RS-27)', () => {
       // Unrelated enrollment untouched
       const stillPending = await prisma.academyEnrollment.findUnique({ where: { id: unrelatedEnrollment.id } });
       expect(stillPending).not.toBeNull();
-    });
-  });
-
-  // ----------------------------------------------------------
-  describe('email confirmation', () => {
-    it('fires payment confirmation email on paid status', async () => {
-      const tx = await createTransaction();
-      await createMidtransTransaction(tx.id, { midtrans_order_id: tx.transaction_code });
-      await createAcademyEnrollment(tx.id);
-
-      const req = makeRequest({ order_id: tx.transaction_code, transaction_status: 'settlement', transaction_id: 'mid-001', payment_type: 'bank_transfer' });
-      await controller.handleMidtransWebhook(req, makeReply());
-
-      // Give fire-and-forget a tick to run
-      await new Promise((r) => setTimeout(r, 50));
-      expect(emailService.sendPaymentConfirmation).toHaveBeenCalledWith(
-        expect.objectContaining({ to: 'budi@test.com' }),
-      );
-    });
-
-    it('does not fire email on non-paid status', async () => {
-      const tx = await createTransaction();
-      await createMidtransTransaction(tx.id, { midtrans_order_id: tx.transaction_code });
-      await createAcademyEnrollment(tx.id);
-
-      const req = makeRequest({ order_id: tx.transaction_code, transaction_status: 'expire', transaction_id: 'mid-002', payment_type: 'bank_transfer' });
-      await controller.handleMidtransWebhook(req, makeReply());
-
-      await new Promise((r) => setTimeout(r, 50));
-      expect(emailService.sendPaymentConfirmation).not.toHaveBeenCalled();
     });
   });
 

@@ -1,7 +1,39 @@
 import { systemSettingsService } from '../../services/admin/systemSettingsService.js';
+import { emailService } from '../../services/shared/emailService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
 export class AdminSystemSettingsController {
+  async sendTestEmailTemplates(request, reply) {
+    try {
+      const recipient = 'umarsani361@gmail.com';
+      const templates = [{
+        template: 'certificateReady',
+        send: () => emailService.sendCertificateReady({
+          to: recipient,
+          name: 'Umar Sani',
+          cohortName: 'Batch Test 1',
+          academyTitle: 'Rise Social Test Academy',
+          certCode: 'CERT-TEST-2026-0001',
+          verifyUrl: `${process.env.FRONTEND_URL || 'https://risesocial.org'}/certificates/verify/CERT-TEST-2026-0001`,
+        }),
+      }];
+
+      const settled = await Promise.allSettled(templates.map((item) => item.send()));
+      const results = settled.map((result, index) => ({
+        template: templates[index].template,
+        status: result.status === 'fulfilled' ? 'sent' : 'failed',
+        error: result.status === 'rejected' ? result.reason?.message ?? 'Unknown error' : undefined,
+      }));
+
+      return reply.send(successResponse({
+        recipient,
+        results,
+      }, 'Email template test finished'));
+    } catch (error) {
+      return reply.send(errorResponse(error.message, 500));
+    }
+  }
+
   async getAllSettings(request, reply) {
     try {
       const settings = await systemSettingsService.getAllSettings();

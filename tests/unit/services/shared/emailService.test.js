@@ -18,59 +18,8 @@ describe('EmailService', () => {
     sendEmail = clientModule.sendEmail;
   });
 
-  describe('sendWelcome', () => {
-    it('should call sendEmail with correct recipient and subject', async () => {
-      await emailService.sendWelcome({ to: 'user@example.com', name: 'John Doe' });
-
-      expect(sendEmail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: 'user@example.com',
-          toName: 'John Doe',
-          subject: expect.stringContaining('Selamat'),
-          htmlContent: expect.stringContaining('John Doe'),
-        }),
-      );
-    });
-  });
-
-  describe('sendPaymentConfirmation', () => {
-    it('should call sendEmail with transaction code in HTML', async () => {
-      await emailService.sendPaymentConfirmation({
-        to: 'user@example.com',
-        name: 'Jane',
-        transactionCode: 'ACK01ABCD1234',
-        amount: 500000,
-        currency: 'IDR',
-      });
-
-      expect(sendEmail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: 'user@example.com',
-          htmlContent: expect.stringContaining('ACK01ABCD1234'),
-        }),
-      );
-    });
-  });
-
-  describe('sendCohortEnrollment', () => {
-    it('should call sendEmail with cohort name in HTML', async () => {
-      await emailService.sendCohortEnrollment({
-        to: 'user@example.com',
-        name: 'Budi',
-        cohortName: 'Batch 3',
-        academyTitle: 'Data Science Fundamentals',
-      });
-
-      expect(sendEmail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          htmlContent: expect.stringContaining('Batch 3'),
-        }),
-      );
-    });
-  });
-
   describe('sendCertificateReady', () => {
-    it('should call sendEmail with cert code in HTML', async () => {
+    it('should call sendEmail with certificate-only content and Rise branding', async () => {
       await emailService.sendCertificateReady({
         to: 'user@example.com',
         name: 'Siti',
@@ -82,7 +31,25 @@ describe('EmailService', () => {
 
       expect(sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
-          htmlContent: expect.stringContaining('CERT-2026-0001'),
+          to: 'user@example.com',
+          toName: 'Siti',
+          subject: 'Sertifikat Kelulusan UI/UX Design',
+          htmlContent: expect.stringContaining('UI/UX Design'),
+        }),
+      );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          htmlContent: expect.not.stringContaining('Kode Sertifikat'),
+        }),
+      );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          htmlContent: expect.stringContaining('https://risesocial.org/images/logo_white.png'),
+        }),
+      );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          htmlContent: expect.stringContaining('background:#FF8E4F'),
         }),
       );
     });
@@ -93,7 +60,14 @@ describe('EmailService', () => {
       sendEmail.mockRejectedValueOnce(new Error('Brevo API error 500'));
 
       await expect(
-        emailService.sendWelcome({ to: 'user@example.com', name: 'John' }),
+        emailService.sendCertificateReady({
+          to: 'user@example.com',
+          name: 'John',
+          cohortName: 'Batch 1',
+          academyTitle: 'UI/UX Design',
+          certCode: 'CERT-1',
+          verifyUrl: 'https://risesocial.org/certificates/verify/CERT-1',
+        }),
       ).rejects.toThrow('Brevo API error 500');
     });
   });

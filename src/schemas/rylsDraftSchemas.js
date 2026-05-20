@@ -7,7 +7,11 @@ const saveDraftBodySchema = {
     email: { type: 'string', format: 'email', description: 'Applicant email' },
     resumeToken: { type: 'string', minLength: 1, description: 'Existing draft token (optional)' },
     step: { type: 'integer', minimum: 1, maximum: 3, description: 'Current form step' },
-    formData: { type: 'object', description: 'Form data for current step' },
+    formData: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Form data for current step',
+    },
     scholarshipType: {
       type: 'string',
       enum: ['FULLY_FUNDED', 'SELF_FUNDED'],
@@ -21,7 +25,10 @@ const draftResponseDataSchema = {
   properties: {
     resumeToken: { type: 'string' },
     currentStep: { type: 'integer' },
-    formData: { type: 'object' },
+    formData: {
+      type: 'object',
+      additionalProperties: true,
+    },
     scholarshipType: { type: ['string', 'null'] },
     email: { type: 'string' },
   },

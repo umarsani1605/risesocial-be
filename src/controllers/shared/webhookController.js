@@ -1,7 +1,6 @@
 import { midtransService } from '../../services/shared/MidtransService.js';
 import { transactionRepository } from '../../repositories/shared/transactionRepository.js';
 import { mapMidtransStatus, mapPaymentMethod } from '../../constants/paymentHelpers.js';
-import { emailService } from '../../services/shared/emailService.js';
 import prisma from '../../config/database.js';
 import posthog, { captureEvent } from '../../config/posthog.js';
 
@@ -116,8 +115,7 @@ export class WebhookController {
         }
       });
 
-
-      // Step 4b: Fire payment confirmation email (fire-and-forget) and PostHog event
+      // Step 4b: Fire PostHog event
       if (genericStatus === 'paid' || genericStatus === 'expired' || genericStatus === 'failed') {
         const transaction = await prisma.transaction.findUnique({
           where: { transaction_code: order_id },
@@ -135,18 +133,6 @@ export class WebhookController {
               payment_method: paymentMethod,
               user_id: transaction.user_id,
             });
-
-            if (transaction.customer_email) {
-              emailService
-                .sendPaymentConfirmation({
-                  to: transaction.customer_email,
-                  name: transaction.customer_name,
-                  transactionCode: order_id,
-                  amount: transaction.amount,
-                  currency: transaction.currency || 'IDR',
-                })
-                .catch(() => {});
-            }
           } else {
             captureEvent(distinctId, 'payment.failed', {
               transaction_code: order_id,
