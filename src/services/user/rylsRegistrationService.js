@@ -20,9 +20,6 @@ export class RylsRegistrationService {
     let result;
     // FULLY_FUNDED validation and routing
     if (scholarshipType === 'FULLY_FUNDED') {
-      if (!formData.essayFileId) {
-        throw new Error('essayFileId is required for FULLY_FUNDED scholarship type');
-      }
       result = await this.submitFullyFundedRegistration(formData);
     } else if (scholarshipType === 'SELF_FUNDED') {
       // SELF_FUNDED validation and routing
@@ -58,6 +55,7 @@ export class RylsRegistrationService {
         essayTopic: formData.essayTopic,
         essayFileId: formData.essayFileId,
         essayDescription: formData.essayDescription,
+        paymentId: formData.paymentId,
       });
 
       const result = {
@@ -88,6 +86,7 @@ export class RylsRegistrationService {
         needVisa: formData.needVisa,
         headshotFileId: formData.headshotFileId,
         readPolicies: formData.readPolicies,
+        paymentId: formData.paymentId,
       });
 
       const result = {

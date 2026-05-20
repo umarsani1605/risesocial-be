@@ -87,14 +87,15 @@ export const submitRegistrationBodySchema = {
       additionalProperties: false,
     },
     // FULLY_FUNDED optional fields
-    essayTopic: { type: 'string', minLength: 1, maxLength: 255 },
-    essayFileId: { type: 'integer', minimum: 1 },
-    essayDescription: { type: 'string', maxLength: 2000 },
+    essayTopic: { type: ['string', 'null'], maxLength: 255 },
+    essayFileId: { type: ['integer', 'null'], minimum: 1 },
+    essayDescription: { type: ['string', 'null'], maxLength: 2000 },
     // SELF_FUNDED optional fields
     passportNumber: { type: 'string', minLength: 1, maxLength: 20 },
     needVisa: { type: 'string', enum: ['YES', 'NO'] },
     headshotFileId: { type: 'integer', minimum: 1 },
     readPolicies: { type: 'string', enum: ['YES', 'NO'] },
+    paymentId: { type: ['integer', 'null'], minimum: 1 },
     // Draft cleanup optional field
     resumeToken: { type: 'string', minLength: 1, maxLength: 64, description: 'Draft resume token to delete on successful submit' },
   },

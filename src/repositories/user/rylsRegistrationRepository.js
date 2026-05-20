@@ -10,7 +10,7 @@ export class RylsRegistrationRepository extends BaseRepository {
   /**
    * Create a fully funded registration + submission in one transaction
    */
-  async createFullyFundedFlow({ step1, essayTopic, essayFileId, essayDescription }) {
+  async createFullyFundedFlow({ step1, essayTopic, essayFileId, essayDescription, paymentId }) {
     try {
       const result = await prisma.$transaction(async (tx) => {
         const registration = await tx.rylsRegistration.create({
@@ -41,6 +41,13 @@ export class RylsRegistrationRepository extends BaseRepository {
 
         const submission = await tx.rylsFullyFundedSubmission.create({ data: submissionData });
 
+        if (paymentId) {
+          await tx.rylsPayment.update({
+            where: { id: parseInt(paymentId) },
+            data: { registration: { connect: { id: registration.id } } },
+          });
+        }
+
         return { registration, submission };
       });
 
@@ -53,7 +60,7 @@ export class RylsRegistrationRepository extends BaseRepository {
   /**
    * Create a self-funded registration + submission in one transaction
    */
-  async createSelfFundedFlow({ step1, passportNumber, needVisa, headshotFileId, readPolicies }) {
+  async createSelfFundedFlow({ step1, passportNumber, needVisa, headshotFileId, readPolicies, paymentId }) {
     try {
       const result = await prisma.$transaction(async (tx) => {
         const registration = await tx.rylsRegistration.create({
@@ -82,6 +89,13 @@ export class RylsRegistrationRepository extends BaseRepository {
             read_policies: readPolicies === 'YES',
           },
         });
+
+        if (paymentId) {
+          await tx.rylsPayment.update({
+            where: { id: parseInt(paymentId) },
+            data: { registration: { connect: { id: registration.id } } },
+          });
+        }
 
         return { registration, submission };
       });

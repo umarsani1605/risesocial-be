@@ -4,6 +4,7 @@ import * as paymentRoutes from '../routes/payments/index.js';
 import authRoutes from '../routes/authRoutes.js';
 import adminMainRoutes from '../routes/adminRoutes.js';
 import webhookRoutes from '../routes/shared/webhookRoutes.js';
+import trackingRoutes from '../routes/shared/trackingRoutes.js';
 
 export async function registerRoutes(fastify) {
   fastify.get(
@@ -30,6 +31,7 @@ export async function registerRoutes(fastify) {
   fastify.register(authRoutes, { prefix: '/auth' });
 
   fastify.register(webhookRoutes, { prefix: '/api/webhooks' });
+  fastify.register(trackingRoutes, { prefix: '/tracking' });
 
   fastify.register(userRoutes.user, { prefix: '/users' });
   fastify.register(userRoutes.academy, { prefix: '/academies' });
