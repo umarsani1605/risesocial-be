@@ -45,6 +45,7 @@ export async function registerRoutes(fastify) {
   fastify.register(paymentRoutes.academyPayment, { prefix: '/payments' });
 
   fastify.register(adminMainRoutes, { prefix: '/admin' });
+  fastify.register(adminRoutes.analytics, { prefix: '/admin/analytics' });
   fastify.register(adminRoutes.user, { prefix: '/admin/users' });
   fastify.register(adminRoutes.academy, { prefix: '/admin/academies' });
   fastify.register(adminRoutes.instructor, { prefix: '/admin/instructors' });

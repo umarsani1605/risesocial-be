@@ -1,4 +1,5 @@
 export { default as rylsRegistration } from './rylsRegistrationRoutes.js';
+export { default as analytics } from './analyticsRoutes.js';
 export { default as systemSettings } from './systemSettingsRoutes.js';
 export { default as user } from './userRoutes.js';
 export { default as academy } from './academyRoutes.js';
