@@ -86,6 +86,7 @@ describe('AdminCohortService — certificate email hook', () => {
       expect.objectContaining({
         to: 'siti@example.com',
         certCode: 'CERT-2026-0001',
+        certificateUrl: 'http://localhost:8000/uploads/certificates/1/CERT-2026-0001.pdf',
         cohortName: 'Batch 1',
         academyTitle: 'UI/UX Design',
       }),

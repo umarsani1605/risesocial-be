@@ -11,7 +11,7 @@ export function renderEmailButton({ label, href }) {
     <table cellpadding="0" cellspacing="0" border="0" style="margin:32px auto 0;">
       <tr>
         <td align="center" bgcolor="${RISE_PRIMARY}" style="border-radius:8px;">
-          <a href="${href}" style="display:inline-block;padding:16px 28px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">
+          <a href="${href}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">
             ${label}
           </a>
         </td>
@@ -51,7 +51,7 @@ export function renderEmailLayout({
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;">
     <tr>
       <td align="center">
-        <table width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#ffffff;border-radius:12px;overflow:hidden;">
+        <table width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#ffffff;border-radius:10px;overflow:hidden;">
           <tr>
             <td style="background:${RISE_PRIMARY};padding:34px 40px;">
               <img src="${logoUrl}" alt="Rise Social" style="display:block;max-width:100px;width:100%;height:auto;border:0;">

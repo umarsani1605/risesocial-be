@@ -26,7 +26,7 @@ describe('EmailService', () => {
         cohortName: 'Batch 1',
         academyTitle: 'UI/UX Design',
         certCode: 'CERT-2026-0001',
-        verifyUrl: 'https://rise.social/certificates/verify/CERT-2026-0001',
+        certificateUrl: 'https://api-dev.risesocial.org/uploads/certificates/3/005-RISE-V-2026.pdf',
       });
 
       expect(sendEmail).toHaveBeenCalledWith(
@@ -52,6 +52,31 @@ describe('EmailService', () => {
           htmlContent: expect.stringContaining('background:#FF8E4F'),
         }),
       );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          htmlContent: expect.stringContaining('https://api-dev.risesocial.org/uploads/certificates/3/005-RISE-V-2026.pdf'),
+        }),
+      );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          htmlContent: expect.stringContaining('padding:12px 22px'),
+        }),
+      );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          htmlContent: expect.stringContaining('border-radius:10px;overflow:hidden'),
+        }),
+      );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          htmlContent: expect.stringContaining('font-weight:700;text-align:left;padding:0 0 14px;">UI/UX Design'),
+        }),
+      );
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          htmlContent: expect.stringContaining('font-weight:700;text-align:left;padding:18px 0 0;border-top:1px solid #e5e7eb;">Batch 1'),
+        }),
+      );
     });
   });
 
@@ -66,7 +91,7 @@ describe('EmailService', () => {
           cohortName: 'Batch 1',
           academyTitle: 'UI/UX Design',
           certCode: 'CERT-1',
-          verifyUrl: 'https://risesocial.org/certificates/verify/CERT-1',
+          certificateUrl: 'https://api-dev.risesocial.org/uploads/certificates/3/005-RISE-V-2026.pdf',
         }),
       ).rejects.toThrow('Brevo API error 500');
     });

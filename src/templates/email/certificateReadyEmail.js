@@ -1,6 +1,8 @@
 import { renderEmailButton, renderEmailInfoBox, renderEmailLayout } from './layout.js';
 
-export function certificateReadyEmail({ name, cohortName, academyTitle, certCode, verifyUrl }) {
+export function certificateReadyEmail({ name, cohortName, academyTitle, certCode, certificateUrl, verifyUrl }) {
+  const downloadUrl = certificateUrl || verifyUrl;
+
   return renderEmailLayout({
     title: 'Sertifikat Kelulusan',
     intro: `
@@ -13,16 +15,16 @@ export function certificateReadyEmail({ name, cohortName, academyTitle, certCode
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td style="color:#6b7280;font-size:15px;padding:0 0 14px;">Program</td>
-            <td style="color:#111827;font-size:15px;font-weight:700;text-align:right;padding:0 0 14px;">${academyTitle}</td>
+            <td style="color:#111827;font-size:15px;font-weight:700;text-align:left;padding:0 0 14px;">${academyTitle}</td>
           </tr>
           <tr>
             <td style="color:#6b7280;font-size:15px;padding:18px 0 0;border-top:1px solid #e5e7eb;">Cohort</td>
-            <td style="color:#111827;font-size:15px;font-weight:700;text-align:right;padding:18px 0 0;border-top:1px solid #e5e7eb;">${cohortName}</td>
+            <td style="color:#111827;font-size:15px;font-weight:700;text-align:left;padding:18px 0 0;border-top:1px solid #e5e7eb;">${cohortName}</td>
           </tr>
         </table>
       `)}
-      ${verifyUrl ? `
-        ${renderEmailButton({ label: 'Unduh Sertifikat', href: verifyUrl })}
+      ${downloadUrl ? `
+        ${renderEmailButton({ label: 'Unduh Sertifikat', href: downloadUrl })}
       ` : ''}
     `,
     outro: `

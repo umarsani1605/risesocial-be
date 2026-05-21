@@ -3,13 +3,13 @@ import { certificateReadyEmail } from '../../templates/email/certificateReadyEma
 
 export class EmailService {
 
-  async sendCertificateReady({ to, name, cohortName, academyTitle, certCode, verifyUrl }) {
+  async sendCertificateReady({ to, name, cohortName, academyTitle, certCode, certificateUrl, verifyUrl }) {
     try {
       const result = await sendEmail({
         to,
         toName: name,
         subject: `Sertifikat Kelulusan ${academyTitle}`,
-        htmlContent: certificateReadyEmail({ name, cohortName, academyTitle, certCode, verifyUrl }),
+        htmlContent: certificateReadyEmail({ name, cohortName, academyTitle, certCode, certificateUrl, verifyUrl }),
       });
       return result;
     } catch (error) {

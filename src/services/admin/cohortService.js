@@ -567,7 +567,7 @@ export class AdminCohortService {
 
 
       // Fire certificate email (fire-and-forget)
-      const verifyUrl = `${process.env.FRONTEND_URL}/certificates/verify/${cert.certificate_code}`;
+      const certificateUrl = toFileUrl(cert.file_path);
       emailService
         .sendCertificateReady({
           to: placement.user.email,
@@ -575,7 +575,7 @@ export class AdminCohortService {
           cohortName: cohort.name,
           academyTitle: academy.title,
           certCode: cert.certificate_code,
-          verifyUrl,
+          certificateUrl,
         })
         .catch(() => {});
 

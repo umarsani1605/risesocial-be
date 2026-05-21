@@ -29,7 +29,10 @@ describe('AdminSystemSettingsController — email template test route', () => {
     await controller.sendTestEmailTemplates({}, reply);
 
     expect(emailService.sendCertificateReady).toHaveBeenCalledWith(
-      expect.objectContaining({ to: 'umarsani361@gmail.com' }),
+      expect.objectContaining({
+        to: 'umarsani361@gmail.com',
+        certificateUrl: 'https://api-dev.risesocial.org/uploads/certificates/3/005-RISE-V-2026.pdf',
+      }),
     );
 
     expect(reply.send).toHaveBeenCalledWith(

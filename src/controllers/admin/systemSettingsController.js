@@ -14,7 +14,7 @@ export class AdminSystemSettingsController {
           cohortName: 'Batch Test 1',
           academyTitle: 'Rise Social Test Academy',
           certCode: 'CERT-TEST-2026-0001',
-          verifyUrl: `${process.env.FRONTEND_URL || 'https://risesocial.org'}/certificates/verify/CERT-TEST-2026-0001`,
+          certificateUrl: 'https://api-dev.risesocial.org/uploads/certificates/3/005-RISE-V-2026.pdf',
         }),
       }];
 
