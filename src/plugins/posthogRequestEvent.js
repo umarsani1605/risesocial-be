@@ -1,4 +1,4 @@
-import posthog from '../config/posthog.js';
+import posthog, { getPostHogRequestContext } from '../config/posthog.js';
 
 export default async function posthogRequestEvent(fastify) {
   fastify.addHook('onResponse', async (request, reply) => {
@@ -6,9 +6,10 @@ export default async function posthogRequestEvent(fastify) {
 
     const status = reply.statusCode;
     const duration_ms = Math.round(reply.elapsedTime ?? 0);
+    const context = getPostHogRequestContext(request);
     const distinctId = request.user?.userId
       ? String(request.user.userId)
-      : `anon:${request.ip}`;
+      : context.distinctId ?? `anon:${request.ip}`;
 
     posthog.capture({
       distinctId,
@@ -24,6 +25,8 @@ export default async function posthogRequestEvent(fastify) {
         slow_request: duration_ms > 1000,
         request_id: request.id,
         app_env: process.env.NODE_ENV,
+        posthog_distinct_id: context.distinctId ?? null,
+        posthog_session_id: context.sessionId ?? null,
       },
     });
   });

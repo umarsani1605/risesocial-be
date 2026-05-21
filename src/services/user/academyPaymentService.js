@@ -43,7 +43,14 @@ export class AcademyPaymentService {
     return Object.keys(updateData).length ? updateData : null;
   }
 
-  async createTransaction(userId, academyId, pricingId, formCustomerDetails = null) {
+  _buildPostHogMetadata(posthogContext = {}) {
+    return {
+      posthog_distinct_id: posthogContext.distinctId ?? null,
+      posthog_session_id: posthogContext.sessionId ?? null,
+    };
+  }
+
+  async createTransaction(userId, academyId, pricingId, formCustomerDetails = null, posthogContext = {}) {
 
     try {
       // Step 1: Validate academy exists and is active
@@ -159,6 +166,7 @@ export class AcademyPaymentService {
               user_id: userId,
               product_type: 'academy_enrollment',
               product_type_id: existingEnrollment.id,
+              metadata: this._buildPostHogMetadata(posthogContext),
               expired_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
             },
           });
@@ -233,6 +241,7 @@ export class AcademyPaymentService {
               user_id: userId,
               product_type: 'academy_enrollment',
               product_type_id: 0,
+              metadata: this._buildPostHogMetadata(posthogContext),
               expired_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
             },
           });

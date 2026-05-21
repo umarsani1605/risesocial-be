@@ -1,6 +1,6 @@
 import { rylsPaymentService } from '../../services/user/rylsPaymentService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
-import { captureEvent } from '../../config/posthog.js';
+import { captureEvent, getPostHogRequestContext } from '../../config/posthog.js';
 
 /**
  * RylsPaymentController - Updated for 3-layer architecture
@@ -17,16 +17,36 @@ export class RylsPaymentController {
     try {
       const data = request.body;
 
-      const transactionData = await this.paymentService.createTransaction(data);
+      const transactionData = await this.paymentService.createTransaction({
+        ...data,
+        posthogContext: getPostHogRequestContext(request),
+      });
 
-      const distinctId = data.registration_id ?? `anon:${data.email || 'unknown'}`;
-      captureEvent(distinctId, 'payment.transaction_created', {
-        product_type: 'ryls',
+      const registrationData = data.data ?? {};
+      const distinctId = registrationData.userId != null ? String(registrationData.userId) : null;
+      captureEvent(distinctId, 'ryls.checkout_started', {
+        source: 'backend',
         payment_id: transactionData.payment_id,
         transaction_code: transactionData.transaction_code,
         amount: transactionData.amount,
-        registration_id: data.registration_id,
-      });
+        currency: transactionData.currency,
+        registration_id: registrationData.registrationId ?? null,
+        scholarship_type: registrationData.scholarshipType ?? null,
+        payment_method: data.type?.toLowerCase?.() ?? null,
+      }, request);
+
+      if (data.type === 'PAYPAL') {
+        captureEvent(distinctId, 'ryls.payment_completed', {
+          source: 'backend',
+          payment_id: transactionData.payment_id,
+          transaction_code: transactionData.transaction_code,
+          amount: transactionData.amount,
+          currency: transactionData.currency,
+          registration_id: registrationData.registrationId ?? null,
+          scholarship_type: registrationData.scholarshipType ?? null,
+          payment_method: 'paypal',
+        }, request);
+      }
 
       return reply.status(200).send(
         successResponse(

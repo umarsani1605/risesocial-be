@@ -17,10 +17,11 @@ export class UserRylsRegistrationController {
 
       const result = await this.registrationService.createRegistration(formData);
 
-      const distinctId = result.id ?? `anon:${formData.step1?.email || 'unknown'}`;
-      captureEvent(distinctId, 'ryls.registration_created', {
+      captureEvent(null, 'ryls.registration_submitted', {
+        source: 'backend',
         registration_id: result.id,
-      });
+        scholarship_type: formData.step1?.scholarshipType ?? null,
+      }, request);
 
       return reply.status(201).send(successResponse(result, 'Registration created successfully'));
     } catch (error) {
@@ -43,10 +44,13 @@ export class UserRylsRegistrationController {
 
       const result = await this.registrationService.submitRegistration(formData);
 
-      const distinctId = result.id ?? `anon:${formData.step1?.email || 'unknown'}`;
-      captureEvent(distinctId, 'ryls.registration_submitted', {
-        registration_id: result.id,
-      });
+      captureEvent(null, 'ryls.registration_submitted', {
+        source: 'backend',
+        registration_id: result.registrationId ?? null,
+        submission_id: result.submissionId ?? null,
+        scholarship_type: formData.step1?.scholarshipType ?? null,
+        payment_id: formData.paymentId ?? null,
+      }, request);
 
       return reply.status(201).send(successResponse(result, 'Registration submitted successfully'));
     } catch (error) {

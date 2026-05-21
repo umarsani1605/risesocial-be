@@ -24,12 +24,12 @@ export class RylsPaymentService {
   async createTransaction(data) {
 
     try {
-      const { type, data: registrationData } = data;
+      const { type, data: registrationData, posthogContext = {} } = data;
 
       if (type === 'MIDTRANS') {
-        return await this.createMidtransTransaction(registrationData);
+        return await this.createMidtransTransaction(registrationData, posthogContext);
       } else if (type === 'PAYPAL') {
-        return await this.createPayPalTransaction(registrationData);
+        return await this.createPayPalTransaction(registrationData, posthogContext);
       } else {
         throw new Error(`Invalid payment type: ${type}`);
       }
@@ -42,7 +42,7 @@ export class RylsPaymentService {
    * Create Midtrans payment transaction (3-layer)
    * @private
    */
-  async createMidtransTransaction(registrationData) {
+  async createMidtransTransaction(registrationData, posthogContext = {}) {
 
     try {
       // Step 1: Get amount and item details
@@ -111,6 +111,10 @@ export class RylsPaymentService {
             customer_address: registrationData.residence,
             product_type: PRODUCT_TYPE.RYLS_SCHOLARSHIP,
             product_type_id: registrationData.registrationId || 0,
+            metadata: {
+              posthog_distinct_id: posthogContext.distinctId ?? null,
+              posthog_session_id: posthogContext.sessionId ?? null,
+            },
           },
         });
 
@@ -170,7 +174,7 @@ export class RylsPaymentService {
    * Create PayPal manual payment transaction
    * @private
    */
-  async createPayPalTransaction(registrationData) {
+  async createPayPalTransaction(registrationData, posthogContext = {}) {
 
     try {
       const amountIdr = await getPaymentAmountIdr(registrationData.scholarshipType);
@@ -197,6 +201,10 @@ export class RylsPaymentService {
             customer_phone: registrationData.whatsapp,
             product_type: PRODUCT_TYPE.RYLS_SCHOLARSHIP,
             product_type_id: registrationData.registrationId || 0,
+            metadata: {
+              posthog_distinct_id: posthogContext.distinctId ?? null,
+              posthog_session_id: posthogContext.sessionId ?? null,
+            },
             paid_at: new Date(),
           },
         });

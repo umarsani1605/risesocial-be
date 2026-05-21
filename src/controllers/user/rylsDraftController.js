@@ -1,5 +1,6 @@
 import { rylsDraftService } from '../../services/rylsDraftService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
+import { captureEvent } from '../../config/posthog.js';
 
 export class UserRylsDraftController {
   constructor() {
@@ -11,6 +12,13 @@ export class UserRylsDraftController {
       const { email, resumeToken, step, formData, scholarshipType } = request.body;
 
       const result = await this.service.saveDraft({ email, resumeToken, step, formData, scholarshipType });
+
+      captureEvent(null, 'ryls.registration_draft_saved', {
+        source: 'backend',
+        step,
+        scholarship_type: scholarshipType ?? null,
+        resume_token: result.resumeToken,
+      }, request);
 
       return reply.status(200).send(successResponse(result, 'Draft saved'));
     } catch (error) {

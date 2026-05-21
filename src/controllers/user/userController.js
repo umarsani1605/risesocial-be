@@ -100,9 +100,10 @@ export class UserController {
       const updatedUser = await userService.updateUserAccount(userId, accountData);
 
       captureEvent(userId, 'user.account_updated', {
+        source: 'backend',
         user_id: userId,
         has_avatar_change: !!accountData.avatarFile || accountData.avatar === null,
-      });
+      }, request);
 
       return reply.send(successResponse(updatedUser, 'Account updated successfully'));
     } catch (error) {
@@ -130,7 +131,10 @@ export class UserController {
 
       await userService.updateUserPassword(userId, password);
 
-      captureEvent(userId, 'user.password_changed', { user_id: userId });
+      captureEvent(userId, 'user.password_changed', {
+        source: 'backend',
+        user_id: userId
+      }, request);
 
       return reply.send(successResponse(null, 'Password updated successfully'));
     } catch (error) {

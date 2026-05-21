@@ -1,35 +1,28 @@
 import { userService } from '../../services/shared/userService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
-import posthog, { captureEvent } from '../../config/posthog.js';
+import { captureEvent, identifyUser } from '../../config/posthog.js';
 
 export class AuthController {
   async login(request, reply) {
-    const { email, password, rememberMe = false } = request.body;
-    try {
+      const { email, password, rememberMe = false } = request.body;
+      try {
       const result = await userService.login(email, password, rememberMe, request.server);
 
-      if (process.env.NODE_ENV === 'production') {
-        posthog.identify({
-          distinctId: String(result.user.id),
-          properties: {
-            email: result.user.email,
-            name: `${result.user.first_name} ${result.user.last_name}`.trim(),
-            role: result.user.role,
-          },
-        });
-      }
+      identifyUser(result.user, request);
       captureEvent(result.user.id, 'auth.login_succeeded', {
+        source: 'backend',
         user_id: result.user.id,
         role: result.user.role,
         method: 'password',
-      });
+      }, request);
 
       return reply.send(successResponse(result, 'Login successful'));
     } catch (error) {
-      captureEvent(`anon:${email ?? 'unknown'}`, 'auth.login_failed', {
+      captureEvent(null, 'auth.login_failed', {
+        source: 'backend',
         identifier: email,
         reason: error.message,
-      });
+      }, request);
 
       if (error.statusCode === 401) {
         return reply.status(401).send({
@@ -47,20 +40,12 @@ export class AuthController {
     try {
       const result = await userService.register(request.body, request.server);
 
-      if (process.env.NODE_ENV === 'production') {
-        posthog.identify({
-          distinctId: String(result.user.id),
-          properties: {
-            email: result.user.email,
-            name: `${result.user.first_name} ${result.user.last_name}`.trim(),
-            role: result.user.role,
-          },
-        });
-      }
+      identifyUser(result.user, request);
       captureEvent(result.user.id, 'auth.signup_succeeded', {
+        source: 'backend',
         user_id: result.user.id,
         role: result.user.role,
-      });
+      }, request);
 
       return reply.status(201).send(successResponse(result, 'Registration successful'));
     } catch (error) {
@@ -101,9 +86,13 @@ export class AuthController {
 
   async logout(request, reply) {
     try {
-      const { id: userId, role } = request.user;
+      const { userId, role } = request.user;
 
-      captureEvent(userId, 'auth.logout', { user_id: userId, role });
+      captureEvent(userId, 'auth.logout', {
+        source: 'backend',
+        user_id: userId,
+        role
+      }, request);
 
       return reply.send(successResponse(null, 'Logout successful'));
     } catch (error) {

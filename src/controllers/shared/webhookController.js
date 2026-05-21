@@ -119,28 +119,48 @@ export class WebhookController {
       if (genericStatus === 'paid' || genericStatus === 'expired' || genericStatus === 'failed') {
         const transaction = await prisma.transaction.findUnique({
           where: { transaction_code: order_id },
-          select: { user_id: true, customer_email: true, customer_name: true, amount: true, currency: true, product_type: true },
+          select: { user_id: true, customer_email: true, customer_name: true, amount: true, currency: true, product_type: true, metadata: true },
         });
 
         if (transaction) {
-          const distinctId = transaction.user_id ?? `anon:${transaction.customer_email || order_id}`;
+          const metadata = transaction.metadata && typeof transaction.metadata === 'object'
+            ? transaction.metadata
+            : {};
+          const storedDistinctId = typeof metadata.posthog_distinct_id === 'string'
+            ? metadata.posthog_distinct_id
+            : null;
+          const storedSessionId = typeof metadata.posthog_session_id === 'string'
+            ? metadata.posthog_session_id
+            : null;
+          const distinctId = transaction.user_id
+            ? String(transaction.user_id)
+            : storedDistinctId ?? `anon:${transaction.customer_email || order_id}`;
+          const eventPrefix = transaction.product_type === 'academy_enrollment' ? 'academy' : 'ryls';
 
           if (genericStatus === 'paid') {
-            captureEvent(distinctId, 'payment.completed', {
+            captureEvent(distinctId, `${eventPrefix}.payment_completed`, {
+              source: 'backend',
               transaction_code: order_id,
               amount: transaction.amount,
+              currency: transaction.currency,
               product_type: transaction.product_type,
               payment_method: paymentMethod,
               user_id: transaction.user_id,
-            });
+              posthog_distinct_id: storedDistinctId,
+              posthog_session_id: storedSessionId,
+            }, request);
           } else {
-            captureEvent(distinctId, 'payment.failed', {
+            captureEvent(distinctId, `${eventPrefix}.payment_failed`, {
+              source: 'backend',
               transaction_code: order_id,
               amount: transaction.amount,
+              currency: transaction.currency,
               product_type: transaction.product_type,
               reason: genericStatus,
               user_id: transaction.user_id,
-            });
+              posthog_distinct_id: storedDistinctId,
+              posthog_session_id: storedSessionId,
+            }, request);
           }
         }
       }
