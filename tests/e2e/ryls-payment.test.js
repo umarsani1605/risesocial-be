@@ -200,7 +200,7 @@ describe('RYLS Payment E2E Tests', () => {
       const { data } = JSON.parse(response.body);
       const transaction = await prisma.transaction.findFirst({ where: { transaction_code: data.transaction_code } });
       expect(transaction.status).toBe('paid');
-      expect(transaction.provider).toBe('paypal_manual');
+      expect(transaction.provider).toBe('paypal');
       expect(transaction.paid_at).not.toBeNull();
 
       // No Layer 2 (MidtransTransaction) for PayPal

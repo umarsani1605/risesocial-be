@@ -23,12 +23,22 @@ export class AdminTransactionRepository {
           select: { product_name: true },
           orderBy: { id: 'asc' },
         },
+        midtrans_data: {
+          select: { midtrans_order_id: true },
+        },
+        ryls_payment: {
+          select: {
+            payment_proof: { select: { file_path: true } },
+          },
+        },
       },
     });
 
-    return raw.map(({ items, ...tx }) => ({
+    return raw.map(({ items, midtrans_data, ryls_payment, ...tx }) => ({
       ...tx,
       product_name: items[0]?.product_name ?? null,
+      midtrans_order_id: midtrans_data?.midtrans_order_id ?? null,
+      payment_proof_path: ryls_payment?.payment_proof?.file_path ?? null,
     }));
   }
 

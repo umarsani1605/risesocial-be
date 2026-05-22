@@ -18,6 +18,8 @@ const transactionListItemSchema = {
     status: { type: 'string' },
     provider: { type: 'string' },
     payment_method: { type: ['string', 'null'] },
+    midtrans_order_id: { type: ['string', 'null'] },
+    payment_proof_path: { type: ['string', 'null'] },
     created_at: { type: 'string', format: 'date-time' },
   },
 };

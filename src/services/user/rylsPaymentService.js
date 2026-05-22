@@ -196,7 +196,7 @@ export class RylsPaymentService {
             amount: amountIdr,
             currency: 'IDR',
             status: PAYMENT_STATUS.PENDING,
-            provider: PAYMENT_PROVIDER.PAYPAL_MANUAL,
+            provider: PAYMENT_PROVIDER.PAYPAL,
             customer_name: registrationData.fullName,
             customer_email: registrationData.email,
             customer_phone: registrationData.whatsapp,

@@ -183,11 +183,16 @@ export class AdminTransactionService {
     try {
       midtransData = await midtransService.getTransactionStatus(transaction.transaction_code);
     } catch (error) {
-      // Preserve provider error message so admin can distinguish "transaction
-      // doesn't exist" (404 — most common: txn not yet charged) from auth/
-      // network failures that need a different fix.
+      const rawMessage = error?.message ?? 'unknown error';
+      // Midtrans returns 404 when the order_id was never charged (e.g. user
+      // opened the Snap popup but closed before picking a payment method).
+      // Translate to a friendlier message; surface raw text for other errors
+      // so genuine auth/network failures stay debuggable.
+      const isNotFound = /404|Transaction doesn'?t exist/i.test(rawMessage);
       const err = new Error(
-        `Failed to check status from Midtrans: ${error?.message ?? 'unknown error'}`,
+        isNotFound
+          ? 'Transaction not found or user likely did not pick a payment method.'
+          : `Failed to check status from Midtrans: ${rawMessage}`,
       );
       err.statusCode = 422;
       err.cause = error;

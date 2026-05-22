@@ -215,7 +215,7 @@ export const PAYMENT_PROVIDER = {
   MIDTRANS: 'midtrans',
   XENDIT: 'xendit',
   STRIPE: 'stripe',
-  PAYPAL_MANUAL: 'paypal_manual',
+  PAYPAL: 'paypal',
 };
 
 /**
