@@ -1,6 +1,5 @@
 import {
   createSuccessResponseSchema,
-  createPaginatedResponseSchema,
   createErrorResponseSchema,
 } from '../shared/baseSchemas.js';
 
@@ -92,18 +91,11 @@ const transactionDetailSchema = {
 export const getAdminTransactionsSchema = {
   tags: ['Admin - Transactions'],
   summary: 'List all transactions',
-  querystring: {
-    type: 'object',
-    properties: {
-      page: { type: 'integer', minimum: 1, default: 1 },
-      limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
-      search: { type: 'string' },
-      status: { type: 'string', enum: ['pending', 'paid', 'failed', 'expired', 'cancelled', 'refunded'] },
-      product_type: { type: 'string' },
-    },
-  },
   response: {
-    200: createPaginatedResponseSchema(transactionListItemSchema, 'List of transactions'),
+    200: createSuccessResponseSchema(
+      { type: 'array', items: transactionListItemSchema },
+      'List of transactions',
+    ),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },
 };
@@ -118,6 +110,53 @@ export const getAdminTransactionByIdSchema = {
   },
   response: {
     200: createSuccessResponseSchema(transactionDetailSchema, 'Transaction detail'),
+    404: createErrorResponseSchema(404, 'Not Found'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const checkTransactionStatusSchema = {
+  tags: ['Admin - Transactions'],
+  summary: 'Check transaction status from provider',
+  description:
+    'Query the underlying payment provider for the latest status, then cascade update Transaction + provider-specific layer + business layer.',
+  params: {
+    type: 'object',
+    required: ['id'],
+    properties: { id: { type: 'integer' } },
+  },
+  response: {
+    200: createSuccessResponseSchema(transactionDetailSchema, 'Transaction status checked'),
+    400: createErrorResponseSchema(400, 'Bad Request'),
+    404: createErrorResponseSchema(404, 'Not Found'),
+    422: createErrorResponseSchema(422, 'Unprocessable Entity'),
+    500: createErrorResponseSchema(500, 'Internal Server Error'),
+  },
+};
+
+export const updateTransactionStatusSchema = {
+  tags: ['Admin - Transactions'],
+  summary: 'Manually override transaction status',
+  description:
+    'Cascade update Transaction + MidtransTransaction (if present) + RYLS layers to the chosen status.',
+  params: {
+    type: 'object',
+    required: ['id'],
+    properties: { id: { type: 'integer' } },
+  },
+  body: {
+    type: 'object',
+    required: ['status'],
+    properties: {
+      status: {
+        type: 'string',
+        enum: ['pending', 'paid', 'failed', 'expired', 'cancelled', 'refunded'],
+      },
+    },
+  },
+  response: {
+    200: createSuccessResponseSchema(transactionDetailSchema, 'Transaction status updated'),
+    400: createErrorResponseSchema(400, 'Bad Request'),
     404: createErrorResponseSchema(404, 'Not Found'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },

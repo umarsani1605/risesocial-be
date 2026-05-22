@@ -1,4 +1,15 @@
 import { adminTransactionRepository } from '../../repositories/admin/transactionRepository.js';
+import { midtransService } from '../shared/MidtransService.js';
+import {
+  mapMidtransStatus,
+  mapPaymentMethod,
+  reverseMapToMidtransStatus,
+  parseMidtransTimestamp,
+  PAYMENT_PROVIDER,
+} from '../../constants/paymentHelpers.js';
+import prisma from '../../config/database.js';
+
+const ALLOWED_STATUSES = ['pending', 'paid', 'failed', 'expired', 'cancelled', 'refunded'];
 
 export class AdminTransactionService {
   constructor() {
@@ -6,12 +17,12 @@ export class AdminTransactionService {
   }
 
 
-  async getTransactions(params) {
-    return await this.repository.findAll(params);
+  async getTransactions() {
+    return await this.repository.findAll();
   }
 
-  async exportAllForExcel(params = {}) {
-    return await this.repository.findAll({ ...params, page: 1, limit: 10000 });
+  async exportAllForExcel() {
+    return await this.repository.findAll();
   }
 
   async generateExcelFile(transactions) {
@@ -129,6 +140,187 @@ export class AdminTransactionService {
         ryls_registration: ryls_payment?.registration ?? null,
       },
     };
+  }
+
+  /**
+   * Check transaction status against the underlying payment provider and
+   * cascade update Transaction + provider layer + business layer.
+   * Provider-agnostic: dispatches to the right provider helper based on
+   * `Transaction.provider`.
+   */
+  async checkStatus(transactionId) {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+    });
+    if (!transaction) {
+      const err = new Error('Transaction not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    switch (transaction.provider) {
+      case PAYMENT_PROVIDER.MIDTRANS:
+        await this._checkMidtransStatus(transaction);
+        break;
+      default: {
+        const err = new Error(
+          `Check status is not supported for provider "${transaction.provider}"`,
+        );
+        err.statusCode = 400;
+        throw err;
+      }
+    }
+
+    return this.getTransactionById(transaction.id);
+  }
+
+  /**
+   * Midtrans-specific status check + cascade.
+   * @private
+   */
+  async _checkMidtransStatus(transaction) {
+    let midtransData;
+    try {
+      midtransData = await midtransService.getTransactionStatus(transaction.transaction_code);
+    } catch (error) {
+      // Preserve provider error message so admin can distinguish "transaction
+      // doesn't exist" (404 — most common: txn not yet charged) from auth/
+      // network failures that need a different fix.
+      const err = new Error(
+        `Failed to check status from Midtrans: ${error?.message ?? 'unknown error'}`,
+      );
+      err.statusCode = 422;
+      err.cause = error;
+      throw err;
+    }
+
+    const genericStatus = mapMidtransStatus(
+      midtransData.transaction_status,
+      midtransData.fraud_status,
+    );
+    const paymentMethod = mapPaymentMethod(midtransData);
+
+    await prisma.$transaction(async (tx) => {
+      // Layer 1
+      await tx.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: genericStatus,
+          provider_reference: midtransData.transaction_id ?? transaction.provider_reference,
+          payment_method: paymentMethod,
+          paid_at: genericStatus === 'paid' ? new Date() : undefined,
+          expired_at: genericStatus === 'expired' ? new Date() : undefined,
+          updated_at: new Date(),
+        },
+      });
+
+      // Layer 2 — Midtrans-specific record
+      const midtransRow = await tx.midtransTransaction.findUnique({
+        where: { transaction_id: transaction.id },
+        select: { id: true },
+      });
+      if (midtransRow) {
+        await tx.midtransTransaction.update({
+          where: { transaction_id: transaction.id },
+          data: {
+            midtrans_transaction_id: midtransData.transaction_id ?? undefined,
+            transaction_status: midtransData.transaction_status,
+            fraud_status: midtransData.fraud_status ?? null,
+            payment_type: midtransData.payment_type ?? null,
+            bank: midtransData.bank ?? null,
+            settlement_time: parseMidtransTimestamp(midtransData.settlement_time),
+            last_notification: midtransData,
+            notified_at: new Date(),
+            updated_at: new Date(),
+          },
+        });
+      }
+
+      // Layer 3 — business-specific cascade
+      await this._cascadeRylsStatus(tx, transaction.id, genericStatus);
+    });
+  }
+
+  /**
+   * Manually override transaction status from admin UI.
+   * Cascades to Layer 2 (if MidtransTransaction exists) and Layer 3 (RYLS).
+   */
+  async updateStatusManually(transactionId, newStatus) {
+    if (!ALLOWED_STATUSES.includes(newStatus)) {
+      const err = new Error(`Invalid status: ${newStatus}`);
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+    });
+    if (!transaction) {
+      const err = new Error('Transaction not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Layer 1 — explicitly clear paid_at/expired_at when leaving those states
+      // so admin overrides don't leave stale timestamps (e.g. paid → pending must
+      // not keep a paid_at value, otherwise financial reports lie).
+      await tx.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: newStatus,
+          paid_at: newStatus === 'paid' ? new Date() : null,
+          expired_at: newStatus === 'expired' ? new Date() : null,
+          updated_at: new Date(),
+        },
+      });
+
+      // Layer 2 — only if record exists (PayPal-only transactions don't have one)
+      const midtransRow = await tx.midtransTransaction.findUnique({
+        where: { transaction_id: transaction.id },
+        select: { id: true },
+      });
+      if (midtransRow) {
+        await tx.midtransTransaction.update({
+          where: { transaction_id: transaction.id },
+          data: {
+            transaction_status: reverseMapToMidtransStatus(newStatus),
+            updated_at: new Date(),
+          },
+        });
+      }
+
+      // Layer 3 — RYLS cascade
+      await this._cascadeRylsStatus(tx, transaction.id, newStatus);
+    });
+
+    return this.getTransactionById(transaction.id);
+  }
+
+  /**
+   * Mirror generic status into RYLS layer (RylsPayment + RylsRegistration)
+   * if the transaction has a RYLS payment record. No-op for Academy
+   * transactions (status is derived from Transaction.status).
+   * @private
+   */
+  async _cascadeRylsStatus(tx, transactionId, genericStatus) {
+    const rylsPayment = await tx.rylsPayment.findUnique({
+      where: { transaction_id: transactionId },
+      include: { registration: true },
+    });
+    if (!rylsPayment) return;
+
+    await tx.rylsPayment.update({
+      where: { id: rylsPayment.id },
+      data: { status: genericStatus, updated_at: new Date() },
+    });
+
+    if (rylsPayment.registration) {
+      await tx.rylsRegistration.update({
+        where: { id: rylsPayment.registration_id },
+        data: { updated_at: new Date() },
+      });
+    }
   }
 }
 

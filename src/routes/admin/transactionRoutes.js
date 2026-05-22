@@ -1,5 +1,10 @@
 import { adminTransactionController } from '../../controllers/admin/transactionController.js';
-import { getAdminTransactionsSchema, getAdminTransactionByIdSchema } from '../../schemas/admin/transactionSchemas.js';
+import {
+  getAdminTransactionsSchema,
+  getAdminTransactionByIdSchema,
+  checkTransactionStatusSchema,
+  updateTransactionStatusSchema,
+} from '../../schemas/admin/transactionSchemas.js';
 import { adminMiddleware } from '../../middleware/auth.js';
 import { requirePermission } from '../../middleware/permissionMiddleware.js';
 
@@ -20,5 +25,15 @@ export default async function adminTransactionRoutes(fastify) {
     schema: getAdminTransactionByIdSchema,
     preHandler: requirePermission('admin.transactions'),
     handler: adminTransactionController.getTransactionById,
+  });
+  fastify.post('/:id/check-status', {
+    schema: checkTransactionStatusSchema,
+    preHandler: requirePermission('admin.transactions', 'EDITOR'),
+    handler: adminTransactionController.checkStatus,
+  });
+  fastify.post('/:id/update-status', {
+    schema: updateTransactionStatusSchema,
+    preHandler: requirePermission('admin.transactions', 'EDITOR'),
+    handler: adminTransactionController.updateStatusManually,
   });
 }
