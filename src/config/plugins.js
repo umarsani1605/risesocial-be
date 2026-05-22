@@ -46,7 +46,12 @@ export async function registerPlugins(fastify) {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-POSTHOG-DISTINCT-ID',
+      'X-POSTHOG-SESSION-ID',
+    ],
   });
 
   // Multipart (file uploads)
