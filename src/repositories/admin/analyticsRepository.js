@@ -61,11 +61,9 @@ export class AdminAnalyticsRepository {
     return prisma.user.count({ where: createdAtWhere(range) });
   }
 
-  async countActiveCohorts() {
-    return prisma.cohort.count({
-      where: {
-        status: { not: 'completed' },
-      },
+  async countActiveAcademies() {
+    return prisma.academy.count({
+      where: { status: 'ACTIVE' },
     });
   }
 

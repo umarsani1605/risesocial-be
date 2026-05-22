@@ -43,15 +43,11 @@ const overviewSchema = {
   type: 'object',
   properties: {
     totalRevenue: { type: 'number' },
-    totalRevenueTrend: { type: 'number' },
     totalUsers: { type: 'number' },
-    totalUsersTrend: { type: 'number' },
-    activeCohorts: { type: 'number' },
-    activeCohortsTrend: { type: 'number' },
+    activeAcademies: { type: 'number' },
     rylsRegistrations: { type: 'number' },
-    rylsRegistrationsTrend: { type: 'number' },
     revenueTrend: { type: 'array', items: timeSeriesPointSchema },
-    usersTrend: { type: 'array', items: timeSeriesPointSchema },
+    rylsTrend: { type: 'array', items: timeSeriesPointSchema },
   },
 };
 

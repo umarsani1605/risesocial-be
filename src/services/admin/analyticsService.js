@@ -51,53 +51,32 @@ export class AdminAnalyticsService {
   }
 
   async getOverview({ now = new Date() } = {}) {
-    const currentWeekRange = this.lastDaysRange(7, now);
-    const previousWeekRange = {
-      start: addDays(currentWeekRange.start, -7),
-      end: addDays(currentWeekRange.end, -7),
-    };
     const rylsYearRange = yearRange(2026);
     const chartRange = this.lastDaysRange(30, now);
 
     const [
       totalRevenue,
-      currentRevenue,
-      previousRevenue,
       totalUsers,
-      currentUsers,
-      previousUsers,
-      activeCohorts,
+      activeAcademies,
       rylsRegistrations,
-      currentRylsRegistrations,
-      previousRylsRegistrations,
       revenueTrendRows,
-      usersTrendRows,
+      rylsTrendRows,
     ] = await Promise.all([
-      this.repository.sumPaidRevenue(currentWeekRange),
-      this.repository.sumPaidRevenue(currentWeekRange),
-      this.repository.sumPaidRevenue(previousWeekRange),
+      this.repository.sumPaidRevenue(),
       this.repository.countUsers(),
-      this.repository.countUsers(currentWeekRange),
-      this.repository.countUsers(previousWeekRange),
-      this.repository.countActiveCohorts(),
+      this.repository.countActiveAcademies(),
       this.repository.countRylsRegistrations(rylsYearRange),
-      this.repository.countRylsRegistrations(currentWeekRange),
-      this.repository.countRylsRegistrations(previousWeekRange),
       this.repository.sumPaidRevenueByDay(chartRange),
-      this.repository.countUsersByDay(chartRange),
+      this.repository.countRylsRegistrationsByDay(chartRange),
     ]);
 
     return {
       totalRevenue,
-      totalRevenueTrend: this.calculateTrend(currentRevenue, previousRevenue),
       totalUsers,
-      totalUsersTrend: this.calculateTrend(currentUsers, previousUsers),
-      activeCohorts,
-      activeCohortsTrend: 0,
+      activeAcademies,
       rylsRegistrations,
-      rylsRegistrationsTrend: this.calculateTrend(currentRylsRegistrations, previousRylsRegistrations),
       revenueTrend: this.fillDateSeries(revenueTrendRows, chartRange),
-      usersTrend: this.fillDateSeries(usersTrendRows, chartRange),
+      rylsTrend: this.fillDateSeries(rylsTrendRows, chartRange),
     };
   }
 

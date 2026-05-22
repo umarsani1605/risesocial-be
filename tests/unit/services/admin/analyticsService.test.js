@@ -5,10 +5,11 @@ const mockRepository = {
   countPaidTransactionsByStatus: vi.fn(),
   sumPaidRevenueByProductType: vi.fn(),
   countUsers: vi.fn(),
-  countActiveCohorts: vi.fn(),
+  countActiveAcademies: vi.fn(),
   countRylsRegistrations: vi.fn(),
   sumPaidRevenueByDay: vi.fn(),
   countUsersByDay: vi.fn(),
+  countRylsRegistrationsByDay: vi.fn(),
   countAcademyEnrollmentsByAcademy: vi.fn(),
   countCohortStudents: vi.fn(),
 };
@@ -23,47 +24,32 @@ describe('AdminAnalyticsService', () => {
     service = new AdminAnalyticsService(mockRepository);
   });
 
-  it('builds overview with real aggregates and filled 30-day series', async () => {
-    mockRepository.sumPaidRevenue
-      .mockResolvedValueOnce(300_000)
-      .mockResolvedValueOnce(300_000)
-      .mockResolvedValueOnce(150_000);
-    mockRepository.countUsers
-      .mockResolvedValueOnce(42)
-      .mockResolvedValueOnce(8)
-      .mockResolvedValueOnce(4);
-    mockRepository.countActiveCohorts.mockResolvedValue(3);
-    mockRepository.countRylsRegistrations
-      .mockResolvedValueOnce(10)
-      .mockResolvedValueOnce(5)
-      .mockResolvedValueOnce(0);
+  it('builds overview with all-time aggregates and filled 30-day series', async () => {
+    mockRepository.sumPaidRevenue.mockResolvedValue(300_000);
+    mockRepository.countUsers.mockResolvedValue(42);
+    mockRepository.countActiveAcademies.mockResolvedValue(3);
+    mockRepository.countRylsRegistrations.mockResolvedValue(10);
     mockRepository.sumPaidRevenueByDay.mockResolvedValue([{ date: '2026-05-21', value: 500_000 }]);
-    mockRepository.countUsersByDay.mockResolvedValue([{ date: '2026-05-21', value: 2 }]);
+    mockRepository.countRylsRegistrationsByDay.mockResolvedValue([{ date: '2026-05-21', value: 4 }]);
 
     const result = await service.getOverview({ now: new Date('2026-05-21T12:00:00Z') });
 
     expect(result).toMatchObject({
       totalRevenue: 300_000,
-      totalRevenueTrend: 100,
       totalUsers: 42,
-      totalUsersTrend: 100,
-      activeCohorts: 3,
-      activeCohortsTrend: 0,
+      activeAcademies: 3,
       rylsRegistrations: 10,
-      rylsRegistrationsTrend: 100,
     });
-    expect(mockRepository.sumPaidRevenue).toHaveBeenNthCalledWith(1, {
-      start: new Date('2026-05-15T00:00:00.000Z'),
-      end: new Date('2026-05-21T23:59:59.999Z'),
-    });
-    expect(mockRepository.countRylsRegistrations).toHaveBeenNthCalledWith(1, {
+    expect(mockRepository.sumPaidRevenue).toHaveBeenCalledWith();
+    expect(mockRepository.countUsers).toHaveBeenCalledWith();
+    expect(mockRepository.countRylsRegistrations).toHaveBeenCalledWith({
       start: new Date('2026-01-01T00:00:00.000Z'),
       end: new Date('2026-12-31T23:59:59.999Z'),
     });
     expect(result.revenueTrend).toHaveLength(30);
-    expect(result.usersTrend).toHaveLength(30);
+    expect(result.rylsTrend).toHaveLength(30);
     expect(result.revenueTrend.at(-1)).toEqual({ date: '2026-05-21', value: 500_000 });
-    expect(result.usersTrend.at(-1)).toEqual({ date: '2026-05-21', value: 2 });
+    expect(result.rylsTrend.at(-1)).toEqual({ date: '2026-05-21', value: 4 });
   });
 
   it('returns zero trend when previous and current values are zero', () => {
