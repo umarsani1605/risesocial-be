@@ -62,7 +62,7 @@ export class AdminAnalyticsService {
       revenueTrendRows,
       rylsTrendRows,
     ] = await Promise.all([
-      this.repository.sumPaidRevenue(),
+      this.repository.sumPaidRevenue(chartRange),
       this.repository.countUsers(),
       this.repository.countActiveAcademies(),
       this.repository.countRylsRegistrations(rylsYearRange),

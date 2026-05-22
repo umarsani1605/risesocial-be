@@ -24,7 +24,7 @@ describe('AdminAnalyticsService', () => {
     service = new AdminAnalyticsService(mockRepository);
   });
 
-  it('builds overview with all-time aggregates and filled 30-day series', async () => {
+  it('builds overview with 30-day revenue + all-time aggregates + filled 30-day series', async () => {
     mockRepository.sumPaidRevenue.mockResolvedValue(300_000);
     mockRepository.countUsers.mockResolvedValue(42);
     mockRepository.countActiveAcademies.mockResolvedValue(3);
@@ -40,7 +40,10 @@ describe('AdminAnalyticsService', () => {
       activeAcademies: 3,
       rylsRegistrations: 10,
     });
-    expect(mockRepository.sumPaidRevenue).toHaveBeenCalledWith();
+    expect(mockRepository.sumPaidRevenue).toHaveBeenCalledWith({
+      start: new Date('2026-04-22T00:00:00.000Z'),
+      end: new Date('2026-05-21T23:59:59.999Z'),
+    });
     expect(mockRepository.countUsers).toHaveBeenCalledWith();
     expect(mockRepository.countRylsRegistrations).toHaveBeenCalledWith({
       start: new Date('2026-01-01T00:00:00.000Z'),
