@@ -37,6 +37,13 @@ function addDays(date, days) {
   return new Date(date.getTime() + days * DAY_MS);
 }
 
+function yearRange(year) {
+  return {
+    start: startOfDay(new Date(Date.UTC(year, 0, 1))),
+    end: endOfDay(new Date(Date.UTC(year, 11, 31))),
+  };
+}
+
 export class AdminAnalyticsService {
   constructor(repository = adminAnalyticsRepository, programsService = rylsRegistrationService) {
     this.repository = repository;
@@ -49,6 +56,7 @@ export class AdminAnalyticsService {
       start: addDays(currentWeekRange.start, -7),
       end: addDays(currentWeekRange.end, -7),
     };
+    const rylsYearRange = yearRange(2026);
     const chartRange = this.lastDaysRange(30, now);
 
     const [
@@ -72,7 +80,7 @@ export class AdminAnalyticsService {
       this.repository.countUsers(currentWeekRange),
       this.repository.countUsers(previousWeekRange),
       this.repository.countActiveCohorts(),
-      this.repository.countRylsRegistrations(currentWeekRange),
+      this.repository.countRylsRegistrations(rylsYearRange),
       this.repository.countRylsRegistrations(currentWeekRange),
       this.repository.countRylsRegistrations(previousWeekRange),
       this.repository.sumPaidRevenueByDay(chartRange),

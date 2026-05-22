@@ -34,7 +34,7 @@ describe('AdminAnalyticsService', () => {
       .mockResolvedValueOnce(4);
     mockRepository.countActiveCohorts.mockResolvedValue(3);
     mockRepository.countRylsRegistrations
-      .mockResolvedValueOnce(5)
+      .mockResolvedValueOnce(10)
       .mockResolvedValueOnce(5)
       .mockResolvedValueOnce(0);
     mockRepository.sumPaidRevenueByDay.mockResolvedValue([{ date: '2026-05-21', value: 500_000 }]);
@@ -49,7 +49,7 @@ describe('AdminAnalyticsService', () => {
       totalUsersTrend: 100,
       activeCohorts: 3,
       activeCohortsTrend: 0,
-      rylsRegistrations: 5,
+      rylsRegistrations: 10,
       rylsRegistrationsTrend: 100,
     });
     expect(mockRepository.sumPaidRevenue).toHaveBeenNthCalledWith(1, {
@@ -57,8 +57,8 @@ describe('AdminAnalyticsService', () => {
       end: new Date('2026-05-21T23:59:59.999Z'),
     });
     expect(mockRepository.countRylsRegistrations).toHaveBeenNthCalledWith(1, {
-      start: new Date('2026-05-15T00:00:00.000Z'),
-      end: new Date('2026-05-21T23:59:59.999Z'),
+      start: new Date('2026-01-01T00:00:00.000Z'),
+      end: new Date('2026-12-31T23:59:59.999Z'),
     });
     expect(result.revenueTrend).toHaveLength(30);
     expect(result.usersTrend).toHaveLength(30);
