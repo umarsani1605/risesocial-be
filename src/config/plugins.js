@@ -51,6 +51,7 @@ export async function registerPlugins(fastify) {
       'Authorization',
       'X-POSTHOG-DISTINCT-ID',
       'X-POSTHOG-SESSION-ID',
+      'X-POSTHOG-WINDOW-ID',
     ],
   });
 

@@ -14,6 +14,7 @@ export function getPostHogRequestContext(request) {
   return {
     distinctId: readHeader(request, 'x-posthog-distinct-id'),
     sessionId: readHeader(request, 'x-posthog-session-id'),
+    windowId: readHeader(request, 'x-posthog-window-id'),
   };
 }
 
@@ -47,6 +48,7 @@ export function captureEvent(distinctId, event, properties = {}, request) {
       ...properties,
       ...(context.distinctId ? { posthog_distinct_id: context.distinctId } : {}),
       ...(context.sessionId ? { posthog_session_id: context.sessionId } : {}),
+      ...(context.windowId ? { posthog_window_id: context.windowId } : {}),
       ...(request?.id ? { request_id: request.id } : {}),
     },
   });
