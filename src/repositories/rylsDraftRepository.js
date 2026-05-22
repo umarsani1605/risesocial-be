@@ -63,13 +63,14 @@ export class RylsDraftRepository extends BaseRepository {
     }
   }
 
-  async getDrafts({ page = 1, limit = 20 } = {}) {
+  async getDrafts({ page = 1, limit } = {}) {
     try {
-      const skip = (page - 1) * limit;
+      const numericLimit = limit ? Number(limit) : undefined;
+      const skip = numericLimit ? (page - 1) * numericLimit : undefined;
       const [data, total] = await Promise.all([
         prisma.rylsDraftRegistration.findMany({
-          skip,
-          take: limit,
+          ...(skip !== undefined ? { skip } : {}),
+          ...(numericLimit !== undefined ? { take: numericLimit } : {}),
           orderBy: { updated_at: 'desc' },
         }),
         prisma.rylsDraftRegistration.count(),

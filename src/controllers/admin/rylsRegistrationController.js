@@ -10,7 +10,7 @@ export class AdminRylsRegistrationController {
   getRegistrations = async (request, reply) => {
     try {
 
-      const { page = 1, limit = 10, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search, startDate, endDate } = request.query;
+      const { page = 1, limit, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search, startDate, endDate } = request.query;
 
       const filters = {
         scholarshipType,
@@ -21,7 +21,7 @@ export class AdminRylsRegistrationController {
 
       const result = await this.registrationService.getRegistrations({
         page: Number(page),
-        limit: Number(limit),
+        limit: limit ? Number(limit) : undefined,
         filters,
         sortBy,
         sortOrder,
@@ -162,11 +162,12 @@ export class AdminRylsRegistrationController {
 
   getDrafts = async (request, reply) => {
     try {
-      const { page = 1, limit = 20 } = request.query;
-      const result = await rylsDraftService.getDrafts({ page: Number(page), limit: Number(limit) });
+      const { page = 1, limit } = request.query;
+      const numericLimit = limit ? Number(limit) : undefined;
+      const result = await rylsDraftService.getDrafts({ page: Number(page), limit: numericLimit });
       return reply.send(
         successResponse(
-          { drafts: result.data, pagination: { total: result.total, page: Number(page), limit: Number(limit) } },
+          { drafts: result.data, pagination: { total: result.total, page: Number(page), limit: numericLimit ?? result.total } },
           'Drafts retrieved',
         ),
       );

@@ -286,9 +286,9 @@ export class RylsRegistrationRepository extends BaseRepository {
 
   async getRegistrations(options = {}) {
     try {
-      const { page = 1, limit = 10, id, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search } = options;
-
-      const skip = (page - 1) * limit;
+      const { page = 1, limit, id, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search } = options;
+      const numericLimit = limit ? Number(limit) : undefined;
+      const skip = numericLimit ? (page - 1) * numericLimit : undefined;
       const whereClause = {};
 
       if (id) whereClause.id = Number(id);
@@ -304,8 +304,8 @@ export class RylsRegistrationRepository extends BaseRepository {
         this.model.findMany({
           where: whereClause,
           orderBy: { [sortBy]: sortOrder },
-          skip,
-          take: limit,
+          ...(skip !== undefined ? { skip } : {}),
+          ...(numericLimit !== undefined ? { take: numericLimit } : {}),
           include: {
             fully_funded_submission: { include: { essay_file: true } },
             self_funded_submission: { include: { headshot_file: true } },
@@ -315,7 +315,16 @@ export class RylsRegistrationRepository extends BaseRepository {
         this.model.count({ where: whereClause }),
       ]);
 
-      const result = { registrations, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+      const resolvedLimit = numericLimit ?? total;
+      const result = {
+        registrations,
+        pagination: {
+          page,
+          limit: resolvedLimit,
+          total,
+          totalPages: resolvedLimit > 0 ? Math.ceil(total / resolvedLimit) : 1
+        }
+      };
       return result;
     } catch (error) {
       throw new Error('Failed to get registrations');

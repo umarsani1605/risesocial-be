@@ -15,8 +15,8 @@ export default async function adminRylsRegistrationRoutes(fastify) {
         type: 'object',
         properties: {
           id: { type: 'integer' },
-          page: { type: 'integer', minimum: 1, default: 1 },
-          limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
+          page: { type: 'integer', minimum: 1 },
+          limit: { type: 'integer', minimum: 1 },
           scholarshipType: { type: 'string', enum: ['FULLY_FUNDED', 'SELF_FUNDED'] },
         },
       },
@@ -66,8 +66,8 @@ export default async function adminRylsRegistrationRoutes(fastify) {
       querystring: {
         type: 'object',
         properties: {
-          page: { type: 'integer', minimum: 1, default: 1 },
-          limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          page: { type: 'integer', minimum: 1 },
+          limit: { type: 'integer', minimum: 1 },
         },
       },
     },
