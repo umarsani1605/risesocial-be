@@ -63,17 +63,27 @@ export class RylsDraftRepository extends BaseRepository {
     }
   }
 
-  async getDrafts({ page = 1, limit } = {}) {
+  async getDrafts({ page = 1, limit, startDate, endDate } = {}) {
     try {
       const numericLimit = limit ? Number(limit) : undefined;
       const skip = numericLimit ? (page - 1) * numericLimit : undefined;
+      const whereClause = {};
+
+      if (startDate && endDate) {
+        whereClause.created_at = {
+          gte: new Date(startDate),
+          lte: new Date(endDate),
+        };
+      }
+
       const [data, total] = await Promise.all([
         prisma.rylsDraftRegistration.findMany({
+          where: whereClause,
           ...(skip !== undefined ? { skip } : {}),
           ...(numericLimit !== undefined ? { take: numericLimit } : {}),
           orderBy: { updated_at: 'desc' },
         }),
-        prisma.rylsDraftRegistration.count(),
+        prisma.rylsDraftRegistration.count({ where: whereClause }),
       ]);
       return { data, total };
     } catch (error) {
@@ -81,9 +91,19 @@ export class RylsDraftRepository extends BaseRepository {
     }
   }
 
-  async getDraftsForExport() {
+  async getDraftsForExport({ startDate, endDate } = {}) {
     try {
+      const whereClause = {};
+
+      if (startDate && endDate) {
+        whereClause.created_at = {
+          gte: new Date(startDate),
+          lte: new Date(endDate),
+        };
+      }
+
       return await prisma.rylsDraftRegistration.findMany({
+        where: whereClause,
         select: {
           email: true,
           current_step: true,

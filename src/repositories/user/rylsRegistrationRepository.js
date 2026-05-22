@@ -286,7 +286,17 @@ export class RylsRegistrationRepository extends BaseRepository {
 
   async getRegistrations(options = {}) {
     try {
-      const { page = 1, limit, id, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search } = options;
+      const {
+        page = 1,
+        limit,
+        id,
+        scholarshipType,
+        sortBy = 'created_at',
+        sortOrder = 'desc',
+        search,
+        startDate,
+        endDate,
+      } = options;
       const numericLimit = limit ? Number(limit) : undefined;
       const skip = numericLimit ? (page - 1) * numericLimit : undefined;
       const whereClause = {};
@@ -298,6 +308,13 @@ export class RylsRegistrationRepository extends BaseRepository {
 
       if (search) {
         whereClause.OR = [{ full_name: { contains: search, mode: 'insensitive' } }, { email: { contains: search, mode: 'insensitive' } }];
+      }
+
+      if (startDate && endDate) {
+        whereClause.created_at = {
+          gte: new Date(startDate),
+          lte: new Date(endDate),
+        };
       }
 
       const [registrations, total] = await Promise.all([

@@ -2,21 +2,28 @@ import { rylsRegistrationService } from '../../services/user/rylsRegistrationSer
 import { rylsDraftService } from '../../services/rylsDraftService.js';
 import { successResponse, errorResponse } from '../../utils/response.js';
 
+const DEFAULT_RYLS_ADMIN_START_DATE = '2026-01-01';
+const DEFAULT_RYLS_ADMIN_END_DATE = '2026-12-31';
+
 export class AdminRylsRegistrationController {
   constructor() {
     this.registrationService = rylsRegistrationService;
   }
 
+  getAdminYearFilters = (query = {}) => ({
+    startDate: query.startDate ?? DEFAULT_RYLS_ADMIN_START_DATE,
+    endDate: query.endDate ?? DEFAULT_RYLS_ADMIN_END_DATE,
+  });
+
   getRegistrations = async (request, reply) => {
     try {
-
       const { page = 1, limit, scholarshipType, sortBy = 'created_at', sortOrder = 'desc', search, startDate, endDate } = request.query;
+      const yearFilters = this.getAdminYearFilters({ startDate, endDate });
 
       const filters = {
         scholarshipType,
         search,
-        startDate,
-        endDate,
+        ...yearFilters,
       };
 
       const result = await this.registrationService.getRegistrations({
@@ -137,9 +144,10 @@ export class AdminRylsRegistrationController {
 
   exportRegistrationsExcel = async (request, reply) => {
     try {
+      const filters = this.getAdminYearFilters(request.query);
 
       const result = await this.registrationService.getRegistrations({
-        limit: 1000,
+        filters,
         sortBy: 'created_at',
         sortOrder: 'desc',
       });
@@ -162,9 +170,13 @@ export class AdminRylsRegistrationController {
 
   getDrafts = async (request, reply) => {
     try {
-      const { page = 1, limit } = request.query;
+      const { page = 1, limit, startDate, endDate } = request.query;
       const numericLimit = limit ? Number(limit) : undefined;
-      const result = await rylsDraftService.getDrafts({ page: Number(page), limit: numericLimit });
+      const result = await rylsDraftService.getDrafts({
+        page: Number(page),
+        limit: numericLimit,
+        ...this.getAdminYearFilters({ startDate, endDate }),
+      });
       return reply.send(
         successResponse(
           { drafts: result.data, pagination: { total: result.total, page: Number(page), limit: numericLimit ?? result.total } },
@@ -187,7 +199,7 @@ export class AdminRylsRegistrationController {
 
   exportDraftsExcel = async (request, reply) => {
     try {
-      const drafts = await rylsDraftService.getDraftsForExport();
+      const drafts = await rylsDraftService.getDraftsForExport(this.getAdminYearFilters(request.query));
       const excelBuffer = await rylsDraftService.generateExcelFile(drafts);
 
       const timestamp = new Date().toISOString().split('T')[0];

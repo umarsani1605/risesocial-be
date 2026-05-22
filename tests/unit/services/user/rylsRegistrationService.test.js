@@ -450,7 +450,12 @@ describe('RylsRegistrationService', () => {
       await service.getRegistrations({
         page: 2,
         limit: 5,
-        filters: { scholarshipType: 'SELF_FUNDED', search: 'budi' },
+        filters: {
+          scholarshipType: 'SELF_FUNDED',
+          search: 'budi',
+          startDate: '2026-01-01',
+          endDate: '2026-12-31',
+        },
         sortBy: 'created_at',
         sortOrder: 'desc',
       });
@@ -462,6 +467,8 @@ describe('RylsRegistrationService', () => {
         sortOrder: 'desc',
         scholarshipType: 'SELF_FUNDED',
         search: 'budi',
+        startDate: '2026-01-01',
+        endDate: '2026-12-31',
       });
     });
 
