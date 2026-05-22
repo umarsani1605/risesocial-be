@@ -15,11 +15,12 @@ describe('metaCapi integration', () => {
 
     delete process.env.META_PIXEL_ID;
     delete process.env.META_ACCESS_TOKEN;
+    delete process.env.META_PIXEL_ID_2;
+    delete process.env.META_ACCESS_TOKEN_2;
     delete process.env.META_TEST_EVENT_CODE;
-    delete process.env.META_PIXEL_ACCESS_TOKENS;
   });
 
-  it('sends a normalized Meta CAPI payload to the global pixel', async () => {
+  it('sends a normalized Meta CAPI payload to the primary pixel', async () => {
     process.env.META_PIXEL_ID = 'global-pixel';
     process.env.META_ACCESS_TOKEN = 'global-token';
     process.env.META_TEST_EVENT_CODE = 'TEST123';
@@ -78,10 +79,11 @@ describe('metaCapi integration', () => {
     });
   });
 
-  it('uses the configured token map for an academy pixel', async () => {
-    process.env.META_PIXEL_ACCESS_TOKENS = JSON.stringify({
-      'academy-pixel': 'academy-token',
-    });
+  it('routes to the secondary pixel when pixelId matches META_PIXEL_ID_2', async () => {
+    process.env.META_PIXEL_ID = 'primary-pixel';
+    process.env.META_ACCESS_TOKEN = 'primary-token';
+    process.env.META_PIXEL_ID_2 = 'secondary-pixel';
+    process.env.META_ACCESS_TOKEN_2 = 'secondary-token';
 
     const { sendEvent } = await import('../../../src/integrations/metaCapi.js');
 
@@ -89,13 +91,33 @@ describe('metaCapi integration', () => {
       eventName: 'Purchase',
       eventId: 'TRX-001',
       eventSourceUrl: 'https://risesocial.org/academy/esg/payment',
-      pixelId: 'academy-pixel',
+      pixelId: 'secondary-pixel',
       customData: { value: 150000, currency: 'IDR' },
       userData: { email: 'buyer@example.com' },
     });
 
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0][0]).toBe('https://graph.facebook.com/v22.0/academy-pixel/events?access_token=academy-token');
+    expect(fetch.mock.calls[0][0]).toBe('https://graph.facebook.com/v22.0/secondary-pixel/events?access_token=secondary-token');
+  });
+
+  it('fans out to both pixels when no pixelId is provided', async () => {
+    process.env.META_PIXEL_ID = 'primary-pixel';
+    process.env.META_ACCESS_TOKEN = 'primary-token';
+    process.env.META_PIXEL_ID_2 = 'secondary-pixel';
+    process.env.META_ACCESS_TOKEN_2 = 'secondary-token';
+
+    const { sendEvent } = await import('../../../src/integrations/metaCapi.js');
+
+    await sendEvent({
+      eventName: 'Lead',
+      eventId: 'lead-123',
+      eventSourceUrl: 'https://risesocial.org/success',
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const urls = fetch.mock.calls.map(([url]) => url);
+    expect(urls).toContain('https://graph.facebook.com/v22.0/primary-pixel/events?access_token=primary-token');
+    expect(urls).toContain('https://graph.facebook.com/v22.0/secondary-pixel/events?access_token=secondary-token');
   });
 
   it('skips CAPI without configured credentials', async () => {

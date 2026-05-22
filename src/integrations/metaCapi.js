@@ -12,28 +12,34 @@ function normalizePhone(phone) {
   return digits || undefined;
 }
 
-function parsePixelTokenMap() {
-  if (!process.env.META_PIXEL_ACCESS_TOKENS) return {};
+/**
+ * Resolve pixel + access token pair.
+ *
+ * - `META_PIXEL_ID`   + `META_ACCESS_TOKEN`   → primary pixel
+ * - `META_PIXEL_ID_2` + `META_ACCESS_TOKEN_2` → secondary pixel
+ *
+ * If `pixelId` is provided by the frontend, route to the matching pair.
+ * Otherwise fan-out to all configured pixels.
+ */
+function resolveCredentialPairs(pixelId) {
+  const pairs = [];
+  const primaryId = process.env.META_PIXEL_ID;
+  const primaryToken = process.env.META_ACCESS_TOKEN;
+  const secondaryId = process.env.META_PIXEL_ID_2;
+  const secondaryToken = process.env.META_ACCESS_TOKEN_2;
 
-  try {
-    const parsed = JSON.parse(process.env.META_PIXEL_ACCESS_TOKENS);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    console.warn('[metaCapi] invalid META_PIXEL_ACCESS_TOKENS JSON');
-    return {};
-  }
-}
-
-function resolveCredentials(pixelId) {
   if (pixelId) {
-    const tokens = parsePixelTokenMap();
-    return { pixelId, accessToken: tokens[pixelId] };
+    if (pixelId === primaryId && primaryToken) {
+      pairs.push({ pixelId: primaryId, accessToken: primaryToken });
+    } else if (pixelId === secondaryId && secondaryToken) {
+      pairs.push({ pixelId: secondaryId, accessToken: secondaryToken });
+    }
+    return pairs;
   }
 
-  return {
-    pixelId: process.env.META_PIXEL_ID,
-    accessToken: process.env.META_ACCESS_TOKEN,
-  };
+  if (primaryId && primaryToken) pairs.push({ pixelId: primaryId, accessToken: primaryToken });
+  if (secondaryId && secondaryToken) pairs.push({ pixelId: secondaryId, accessToken: secondaryToken });
+  return pairs;
 }
 
 function buildUserData({ email, phone, firstName, lastName } = {}, { fbp, fbc, clientIp, userAgent } = {}) {
@@ -88,7 +94,12 @@ export async function sendEvent({
   clientIp,
   userAgent,
 }) {
-  const credentials = resolveCredentials(pixelId);
+  const pairs = resolveCredentialPairs(pixelId);
+  if (pairs.length === 0) {
+    console.warn('[metaCapi] no pixel/token pair configured, skipping CAPI');
+    return;
+  }
+
   const eventPayload = {
     event_name: eventName,
     event_time: Math.floor(Date.now() / 1000),
@@ -99,9 +110,9 @@ export async function sendEvent({
     ...(Object.keys(customData).length > 0 && { custom_data: customData }),
   };
 
-  await postToCapi([eventPayload], {
-    ...credentials,
-    testEventCode: process.env.META_TEST_EVENT_CODE || undefined,
-  });
+  const testEventCode = process.env.META_TEST_EVENT_CODE || undefined;
+  await Promise.all(
+    pairs.map((pair) => postToCapi([eventPayload], { ...pair, testEventCode })),
+  );
 }
 
