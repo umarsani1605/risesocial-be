@@ -41,12 +41,12 @@ export const FRAUD_STATUS_MAPPING = {
 export const PAYMENT_ITEM_TEMPLATES = {
   FULLY_FUNDED: {
     id: 'ryls-fully-funded-fee',
-    name: 'Rise Young Leaders Scholarship Fully Funded',
+    name: 'RYLS Fully Funded',
     category: 'registration',
   },
   SELF_FUNDED: {
     id: 'ryls-self-funded-fee',
-    name: 'Rise Young Leaders Scholarship Self Funded',
+    name: 'RYLS Self Funded',
     category: 'registration',
   },
 };

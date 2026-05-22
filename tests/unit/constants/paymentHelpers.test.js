@@ -78,46 +78,32 @@ describe('Payment Helpers', () => {
   });
 
   describe('generateTransactionCode', () => {
-    it('should generate 14 character transaction code', () => {
+    it('produces <PREFIX 4><MOD 2><HEX 3><COUNTER 5> = 14 chars', () => {
       const code = generateTransactionCode('RYLS', 1);
       expect(code).toHaveLength(14);
-    });
-
-    it('should start with correct prefix', () => {
-      const code = generateTransactionCode('RYLS', 1);
       expect(code.substring(0, 4)).toBe('RYLS');
+      expect(code.substring(4, 6)).toBe('01'); // 1 % 100 = 01
+      expect(code.substring(9, 14)).toBe('00001');
     });
 
-    it('should have 2-digit sequence', () => {
-      const code = generateTransactionCode('RYLS', 5);
-      expect(code.substring(4, 6)).toBe('05');
+    it('uses sequence % 100 for the MOD segment', () => {
+      expect(generateTransactionCode('RYLS', 105).substring(4, 6)).toBe('05');
+      expect(generateTransactionCode('RYLS', 99).substring(4, 6)).toBe('99');
+      expect(generateTransactionCode('RYLS', 100).substring(4, 6)).toBe('00');
     });
 
-    it('should wrap sequence at 100', () => {
-      const code = generateTransactionCode('RYLS', 105);
-      expect(code.substring(4, 6)).toBe('05');
+    it('zero-pads the COUNTER segment to 5 digits', () => {
+      expect(generateTransactionCode('ACAD', 42).substring(9, 14)).toBe('00042');
+      expect(generateTransactionCode('ACAD', 12345).substring(9, 14)).toBe('12345');
     });
 
-    it('should have 8 hex characters at end', () => {
+    it('uppercases the prefix', () => {
+      expect(generateTransactionCode('ryls', 7).substring(0, 4)).toBe('RYLS');
+    });
+
+    it('uses random HEX in the middle segment (positions 6-9)', () => {
       const code = generateTransactionCode('RYLS', 1);
-      const hexPart = code.substring(6, 14);
-      expect(hexPart).toMatch(/^[0-9A-F]{8}$/);
-    });
-
-    it('should generate unique codes', () => {
-      const codes = new Set();
-      for (let i = 0; i < 100; i++) {
-        codes.add(generateTransactionCode('RYLS', i));
-      }
-      expect(codes.size).toBe(100);
-    });
-
-    it('should normalize prefix to 4 characters', () => {
-      const code1 = generateTransactionCode('AC', 1);
-      expect(code1.substring(0, 4)).toBe('ACXX');
-
-      const code2 = generateTransactionCode('ACADEMY', 1);
-      expect(code2.substring(0, 4)).toBe('ACAD');
+      expect(code.substring(6, 9)).toMatch(/^[0-9A-F]{3}$/);
     });
   });
 });

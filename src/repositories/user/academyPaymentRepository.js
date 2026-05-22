@@ -9,16 +9,8 @@ export class AcademyPaymentRepository {
    * @returns {Promise<number>} Next sequence number
    */
   async getNextSequenceNumber(tx) {
-    try {
-      const last = await tx.academyEnrollment.findFirst({
-        orderBy: { id: 'desc' },
-        select: { id: true },
-      });
-      const sequence = last ? last.id + 1 : 1;
-      return sequence;
-    } catch (error) {
-      throw error;
-    }
+    const rows = await tx.$queryRaw`SELECT nextval('academy_transaction_code_seq') AS seq`;
+    return Number(rows[0].seq);
   }
 
   async findEnrollmentWithTransaction(enrollmentId, userId) {

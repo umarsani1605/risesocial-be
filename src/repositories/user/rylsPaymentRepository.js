@@ -154,18 +154,8 @@ export class RylsPaymentRepository {
    * @returns {Promise<number>} Next sequence number
    */
   async getNextSequenceNumber(tx) {
-
-    try {
-      const lastPayment = await tx.rylsPayment.findFirst({
-        orderBy: { id: 'desc' },
-        select: { id: true },
-      });
-
-      const sequence = lastPayment ? lastPayment.id + 1 : 1;
-      return sequence;
-    } catch (error) {
-      throw error;
-    }
+    const rows = await tx.$queryRaw`SELECT nextval('ryls_transaction_code_seq') AS seq`;
+    return Number(rows[0].seq);
   }
 }
 
