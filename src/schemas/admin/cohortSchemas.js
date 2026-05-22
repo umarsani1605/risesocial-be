@@ -1,4 +1,4 @@
-import { createSuccessResponseSchema, createPaginatedResponseSchema, createErrorResponseSchema } from '../shared/baseSchemas.js';
+import { createSuccessResponseSchema, createErrorResponseSchema } from '../shared/baseSchemas.js';
 
 const academyBasicSchema = {
   type: ['object', 'null'],
@@ -152,12 +152,13 @@ export const getAdminCohortsSchema = {
         type: 'array',
         items: { type: 'string', enum: ['not_started', 'ongoing', 'completed'] },
       },
-      page: { type: 'integer', minimum: 1, default: 1 },
-      limit: { type: 'integer', minimum: 1, maximum: 100, default: 10 },
     },
   },
   response: {
-    200: createPaginatedResponseSchema(cohortEntitySchema, 'List of cohorts'),
+    200: createSuccessResponseSchema(
+      { type: 'array', items: cohortEntitySchema },
+      'List of cohorts',
+    ),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),
   },

@@ -4,15 +4,13 @@ import { successResponse, errorResponse } from '../../utils/response.js';
 export class AdminPlacementController {
   listEnrollments = async (request, reply) => {
     try {
-      const { page, limit, placed, academy_id, user_id } = request.query;
-      const result = await adminPlacementService.listAcademyEnrollments({
-        page: page ? Number(page) : 1,
-        limit: limit ? Number(limit) : 20,
+      const { placed, academy_id, user_id } = request.query;
+      const enrollments = await adminPlacementService.listAcademyEnrollments({
         placed,
         academy_id,
         user_id,
       });
-      return reply.send(successResponse(result.data, 'Enrollments retrieved successfully', result.meta));
+      return reply.send(successResponse(enrollments, 'Enrollments retrieved successfully'));
     } catch (error) {
       throw error;
     }

@@ -215,8 +215,7 @@ export class AdminCohortService {
 
   async getCohorts(params) {
     try {
-      const result = await this.repository.findWithPagination(params);
-      return result;
+      return await this.repository.findAll(params);
     } catch (error) {
       throw error;
     }

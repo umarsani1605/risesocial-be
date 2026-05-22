@@ -7,39 +7,22 @@ export class AdminCohortRepository extends BaseRepository {
   }
 
 
-  async findWithPagination({ page = 1, limit = 10, id, academy_id, status } = {}) {
-
-    const skip = (page - 1) * limit;
+  async findAll({ id, academy_id, status } = {}) {
     const where = {};
     if (id) where.id = Number(id);
     if (academy_id) where.academy_id = Number(academy_id);
     if (status) where.status = Array.isArray(status) ? { in: status } : status;
 
-    const [data, total] = await Promise.all([
-      this.model.findMany({
-        where,
-        skip,
-        take: Number(limit),
-        orderBy: { created_at: 'desc' },
-        include: {
-          academy: { select: { id: true, title: true, slug: true } },
-          _count: { select: { placements: true } },
-        },
-      }),
-      this.model.count({ where }),
-    ]);
-
-    return {
-      data: data.map((c) => ({ ...c, enrollment_count: c._count.placements, _count: undefined })),
-      meta: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
+    const data = await this.model.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      include: {
+        academy: { select: { id: true, title: true, slug: true } },
+        _count: { select: { placements: true } },
       },
-    };
+    });
+
+    return data.map((c) => ({ ...c, enrollment_count: c._count.placements, _count: undefined }));
   }
 
   async findByIdWithDetails(id) {

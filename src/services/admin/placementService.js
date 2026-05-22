@@ -11,41 +11,28 @@ function makeError(message, statusCode) {
 
 export class AdminPlacementService {
 
-  async listAcademyEnrollments({ page = 1, limit = 20, placed, academy_id, user_id } = {}) {
-
+  async listAcademyEnrollments({ placed, academy_id, user_id } = {}) {
     const where = {};
     if (academy_id) where.academy_id = Number(academy_id);
     if (user_id) where.user_id = Number(user_id);
     if (placed === true) where.placement = { isNot: null };
     if (placed === false) where.placement = { is: null };
 
-    const skip = (page - 1) * limit;
-
-    const [data, total] = await Promise.all([
-      prisma.academyEnrollment.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { created_at: 'desc' },
-        include: {
-          user: { select: { id: true, first_name: true, last_name: true, email: true, avatar: true, phone: true } },
-          academy: { select: { id: true, title: true, slug: true } },
-          transaction: { select: { id: true, status: true, paid_at: true, transaction_code: true } },
-          placement: {
-            include: {
-              cohort: { select: { id: true, name: true, status: true } },
-              certificate: { select: { id: true } },
-            },
+    return await prisma.academyEnrollment.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      include: {
+        user: { select: { id: true, first_name: true, last_name: true, email: true, avatar: true, phone: true } },
+        academy: { select: { id: true, title: true, slug: true } },
+        transaction: { select: { id: true, status: true, paid_at: true, transaction_code: true } },
+        placement: {
+          include: {
+            cohort: { select: { id: true, name: true, status: true } },
+            certificate: { select: { id: true } },
           },
         },
-      }),
-      prisma.academyEnrollment.count({ where }),
-    ]);
-
-    return {
-      data,
-      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    };
+      },
+    });
   }
 
   async getEnrollmentDetail(enrollmentId) {

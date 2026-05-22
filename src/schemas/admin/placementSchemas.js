@@ -1,4 +1,4 @@
-import { createSuccessResponseSchema, createPaginatedResponseSchema, createErrorResponseSchema } from '../shared/baseSchemas.js';
+import { createSuccessResponseSchema, createErrorResponseSchema } from '../shared/baseSchemas.js';
 
 const placementSchema = {
   type: 'object',
@@ -20,6 +20,7 @@ const enrollmentItemSchema = {
     user_id: { type: 'integer' },
     academy_id: { type: 'integer' },
     status: { type: 'string' },
+    completed_at: { type: ['string', 'null'], format: 'date-time' },
     created_at: { type: 'string', format: 'date-time' },
     user: {
       type: ['object', 'null'],
@@ -78,8 +79,6 @@ export const listEnrollmentsSchema = {
   querystring: {
     type: 'object',
     properties: {
-      page: { type: 'integer', minimum: 1, default: 1 },
-      limit: { type: 'integer', minimum: 1, maximum: 500, default: 20 },
       placed: { type: 'boolean' },
       academy_id: { type: 'integer' },
       user_id: { type: 'integer' },
@@ -87,7 +86,10 @@ export const listEnrollmentsSchema = {
     additionalProperties: false,
   },
   response: {
-    200: createPaginatedResponseSchema(enrollmentItemSchema, 'List of enrollments'),
+    200: createSuccessResponseSchema(
+      { type: 'array', items: enrollmentItemSchema },
+      'List of enrollments',
+    ),
     401: createErrorResponseSchema(401, 'Unauthorized'),
     403: createErrorResponseSchema(403, 'Forbidden'),
     500: createErrorResponseSchema(500, 'Internal Server Error'),

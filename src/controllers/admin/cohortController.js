@@ -61,10 +61,8 @@ export class AdminCohortController {
 
   async getAllCohorts(request, reply) {
     try {
-
-      const result = await adminCohortService.getCohorts(request.query);
-
-      return reply.send(successResponse(result.data, 'Cohorts retrieved successfully', result.meta));
+      const cohorts = await adminCohortService.getCohorts(request.query);
+      return reply.send(successResponse(cohorts, 'Cohorts retrieved successfully'));
     } catch (error) {
       throw error;
     }
