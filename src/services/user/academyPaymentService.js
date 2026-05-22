@@ -1,7 +1,7 @@
 import { midtransService } from '../shared/MidtransService.js';
 import { academyPaymentRepository } from '../../repositories/user/academyPaymentRepository.js';
 import { academyEnrollmentRepository } from '../../repositories/cohorts/academyEnrollmentRepository.js';
-import { generateTransactionCode, TRANSACTION_CODE_CONFIG, mapMidtransStatus, mapPaymentMethod } from '../../constants/paymentHelpers.js';
+import { generateTransactionCode, TRANSACTION_CODE_CONFIG, mapMidtransStatus, mapPaymentMethod, parseMidtransTimestamp } from '../../constants/paymentHelpers.js';
 import prisma from '../../config/database.js';
 import { captureEvent } from '../../config/posthog.js';
 
@@ -345,7 +345,10 @@ export class AcademyPaymentService {
 
       const midtransData = await midtransService.getTransactionStatus(transactionCode);
 
-      const genericStatus = mapMidtransStatus(midtransData.transaction_status);
+      const genericStatus = mapMidtransStatus(
+        midtransData.transaction_status,
+        midtransData.fraud_status,
+      );
       const paymentMethod = mapPaymentMethod(midtransData);
 
       await prisma.$transaction(async (tx) => {
@@ -368,7 +371,7 @@ export class AcademyPaymentService {
             fraud_status: midtransData.fraud_status || null,
             payment_type: midtransData.payment_type,
             bank: midtransData.bank || null,
-            settlement_time: midtransData.settlement_time ? new Date(midtransData.settlement_time) : null,
+            settlement_time: parseMidtransTimestamp(midtransData.settlement_time),
             last_notification: midtransData,
             notified_at: new Date(),
             updated_at: new Date(),

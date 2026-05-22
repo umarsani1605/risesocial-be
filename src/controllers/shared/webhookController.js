@@ -1,6 +1,11 @@
 import { midtransService } from '../../services/shared/MidtransService.js';
 import { transactionRepository } from '../../repositories/shared/transactionRepository.js';
-import { mapMidtransStatus, mapPaymentMethod } from '../../constants/paymentHelpers.js';
+import {
+  mapMidtransStatus,
+  mapPaymentMethod,
+  isAllowedTransition,
+  parseMidtransTimestamp,
+} from '../../constants/paymentHelpers.js';
 import prisma from '../../config/database.js';
 import posthog, { captureEvent } from '../../config/posthog.js';
 
@@ -31,27 +36,58 @@ export class WebhookController {
 
 
       // Step 2: Extract webhook data
-      const { order_id, transaction_status, transaction_id, payment_type, fraud_status, bank, store, settlement_time } = notificationData;
+      const { order_id, transaction_status, transaction_id, payment_type, fraud_status, bank, store, settlement_time, status_code } = notificationData;
 
       // Step 3: Map status and payment method
-      const genericStatus = mapMidtransStatus(transaction_status);
+      // Pass fraud_status so credit-card `capture` doesn't become `paid`
+      // while FDS still has it on `challenge`.
+      let genericStatus = mapMidtransStatus(transaction_status, fraud_status);
       const paymentMethod = mapPaymentMethod(notificationData);
 
+      // Step 3b: Defensive — per docs, success requires status_code='200' AS WELL AS
+      // settlement/capture + fraud=accept. Demote to pending if status_code says
+      // otherwise so we don't accidentally mark a non-200 notification as paid.
+      if (genericStatus === 'paid' && status_code && String(status_code) !== '200') {
+        genericStatus = 'pending';
+      }
 
-      // Step 4: Update all 3 layers in single transaction
-      await prisma.$transaction(async (tx) => {
-        // Layer 1: Update transactions table
-        const transaction = await tx.transaction.update({
-          where: { transaction_code: order_id },
-          data: {
-            status: genericStatus,
-            provider_reference: transaction_id,
-            payment_method: paymentMethod,
-            paid_at: genericStatus === 'paid' ? new Date() : undefined,
-            expired_at: genericStatus === 'expired' ? new Date() : undefined,
-            updated_at: new Date(),
-          },
+      // Step 3c: Pre-check existence so unknown order_id returns 200 (stop retries)
+      // instead of throwing P2025 → 500 → wasted Midtrans retry budget.
+      const existing = await prisma.transaction.findUnique({
+        where: { transaction_code: order_id },
+        select: { id: true, status: true },
+      });
+      if (!existing) {
+        return reply.status(200).send({
+          success: true,
+          skipped: true,
+          reason: 'unknown_order_id',
+          order_id,
         });
+      }
+
+      // Step 3d: Out-of-order guard — skip Layer 1 downgrade if existing status
+      // already at a higher rank. Layer 2 still updates so raw notification is
+      // preserved for audit.
+      const allowL1Update = isAllowedTransition(existing.status, genericStatus);
+
+      // Step 4: Update layers in single transaction
+      await prisma.$transaction(async (tx) => {
+        // Layer 1: Update transactions table (only when transition is forward)
+        if (allowL1Update) {
+          await tx.transaction.update({
+            where: { transaction_code: order_id },
+            data: {
+              status: genericStatus,
+              provider_reference: transaction_id,
+              payment_method: paymentMethod,
+              paid_at: genericStatus === 'paid' ? new Date() : undefined,
+              expired_at: genericStatus === 'expired' ? new Date() : undefined,
+              updated_at: new Date(),
+            },
+          });
+        }
+        const transaction = existing;
 
 
         // Layer 2: Update midtrans_transactions table
@@ -63,7 +99,7 @@ export class WebhookController {
             fraud_status: fraud_status || null,
             payment_type: payment_type,
             bank: bank || null,
-            settlement_time: settlement_time ? new Date(settlement_time) : null,
+            settlement_time: parseMidtransTimestamp(settlement_time),
             last_notification: notificationData,
             notified_at: new Date(),
             updated_at: new Date(),
@@ -78,7 +114,9 @@ export class WebhookController {
           include: { registration: true },
         });
 
-        if (rylsPayment) {
+        // Skip L3 status cascade if L1 was blocked by rank guard — out-of-order
+        // pending after settlement must not downgrade the business layer either.
+        if (rylsPayment && allowL1Update) {
 
           // Update RYLS payment status
           await tx.rylsPayment.update({
@@ -115,8 +153,10 @@ export class WebhookController {
         }
       });
 
-      // Step 4b: Fire PostHog event
-      if (genericStatus === 'paid' || genericStatus === 'expired' || genericStatus === 'failed') {
+      // Step 4b: Fire PostHog event — only when L1 actually transitioned.
+      // Skip if out-of-order downgrade was rejected (otherwise we'd emit a
+      // spurious payment_failed/payment_completed event with no DB change).
+      if (allowL1Update && (genericStatus === 'paid' || genericStatus === 'expired' || genericStatus === 'failed')) {
         const transaction = await prisma.transaction.findUnique({
           where: { transaction_code: order_id },
           select: { user_id: true, customer_email: true, customer_name: true, amount: true, currency: true, product_type: true, metadata: true },
