@@ -188,13 +188,14 @@ export class RylsPaymentService {
         transactionCode = generateTransactionCode(TRANSACTION_CODE_CONFIG.RYLS_PREFIX, sequence);
 
 
-        // Layer 1: Create transaction
+        // Layer 1: Create transaction (PayPal manual — stays PENDING until
+        // admin verifies the uploaded proof and flips to PAID manually).
         const transaction = await tx.transaction.create({
           data: {
             transaction_code: transactionCode,
             amount: amountIdr,
             currency: 'IDR',
-            status: PAYMENT_STATUS.PAID,
+            status: PAYMENT_STATUS.PENDING,
             provider: PAYMENT_PROVIDER.PAYPAL_MANUAL,
             customer_name: registrationData.fullName,
             customer_email: registrationData.email,
@@ -205,7 +206,6 @@ export class RylsPaymentService {
               posthog_distinct_id: posthogContext.distinctId ?? null,
               posthog_session_id: posthogContext.sessionId ?? null,
             },
-            paid_at: new Date(),
           },
         });
 
@@ -222,7 +222,7 @@ export class RylsPaymentService {
           },
         });
 
-        // Layer 3: Create RYLS payment
+        // Layer 3: Create RYLS payment (PENDING — see L1 comment above).
         const rylsPayment = await tx.rylsPayment.create({
           data: {
             transaction_id: transaction.id,
@@ -230,7 +230,7 @@ export class RylsPaymentService {
             scholarship_type: registrationData.scholarshipType,
             payment_method: 'paypal',
             payment_proof_id: registrationData.paymentProof,
-            status: PAYMENT_STATUS.PAID,
+            status: PAYMENT_STATUS.PENDING,
           },
         });
 
