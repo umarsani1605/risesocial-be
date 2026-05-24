@@ -118,16 +118,31 @@ describe('AdminPlacementService', () => {
       await expect(service.assignToCohort(999, 5, { adminId: 1 })).rejects.toMatchObject({ statusCode: 404 });
     });
 
-    it('throws 422 when enrollment status is pending', async () => {
-      mockAcademyEnrollmentRepository.findById.mockResolvedValue({ ...baseEnrollment, status: 'pending' });
+    it('throws 422 when enrollment transaction is pending', async () => {
+      mockAcademyEnrollmentRepository.findById.mockResolvedValue({
+        ...baseEnrollment,
+        transaction: { status: 'pending', paid_at: null },
+      });
 
       await expect(service.assignToCohort(10, 5, { adminId: 1 })).rejects.toMatchObject({ statusCode: 422 });
     });
 
-    it('throws 422 when enrollment status is cancelled', async () => {
-      mockAcademyEnrollmentRepository.findById.mockResolvedValue({ ...baseEnrollment, status: 'cancelled' });
+    it('throws 422 when enrollment transaction is cancelled', async () => {
+      mockAcademyEnrollmentRepository.findById.mockResolvedValue({
+        ...baseEnrollment,
+        transaction: { status: 'cancelled', paid_at: null },
+      });
 
       await expect(service.assignToCohort(10, 5, { adminId: 1 })).rejects.toMatchObject({ statusCode: 422 });
+    });
+
+    it('throws 409 when enrollment is already completed', async () => {
+      mockAcademyEnrollmentRepository.findById.mockResolvedValue({
+        ...baseEnrollment,
+        completed_at: '2026-05-25T10:00:00.000Z',
+      });
+
+      await expect(service.assignToCohort(10, 5, { adminId: 1 })).rejects.toMatchObject({ statusCode: 409 });
     });
 
     it('throws 404 when cohort not found', async () => {
@@ -180,30 +195,38 @@ describe('AdminPlacementService', () => {
 
   // ----------------------------------------------------------
   describe('listAcademyEnrollments', () => {
-    it('returns paginated enrollments with filters', async () => {
+    it('returns paid enrollments only', async () => {
       mockPrisma.academyEnrollment.findMany.mockResolvedValue([baseEnrollment]);
-      mockPrisma.academyEnrollment.count.mockResolvedValue(1);
 
-      const result = await service.listAcademyEnrollments({ page: 1, limit: 10 });
+      const result = await service.listAcademyEnrollments();
 
-      expect(result.data).toHaveLength(1);
-      expect(result.meta).toMatchObject({ page: 1, limit: 10, total: 1 });
+      expect(result).toHaveLength(1);
+      expect(mockPrisma.academyEnrollment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            transaction: { is: { status: 'paid' } },
+          }),
+        }),
+      );
     });
 
-    it('filters by status', async () => {
+    it('keeps paid-only guard when filtering by academy', async () => {
       mockPrisma.academyEnrollment.findMany.mockResolvedValue([]);
-      mockPrisma.academyEnrollment.count.mockResolvedValue(0);
 
-      await service.listAcademyEnrollments({ status: 'active' });
+      await service.listAcademyEnrollments({ academy_id: 1 });
 
       expect(mockPrisma.academyEnrollment.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expect.objectContaining({ status: 'active' }) }),
+        expect.objectContaining({
+          where: expect.objectContaining({
+            academy_id: 1,
+            transaction: { is: { status: 'paid' } },
+          }),
+        }),
       );
     });
 
     it('filters by placed=false (no placement)', async () => {
       mockPrisma.academyEnrollment.findMany.mockResolvedValue([]);
-      mockPrisma.academyEnrollment.count.mockResolvedValue(0);
 
       await service.listAcademyEnrollments({ placed: false });
 

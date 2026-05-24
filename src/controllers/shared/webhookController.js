@@ -8,6 +8,7 @@ import {
 } from '../../constants/paymentHelpers.js';
 import prisma from '../../config/database.js';
 import posthog, { captureEvent } from '../../config/posthog.js';
+import { academyEnrollmentRepository } from '../../repositories/cohorts/academyEnrollmentRepository.js';
 
 /**
  * WebhookController - Simplified webhook handler
@@ -150,6 +151,10 @@ export class WebhookController {
         });
 
         if (academyEnrollment) {
+        }
+
+        if (allowL1Update && genericStatus === 'paid') {
+          await academyEnrollmentRepository.ensureForPaidTransaction(tx, transaction.id);
         }
       });
 

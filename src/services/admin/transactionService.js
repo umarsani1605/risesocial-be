@@ -8,6 +8,7 @@ import {
   PAYMENT_PROVIDER,
 } from '../../constants/paymentHelpers.js';
 import prisma from '../../config/database.js';
+import { academyEnrollmentRepository } from '../../repositories/cohorts/academyEnrollmentRepository.js';
 
 const ALLOWED_STATUSES = ['pending', 'paid', 'failed', 'expired', 'cancelled', 'refunded'];
 
@@ -241,6 +242,10 @@ export class AdminTransactionService {
         });
       }
 
+      if (genericStatus === 'paid') {
+        await academyEnrollmentRepository.ensureForPaidTransaction(tx, transaction.id);
+      }
+
       // Layer 3 — business-specific cascade
       await this._cascadeRylsStatus(tx, transaction.id, genericStatus);
     });
@@ -293,6 +298,10 @@ export class AdminTransactionService {
             updated_at: new Date(),
           },
         });
+      }
+
+      if (newStatus === 'paid') {
+        await academyEnrollmentRepository.ensureForPaidTransaction(tx, transaction.id);
       }
 
       // Layer 3 — RYLS cascade

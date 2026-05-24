@@ -14,6 +14,7 @@ const mockAcademyPaymentRepository = {
 
 const mockAcademyEnrollmentRepository = {
   findActiveByUserAcademy: vi.fn(),
+  ensureForPaidTransaction: vi.fn(),
 };
 
 const mockPrisma = {
@@ -66,15 +67,11 @@ const baseSnapResult = {
 const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
 const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-function makeTx({ enrollmentId = 50 } = {}) {
+function makeTx() {
   return {
     transaction: { create: vi.fn().mockResolvedValue({ id: 20 }), update: vi.fn().mockResolvedValue({}) },
     transactionItem: { create: vi.fn().mockResolvedValue({}) },
     midtransTransaction: { create: vi.fn().mockResolvedValue({}) },
-    academyEnrollment: {
-      create: vi.fn().mockResolvedValue({ id: enrollmentId }),
-      update: vi.fn().mockResolvedValue({ id: enrollmentId }),
-    },
     user: { update: vi.fn().mockResolvedValue({}) },
   };
 }
@@ -89,9 +86,11 @@ describe('AcademyPaymentService', () => {
     mockPrisma.academy.findFirst.mockResolvedValue(baseAcademy);
     mockPrisma.user.findUnique.mockResolvedValue(baseUser);
     mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue(null);
+    mockAcademyEnrollmentRepository.ensureForPaidTransaction.mockResolvedValue({ id: 50 });
     mockAcademyPaymentRepository.getNextSequenceNumber.mockResolvedValue(1);
     mockMidtransService.createSnapTransaction.mockResolvedValue(baseSnapResult);
     mockMidtransService.cancelTransaction.mockResolvedValue({});
+    mockPrisma.transaction.findFirst.mockResolvedValue(null);
   });
 
   // ----------------------------------------------------------
@@ -100,10 +99,9 @@ describe('AcademyPaymentService', () => {
       mockPrisma.$transaction.mockImplementation(async (fn) => fn(makeTx()));
     });
 
-    it('creates AcademyEnrollment for first-time buyer', async () => {
+    it('creates pending transaction for first-time buyer without creating enrollment', async () => {
       const result = await service.createTransaction(100, 1, 10);
 
-      expect(result).toHaveProperty('enrollment_id');
       expect(result).toHaveProperty('transaction_code');
       expect(result.token).toBe('snap-token-xyz');
       expect(result.redirect_url).toContain('midtrans');
@@ -117,7 +115,7 @@ describe('AcademyPaymentService', () => {
 
       const result = await service.createTransaction(100, 1, 10);
 
-      expect(result).toHaveProperty('enrollment_id');
+      expect(result).toHaveProperty('transaction_code');
       expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
 
@@ -126,41 +124,35 @@ describe('AcademyPaymentService', () => {
 
       const result = await service.createTransaction(100, 1, 10);
 
-      expect(result).toHaveProperty('enrollment_id');
+      expect(result).toHaveProperty('transaction_code');
     });
 
     it('returns existing snap token when pending enrollment has valid token', async () => {
-      mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
-        id: 99,
-        status: 'pending',
-        transaction: {
-          id: 5,
-          transaction_code: 'AE01ABCD1234',
-          amount: 3000000,
-          expired_at: futureDate,
-          midtrans_data: { snap_token: 'existing-token', redirect_url: 'https://existing.url' },
-        },
+      mockPrisma.transaction.findFirst.mockResolvedValue({
+        id: 5,
+        transaction_code: 'AE01ABCD1234',
+        amount: 3000000,
+        expired_at: futureDate,
+        midtrans_data: { snap_token: 'existing-token', redirect_url: 'https://existing.url' },
+        items: [{ product_code: 'academy-1-pricing-10' }],
       });
 
       const result = await service.createTransaction(100, 1, 10);
 
-      expect(result.enrollment_id).toBe(99);
+      expect(result.enrollment_id).toBeNull();
       expect(result.token).toBe('existing-token');
       expect(result.transaction_code).toBe('AE01ABCD1234');
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('resets enrollment and creates new transaction when pending token is expired', async () => {
-      mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
-        id: 99,
-        status: 'pending',
-        transaction: {
-          id: 5,
-          transaction_code: 'AE01OLD12345',
-          amount: 3000000,
-          expired_at: pastDate,
-          midtrans_data: { snap_token: 'old-token', redirect_url: 'https://old.url' },
-        },
+      mockPrisma.transaction.findFirst.mockResolvedValue({
+        id: 5,
+        transaction_code: 'AE01OLD12345',
+        amount: 3000000,
+        expired_at: pastDate,
+        midtrans_data: { snap_token: 'old-token', redirect_url: 'https://old.url' },
+        items: [{ product_code: 'academy-1-pricing-10' }],
       });
 
       const result = await service.createTransaction(100, 1, 10);
@@ -173,8 +165,7 @@ describe('AcademyPaymentService', () => {
     it('throws when enrollment is already active', async () => {
       mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
         id: 99,
-        status: 'active',
-        transaction: null,
+        transaction: { status: 'paid' },
       });
 
       await expect(service.createTransaction(100, 1, 10)).rejects.toThrow();
@@ -201,8 +192,8 @@ describe('AcademyPaymentService', () => {
       expect(result.amount).toBe(1500000);
     });
 
-    it('creates 3 layers atomically inside a transaction', async () => {
-      const tx = makeTx({ enrollmentId: 77 });
+    it('creates transaction and payment-provider layers atomically inside a transaction', async () => {
+      const tx = makeTx();
       mockPrisma.$transaction.mockImplementation(async (fn) => fn(tx));
 
       await service.createTransaction(100, 1, 10);
@@ -210,7 +201,6 @@ describe('AcademyPaymentService', () => {
       expect(tx.transaction.create).toHaveBeenCalled();
       expect(tx.transactionItem.create).toHaveBeenCalled();
       expect(tx.midtransTransaction.create).toHaveBeenCalled();
-      expect(tx.academyEnrollment.create).toHaveBeenCalled();
     });
 
     it('does not reference cohort in any layer creation', async () => {
@@ -321,16 +311,13 @@ describe('AcademyPaymentService', () => {
 
     it('backfills user fields on valid-token reuse path when form has values for empty DB fields', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ ...baseUser, phone: null });
-      mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
-        id: 99,
-        status: 'pending',
-        transaction: {
-          id: 5,
-          transaction_code: 'AE01ABCD1234',
-          amount: 3000000,
-          expired_at: futureDate,
-          midtrans_data: { snap_token: 'existing-token', redirect_url: 'https://existing.url' },
-        },
+      mockPrisma.transaction.findFirst.mockResolvedValue({
+        id: 5,
+        transaction_code: 'AE01ABCD1234',
+        amount: 3000000,
+        expired_at: futureDate,
+        midtrans_data: { snap_token: 'existing-token', redirect_url: 'https://existing.url' },
+        items: [{ product_code: 'academy-1-pricing-10' }],
       });
 
       const result = await service.createTransaction(100, 1, 10, {
@@ -363,24 +350,41 @@ describe('AcademyPaymentService', () => {
       });
       mockPrisma.$transaction.mockImplementation(async (fn) => {
         const tx = {
-          transaction: { update: vi.fn().mockResolvedValue({}) },
+          transactionItem: { findFirst: vi.fn().mockResolvedValue({ product_code: 'academy-1-pricing-10' }) },
+          academyEnrollment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ id: 50 }) },
+          transaction: {
+            update: vi.fn().mockResolvedValue({}),
+            findUnique: vi.fn().mockResolvedValue({
+              id: 20,
+              user_id: 100,
+              status: 'paid',
+              product_type: 'academy_enrollment',
+              product_type_id: 0,
+            }),
+          },
           midtransTransaction: { update: vi.fn().mockResolvedValue({}) },
-          academyEnrollment: { findFirst: vi.fn().mockResolvedValue({ id: 50, status: 'pending' }), update: vi.fn().mockResolvedValue({}) },
         };
         return fn(tx);
       });
     });
 
-    it('updates Transaction and MidtransTransaction when payment is paid (no enrollment status update)', async () => {
+    it('updates Transaction and MidtransTransaction when payment is paid and ensures enrollment exists', async () => {
       let capturedTx;
       mockPrisma.$transaction.mockImplementation(async (fn) => {
         const tx = {
-          transaction: { update: vi.fn().mockResolvedValue({}) },
-          midtransTransaction: { update: vi.fn().mockResolvedValue({}) },
-          academyEnrollment: {
-            findFirst: vi.fn().mockResolvedValue({ id: 50 }),
+          transactionItem: { findFirst: vi.fn().mockResolvedValue({ product_code: 'academy-1-pricing-10' }) },
+          academyEnrollment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ id: 50 }) },
+          transaction: {
             update: vi.fn().mockResolvedValue({}),
+            findUnique: vi.fn().mockResolvedValue({
+              id: 20,
+              user_id: 100,
+              status: 'paid',
+              product_type: 'academy_enrollment',
+              product_type_id: 0,
+            }),
           },
+          midtransTransaction: { update: vi.fn().mockResolvedValue({}) },
         };
         capturedTx = tx;
         return fn(tx);
@@ -390,10 +394,10 @@ describe('AcademyPaymentService', () => {
 
       expect(capturedTx.transaction.update).toHaveBeenCalled();
       expect(capturedTx.midtransTransaction.update).toHaveBeenCalled();
-      expect(capturedTx.academyEnrollment.update).not.toHaveBeenCalled();
+      expect(mockAcademyEnrollmentRepository.ensureForPaidTransaction).toHaveBeenCalledWith(capturedTx, 20);
     });
 
-    it('updates Transaction when payment expired (no enrollment status update)', async () => {
+    it('updates Transaction when payment expired without creating enrollment', async () => {
       mockMidtransService.getTransactionStatus.mockResolvedValue({
         transaction_status: 'expire',
         transaction_id: 'mid-txn-002',
@@ -403,12 +407,10 @@ describe('AcademyPaymentService', () => {
       let capturedTx;
       mockPrisma.$transaction.mockImplementation(async (fn) => {
         const tx = {
-          transaction: { update: vi.fn().mockResolvedValue({}) },
+          transactionItem: { findFirst: vi.fn() },
+          academyEnrollment: { findFirst: vi.fn(), create: vi.fn() },
+          transaction: { update: vi.fn().mockResolvedValue({}), findUnique: vi.fn() },
           midtransTransaction: { update: vi.fn().mockResolvedValue({}) },
-          academyEnrollment: {
-            findFirst: vi.fn().mockResolvedValue({ id: 50 }),
-            update: vi.fn().mockResolvedValue({}),
-          },
         };
         capturedTx = tx;
         return fn(tx);
@@ -417,7 +419,7 @@ describe('AcademyPaymentService', () => {
       await service.syncTransactionStatus('AE01ABCD1234', 100);
 
       expect(capturedTx.transaction.update).toHaveBeenCalled();
-      expect(capturedTx.academyEnrollment.update).not.toHaveBeenCalled();
+      expect(capturedTx.academyEnrollment.create).not.toHaveBeenCalled();
     });
 
     it('throws when transaction not found or not owned by user', async () => {
@@ -475,6 +477,7 @@ describe('AcademyPaymentService', () => {
           midtrans_data: null,
         },
       });
+      mockPrisma.transaction.findFirst.mockResolvedValue(null);
 
       const result = await service.checkEnrollment(100, 1);
 
@@ -498,16 +501,14 @@ describe('AcademyPaymentService', () => {
     });
 
     it('returns hasPendingPayment=true with snap_token when pending and token valid', async () => {
-      mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
-        id: 50,
-        completed_at: null,
-        transaction: {
-          id: 5,
-          status: 'pending',
-          transaction_code: 'AE01ABCD1234',
-          expired_at: futureDate,
-          midtrans_data: { snap_token: 'valid-token' },
-        },
+      mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue(null);
+      mockPrisma.transaction.findFirst.mockResolvedValue({
+        id: 5,
+        status: 'pending',
+        transaction_code: 'AE01ABCD1234',
+        expired_at: futureDate,
+        midtrans_data: { snap_token: 'valid-token' },
+        items: [{ product_code: 'academy-1-pricing-10' }],
       });
 
       const result = await service.checkEnrollment(100, 1);
@@ -517,16 +518,14 @@ describe('AcademyPaymentService', () => {
     });
 
     it('returns hasPendingPayment=true but no snap_token when token expired', async () => {
-      mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue({
-        id: 50,
-        completed_at: null,
-        transaction: {
-          id: 5,
-          status: 'pending',
-          transaction_code: 'AE01ABCD1234',
-          expired_at: pastDate,
-          midtrans_data: { snap_token: 'expired-token' },
-        },
+      mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue(null);
+      mockPrisma.transaction.findFirst.mockResolvedValue({
+        id: 5,
+        status: 'pending',
+        transaction_code: 'AE01ABCD1234',
+        expired_at: pastDate,
+        midtrans_data: { snap_token: 'expired-token' },
+        items: [{ product_code: 'academy-1-pricing-10' }],
       });
 
       const result = await service.checkEnrollment(100, 1);
@@ -536,6 +535,7 @@ describe('AcademyPaymentService', () => {
 
     it('returns enrolled=false and hasPendingPayment=false when no enrollment', async () => {
       mockAcademyEnrollmentRepository.findActiveByUserAcademy.mockResolvedValue(null);
+      mockPrisma.transaction.findFirst.mockResolvedValue(null);
 
       const result = await service.checkEnrollment(100, 1);
 

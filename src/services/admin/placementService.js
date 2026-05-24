@@ -12,7 +12,9 @@ function makeError(message, statusCode) {
 export class AdminPlacementService {
 
   async listAcademyEnrollments({ placed, academy_id, user_id } = {}) {
-    const where = {};
+    const where = {
+      transaction: { is: { status: 'paid' } },
+    };
     if (academy_id) where.academy_id = Number(academy_id);
     if (user_id) where.user_id = Number(user_id);
     if (placed === true) where.placement = { isNot: null };
@@ -46,6 +48,12 @@ export class AdminPlacementService {
 
     const enrollment = await academyEnrollmentRepository.findById(enrollmentId);
     if (!enrollment) throw makeError('Enrollment not found', 404);
+    if (enrollment.transaction?.status !== 'paid') {
+      throw makeError('Only paid enrollments can be assigned to a cohort', 422);
+    }
+    if (enrollment.completed_at) {
+      throw makeError('Completed enrollments cannot be moved to another cohort', 409);
+    }
 
     const cohort = await prisma.cohort.findUnique({ where: { id: cohortId } });
     if (!cohort) throw makeError('Cohort not found', 404);

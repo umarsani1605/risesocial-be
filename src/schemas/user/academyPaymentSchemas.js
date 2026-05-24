@@ -23,7 +23,7 @@ const createTransactionBodySchema = {
 const transactionDataSchema = {
   type: 'object',
   properties: {
-    enrollment_id: { type: 'integer', description: 'Enrollment record ID' },
+    enrollment_id: { type: ['integer', 'null'], description: 'Enrollment record ID when payment is already finalized' },
     transaction_code: { type: 'string', description: 'Transaction code' },
     amount: { type: 'number', description: 'Payment amount in IDR' },
     currency: { type: 'string', description: 'Currency' },
@@ -67,7 +67,7 @@ const checkEnrollmentDataSchema = {
     enrolled: { type: 'boolean', description: 'Whether user is enrolled (active or completed)' },
     hasPendingPayment: { type: 'boolean', description: 'Whether user has an incomplete pending payment' },
     pending_pricing_id: { type: ['integer', 'null'], description: 'Pricing tier id of pending transaction, null if no pending' },
-    enrollment_id: { type: 'integer', description: 'Enrollment ID' },
+    enrollment_id: { type: ['integer', 'null'], description: 'Enrollment ID' },
     status: { type: ['string', 'null'], description: 'Enrollment status' },
     payment_status: { type: ['string', 'null'], description: 'Payment status' },
     snap_token: { type: ['string', 'null'], description: 'Existing Midtrans snap token if still valid' },
