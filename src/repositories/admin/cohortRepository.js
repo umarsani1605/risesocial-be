@@ -1,4 +1,5 @@
 import prisma from '../../config/database.js';
+import { flattenAcademySyllabusToModules } from '../../utils/academySyllabus.js';
 import { BaseRepository } from '../shared/BaseRepository.js';
 
 export class AdminCohortRepository extends BaseRepository {
@@ -313,20 +314,22 @@ export class AdminCohortRepository extends BaseRepository {
   // --- Bulk copy from academy (used on cohort create) ---
 
   async bulkCreateModulesFromAcademyTopics(tx, cohortId, academyId) {
-    const topics = await tx.academyTopic.findMany({
+    const themes = await tx.academyTheme.findMany({
       where: { academy_id: academyId },
-      include: { theme: { select: { order: true } } },
-      orderBy: [{ theme: { order: 'asc' } }, { order: 'asc' }],
+      include: { topics: { orderBy: { order: 'asc' } } },
+      orderBy: { order: 'asc' },
     });
 
-    if (topics.length === 0) return 0;
+    const syllabusItems = flattenAcademySyllabusToModules(themes);
 
-    const data = topics.map((topic, index) => ({
+    if (syllabusItems.length === 0) return 0;
+
+    const data = syllabusItems.map((item) => ({
       cohort_id: cohortId,
       academy_id: academyId,
-      title: topic.title,
-      description: topic.description,
-      order: index + 1,
+      title: item.title,
+      description: item.description,
+      order: item.order,
       is_published: false,
     }));
 

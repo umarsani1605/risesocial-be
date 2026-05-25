@@ -141,34 +141,41 @@ async function getModules(cohortId, token = userToken) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('Skenario 1 — Happy Path: Buy → Assign → Access', () => {
-  it('creates pending enrollment on purchase, active after webhook, access granted after assign', async () => {
+  it('creates enrollment only after paid webhook, then access granted after assign', async () => {
     // Step 1: Create transaction
     const txRes = await createTransaction(userToken, academy.id, pricing.id);
     expect(txRes.statusCode).toBe(200);
-    const { enrollment_id, transaction_code } = JSON.parse(txRes.body).data;
-    expect(enrollment_id).toBeDefined();
+    const { transaction_code } = JSON.parse(txRes.body).data;
 
-    // Step 2: Verify enrollment exists and transaction is pending (before webhook)
-    let enrollment = await prisma.academyEnrollment.findUnique({
-      where: { id: enrollment_id },
+    // Step 2: Verify no enrollment exists before webhook
+    let enrollment = await prisma.academyEnrollment.findFirst({
+      where: {
+        user_id: regularUser.id,
+        academy_id: academy.id,
+        transaction: { transaction_code },
+      },
       include: { transaction: { select: { status: true } } },
     });
-    expect(enrollment).not.toBeNull();
-    expect(enrollment.transaction.status).toBe('pending');
+    expect(enrollment).toBeNull();
 
     // Step 3: Confirm no placement yet
-    const placement = await prisma.cohortPlacement.findFirst({ where: { academy_enrollment_id: enrollment_id } });
+    const placement = await prisma.cohortPlacement.findFirst();
     expect(placement).toBeNull();
 
     // Step 4: Simulate Midtrans paid webhook
     const webhookRes = await simulatePaidWebhook(transaction_code);
     expect(webhookRes.statusCode).toBe(200);
 
-    // Step 5: Verify transaction is now paid (enrollment is active)
-    enrollment = await prisma.academyEnrollment.findUnique({
-      where: { id: enrollment_id },
+    // Step 5: Verify transaction is now paid and enrollment is created
+    enrollment = await prisma.academyEnrollment.findFirst({
+      where: {
+        user_id: regularUser.id,
+        academy_id: academy.id,
+        transaction: { transaction_code },
+      },
       include: { transaction: { select: { status: true } } },
     });
+    expect(enrollment).not.toBeNull();
     expect(enrollment.transaction.status).toBe('paid');
 
     // Step 6: User cannot access cohort modules without placement → 403
@@ -176,14 +183,14 @@ describe('Skenario 1 — Happy Path: Buy → Assign → Access', () => {
     expect(modulesRes.statusCode).toBe(403);
 
     // Step 7: Admin assigns enrollment to cohort
-    const assignRes = await adminAssign(enrollment_id, cohortA.id);
+    const assignRes = await adminAssign(enrollment.id, cohortA.id);
     expect(assignRes.statusCode).toBe(200);
     const assignBody = JSON.parse(assignRes.body);
     expect(assignBody.data.cohort_id).toBe(cohortA.id);
 
     // Step 8: Verify CohortPlacement created
     const newPlacement = await prisma.cohortPlacement.findFirst({
-      where: { academy_enrollment_id: enrollment_id },
+      where: { academy_enrollment_id: enrollment.id },
     });
     expect(newPlacement).not.toBeNull();
     expect(newPlacement.cohort_id).toBe(cohortA.id);

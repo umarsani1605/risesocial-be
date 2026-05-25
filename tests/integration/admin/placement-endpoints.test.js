@@ -147,6 +147,21 @@ describe('Admin Placement Endpoints (RS-28)', () => {
       const body = res.json();
       expect(body.data).toHaveLength(0);
     });
+
+    it('does not return pending academy transactions', async () => {
+      await createEnrollment('pending');
+      await createEnrollment('paid');
+
+      const res = await app.inject({
+        method: 'GET', url: '/admin/academy-enrollments',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].transaction.status).toBe('paid');
+    });
   });
 
   // ----------------------------------------------------------
