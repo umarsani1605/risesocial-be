@@ -110,20 +110,89 @@ export class RylsDraftService {
   }
 
   prepareDraftExportSheetData(drafts) {
-    const headers = ['Email', 'Full Name', 'Current Step', 'Scholarship Type', 'Updated At'];
+    const headers = [
+      'Full Name',
+      'Email',
+      'Whatsapp',
+      'Gender',
+      'Date of Birth',
+      'Residence',
+      'Nationality',
+      'Second Nationality',
+      'Institution',
+      'Discover Source',
+      'Scholarship Type',
+      'Progress',
+      'Last Updated',
+    ];
     const rows = [headers];
 
     drafts.forEach((draft) => {
+      const step1 = draft.form_data?.step1 ?? {};
       rows.push([
+        this.getCellValue(step1.fullName),
         this.getCellValue(draft.email),
-        this.getCellValue(draft.form_data?.step1?.fullName),
-        this.getCellValue(draft.current_step),
-        this.getCellValue(draft.scholarship_type),
+        this.getCellValue(step1.whatsapp),
+        this.formatGender(step1.gender),
+        this.formatDateOnly(step1.dateOfBirth),
+        this.getCellValue(step1.residence),
+        this.getCellValue(step1.nationality),
+        this.getCellValue(step1.secondNationality),
+        this.getCellValue(step1.institution),
+        this.formatDiscoverSource(step1.discoverSource, step1.discoverOtherText),
+        this.formatScholarshipType(draft.scholarship_type),
+        this.formatStep(draft.current_step),
         this.formatDateCell(draft.updated_at),
       ]);
     });
 
     return rows;
+  }
+
+  formatGender(gender) {
+    if (!gender) return '-';
+    if (gender === 'FEMALE') return 'Female';
+    if (gender === 'MALE') return 'Male';
+    if (gender === 'PREFER_NOT_TO_SAY') return 'Prefer not to say';
+    return gender;
+  }
+
+  formatDiscoverSource(source, otherText) {
+    if (!source) return '-';
+    if (source === 'OTHER') return (otherText && String(otherText).trim()) || 'Other';
+    const labels = {
+      INSTAGRAM: 'Instagram',
+      TWITTER: 'Twitter / X',
+      LINKEDIN: 'LinkedIn',
+      TIKTOK: 'TikTok',
+      FACEBOOK: 'Facebook',
+      YOUTUBE: 'YouTube',
+      FRIEND: 'Friend',
+      SCHOOL: 'School / Campus',
+      WEBSITE: 'Website',
+    };
+    return labels[source] ?? source;
+  }
+
+  formatScholarshipType(type) {
+    if (!type) return '-';
+    if (type === 'FULLY_FUNDED') return 'Fully Funded';
+    if (type === 'SELF_FUNDED') return 'Self Funded';
+    return type;
+  }
+
+  formatStep(step) {
+    if (step == null) return '-';
+    return `Step ${step}`;
+  }
+
+  formatDateOnly(value) {
+    if (!value) return '-';
+    try {
+      return new Date(value).toISOString().split('T')[0];
+    } catch {
+      return String(value);
+    }
   }
 
   getCellValue(value) {
