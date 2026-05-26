@@ -21,16 +21,35 @@ async function buildApp() {
   return app;
 }
 
-function makeAdminToken(app, overrides = {}) {
-  return app.jwt.sign({ userId: 999, role: 'ADMIN', ...overrides });
+function makeAdminToken(app, userId, overrides = {}) {
+  return app.jwt.sign({ userId, role: 'ADMIN', ...overrides });
 }
 
 // --- DB setup ---
 let prisma;
 let app;
 let adminToken;
+let adminUser;
 let user;
 let academy;
+
+async function grantCohortPermission(userId, accessLevel = 'EDITOR') {
+  await prisma.adminPermission.upsert({
+    where: { key: 'admin.cohort' },
+    update: {},
+    create: {
+      key: 'admin.cohort',
+      name: 'Cohort',
+      description: 'Kelola cohort & enrollment',
+      available_levels: ['VIEWER', 'EDITOR'],
+    },
+  });
+  await prisma.userAdminPermission.upsert({
+    where: { user_id_permission_key: { user_id: userId, permission_key: 'admin.cohort' } },
+    update: { access_level: accessLevel },
+    create: { user_id: userId, permission_key: 'admin.cohort', access_level: accessLevel },
+  });
+}
 
 async function createTransaction(status = 'paid') {
   const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -82,9 +101,11 @@ describe('Admin Placement Endpoints (RS-28)', () => {
 
   beforeEach(async () => {
     await resetDatabase();
+    adminUser = await createTestUser({ role: 'ADMIN' });
+    await grantCohortPermission(adminUser.id);
     user = await createTestUser();
     academy = await seedAcademy();
-    adminToken = makeAdminToken(app);
+    adminToken = makeAdminToken(app, adminUser.id);
   });
 
   afterAll(async () => {

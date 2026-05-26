@@ -1,6 +1,6 @@
 import { adminAcademyController } from '../../controllers/admin/academyController.js';
 import { adminMiddleware } from '../../middleware/auth.js';
-import { requirePermission } from '../../middleware/permissionMiddleware.js';
+import { requireAnyPermission, requirePermission } from '../../middleware/permissionMiddleware.js';
 import { createUploadMiddleware } from '../../middleware/uploadMiddleware.js';
 import {
   getAdminAcademiesSchema,
@@ -43,12 +43,16 @@ const uploadInstructorAvatar = createUploadMiddleware('instructor_avatar');
 
 const VIEW = requirePermission('admin.academy');
 const EDIT = requirePermission('admin.academy', 'EDITOR');
+const VIEW_ACADEMY_OR_COHORT = requireAnyPermission([
+  { key: 'admin.academy' },
+  { key: 'admin.cohort' },
+]);
 
 export default async function adminAcademyRoutes(fastify) {
   fastify.addHook('preHandler', adminMiddleware);
 
   // Academy CRUD
-  fastify.get('/', { schema: getAdminAcademiesSchema, preHandler: VIEW, handler: adminAcademyController.getAllAcademies });
+  fastify.get('/', { schema: getAdminAcademiesSchema, preHandler: VIEW_ACADEMY_OR_COHORT, handler: adminAcademyController.getAllAcademies });
   fastify.get('/:slug', { schema: getAdminAcademyBySlugSchema, preHandler: VIEW, handler: adminAcademyController.getAcademyBySlug });
   fastify.post('/', { schema: createAcademySchema, preValidation: [uploadAcademyImage], preHandler: EDIT, handler: adminAcademyController.createAcademy });
   fastify.put('/:id', { schema: updateAcademySchema, preValidation: [uploadAcademyImage], preHandler: EDIT, handler: adminAcademyController.updateAcademy });

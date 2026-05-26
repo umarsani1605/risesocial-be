@@ -129,7 +129,7 @@ export async function systemSettingsRoutes(fastify) {
         },
       },
     },
-    preHandler: [adminMiddleware, requirePermission('admin.settings')],
+    preHandler: [adminMiddleware],
     handler: adminSystemSettingsController.getLinkedInRateLimit,
   });
 }

@@ -10,8 +10,14 @@ vi.mock('../../../../src/controllers/admin/systemSettingsController.js', () => (
     getSetting: vi.fn(),
     setSetting: vi.fn(),
     deleteSetting: vi.fn(),
-    getLinkedInRateLimit: vi.fn(),
+    getLinkedInRateLimit: vi.fn(async (_request, reply) => {
+      return reply.send({ success: true, data: { jobs: { remaining: 1 } } });
+    }),
   },
+}));
+
+vi.mock('../../../../src/middleware/auth.js', () => ({
+  adminMiddleware: async () => {},
 }));
 
 vi.mock('../../../../src/middleware/permissionMiddleware.js', () => ({
@@ -43,5 +49,18 @@ describe('systemSettingsRoutes public email test endpoint', () => {
         data: expect.objectContaining({ recipient: 'umarsani361@gmail.com' }),
       }),
     );
+  });
+
+  it('allows LinkedIn rate-limit access without system settings permission', async () => {
+    const { requirePermission } = await import('../../../../src/middleware/permissionMiddleware.js');
+    const callsBeforeRequest = requirePermission.mock.calls.length;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/admin/system/settings/linkedin/rate-limit',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(requirePermission.mock.calls).toHaveLength(callsBeforeRequest);
   });
 });

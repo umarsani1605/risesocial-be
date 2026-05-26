@@ -22,3 +22,29 @@ export function requirePermission(key, requiredLevel = 'VIEWER') {
     }
   };
 }
+
+export function requireAnyPermission(requirements) {
+  return async function (request, reply) {
+    const user = request.user;
+
+    if (user.role === 'SUPERADMIN') return;
+
+    const keys = requirements.map((requirement) => requirement.key);
+    const permissions = await prisma.userAdminPermission.findMany({
+      where: {
+        user_id: user.userId,
+        permission_key: { in: keys },
+      },
+    });
+
+    const hasAllowedPermission = permissions.some((permission) => {
+      const requirement = requirements.find((item) => item.key === permission.permission_key);
+      if (!requirement) return false;
+      return requirement.level !== 'EDITOR' || permission.access_level === 'EDITOR';
+    });
+
+    if (!hasAllowedPermission) {
+      return reply.status(403).send(errorResponse('Forbidden: no permission for this resource', 403));
+    }
+  };
+}
