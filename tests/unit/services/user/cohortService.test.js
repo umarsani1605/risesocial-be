@@ -203,6 +203,88 @@ describe('UserCohortService (RS-29)', () => {
   });
 
   // ----------------------------------------------------------
+  describe('getUpcomingSessions()', () => {
+    it('uses a default limit of four upcoming items', async () => {
+      mockUserCohortRepository.findUpcomingModulesForUser.mockResolvedValue([]);
+
+      await userCohortService.getUpcomingSessions(100);
+
+      expect(mockUserCohortRepository.findUpcomingModulesForUser).toHaveBeenCalledWith(100, 8);
+    });
+
+    it('builds dashboard module links from the module order, not the upcoming list index', async () => {
+      mockUserCohortRepository.findUpcomingModulesForUser.mockResolvedValue([
+        {
+          id: 50,
+          cohort_id: 2,
+          order: 5,
+          title: 'Negative Screening & Exclusionary Policies',
+          session_start_time: new Date('2099-05-28T03:29:00.000Z'),
+          session_end_time: new Date('2099-05-28T05:29:00.000Z'),
+          assignment_deadline: null,
+          assignment_link: null,
+        },
+      ]);
+
+      const result = await userCohortService.getUpcomingSessions(100, 7);
+
+      expect(result[0]).toMatchObject({
+        id: 50,
+        type: 'session',
+        link: '/dashboard/academy/2#module-5',
+      });
+    });
+
+    it('uses the dashboard module link for assignment items instead of the raw assignment link', async () => {
+      mockUserCohortRepository.findUpcomingModulesForUser.mockResolvedValue([
+        {
+          id: 52,
+          cohort_id: 2,
+          order: 5,
+          title: 'Negative Screening & Exclusionary Policies',
+          assignment_title: 'Final Reflection Assignment',
+          session_start_time: new Date('2099-05-28T03:29:00.000Z'),
+          session_end_time: new Date('2099-05-28T05:29:00.000Z'),
+          assignment_deadline: new Date('2099-05-29T03:29:00.000Z'),
+          assignment_link: '/admin/cohorts/2/modules/50/assignment',
+        },
+      ]);
+
+      const result = await userCohortService.getUpcomingSessions(100, 7);
+
+      expect(result.find((item) => item.type === 'assignment')).toMatchObject({
+        id: 52,
+        type: 'assignment',
+        title: 'Final Reflection Assignment',
+        link: '/dashboard/academy/2#module-5',
+      });
+    });
+
+    it('keeps an ongoing session in upcoming until the session end time passes', async () => {
+      mockUserCohortRepository.findUpcomingModulesForUser.mockResolvedValue([
+        {
+          id: 51,
+          cohort_id: 2,
+          order: 5,
+          title: 'Negative Screening & Exclusionary Policies',
+          session_start_time: new Date(Date.now() - 30 * 60 * 1000),
+          session_end_time: new Date(Date.now() + 30 * 60 * 1000),
+          assignment_deadline: null,
+          assignment_link: null,
+        },
+      ]);
+
+      const result = await userCohortService.getUpcomingSessions(100, 7);
+
+      expect(result[0]).toMatchObject({
+        id: 51,
+        type: 'session',
+        link: '/dashboard/academy/2#module-5',
+      });
+    });
+  });
+
+  // ----------------------------------------------------------
   describe('verifyCertificate()', () => {
     it('throws 404 when certificate code does not exist', async () => {
       mockUserCohortRepository.findCertificateByCode.mockResolvedValue(null);

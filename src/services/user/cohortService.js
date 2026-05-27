@@ -148,16 +148,19 @@ export class UserCohortService {
     }
   }
 
-  async getUpcomingSessions(userId, limit = 7) {
+  async getUpcomingSessions(userId, limit = 4) {
     try {
       const now = new Date();
       const modules = await this.repository.findUpcomingModulesForUser(userId, limit * 2);
       const expanded = [];
 
-      for (const [index, mod] of modules.entries()) {
-        const baseLink = `/dashboard/academy/${mod.cohort_id}#module-${index + 1}`;
+      for (const mod of modules) {
+        const baseLink = `/dashboard/academy/${mod.cohort_id}#module-${mod.order}`;
+        const sessionEndTime = mod.session_end_time ?? (
+          mod.session_start_time ? new Date(new Date(mod.session_start_time).getTime() + 120 * 60 * 1000) : null
+        );
 
-        if (mod.session_start_time && new Date(mod.session_start_time) > now) {
+        if (mod.session_start_time && sessionEndTime && new Date(sessionEndTime) > now) {
           expanded.push({
             id: mod.id,
             type: 'session',
@@ -175,8 +178,8 @@ export class UserCohortService {
           expanded.push({
             id: mod.id,
             type: 'assignment',
-            title: mod.title,
-            link: mod.assignment_link ?? baseLink,
+            title: mod.assignment_title ?? mod.title,
+            link: baseLink,
             cohort_id: mod.cohort_id,
             sort_key: mod.assignment_deadline,
             session_start_time: null,

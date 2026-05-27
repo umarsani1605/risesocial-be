@@ -96,7 +96,7 @@ export class UserCohortController {
     try {
 
       const userId = request.user.userId;
-      const limit = Math.min(Number(request.query.limit ?? 7), 20);
+      const limit = Math.min(Number(request.query.limit ?? 4), 4);
       const sessions = await userCohortService.getUpcomingSessions(userId, limit);
 
       return reply.send(successResponse(sessions, 'Upcoming sessions retrieved successfully'));

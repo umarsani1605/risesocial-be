@@ -319,7 +319,7 @@ export const getUpcomingSessionsSchema = {
   querystring: {
     type: 'object',
     properties: {
-      limit: { type: 'integer', minimum: 1, maximum: 20, default: 7 },
+      limit: { type: 'integer', minimum: 1, maximum: 4, default: 4 },
     },
   },
   response: {

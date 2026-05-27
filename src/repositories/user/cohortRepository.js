@@ -170,9 +170,10 @@ export class UserCohortRepository extends BaseRepository {
     });
   }
 
-  async findUpcomingModulesForUser(userId, limit = 7) {
+  async findUpcomingModulesForUser(userId, limit = 4) {
 
     const now = new Date();
+    const fallbackSessionStartWindow = new Date(now.getTime() - 120 * 60 * 1000);
 
     const placements = await prisma.cohortPlacement.findMany({
       where: { user_id: userId },
@@ -187,12 +188,18 @@ export class UserCohortRepository extends BaseRepository {
       where: {
         cohort_id: { in: cohortIds },
         is_published: true,
-        OR: [{ session_start_time: { gt: now } }, { assignment_deadline: { gt: now } }],
+        OR: [
+          { session_end_time: { gt: now } },
+          { session_start_time: { gt: fallbackSessionStartWindow } },
+          { assignment_deadline: { gt: now } },
+        ],
       },
       select: {
         id: true,
         cohort_id: true,
+        order: true,
         title: true,
+        assignment_title: true,
         session_start_time: true,
         session_end_time: true,
         assignment_deadline: true,
