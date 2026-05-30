@@ -62,6 +62,22 @@ export class JobSyncSchedulerService {
       const filter = await systemSettingsService.getLinkedInSyncFilter();
       const result = await jobsService.syncJobsFromLinkedIn({ filter, limit: schedule.job_limit });
 
+      if (process.env.NODE_ENV === 'production') {
+        posthog.capture({
+          distinctId: 'system:scheduler',
+          event: 'scheduler.linkedin_job_update_ran',
+          properties: {
+            source: 'scheduler',
+            integration: 'linkedin_job_sync',
+            saved_jobs: result?.savedJobs ?? 0,
+            skipped_jobs: result?.skippedJobs ?? 0,
+            total_jobs: result?.totalJobs ?? 0,
+            job_limit: schedule.job_limit,
+            fetched_jobs: result?.fetchedJobs ?? [],
+          },
+        });
+      }
+
       log.info?.(
         `[JobSyncSchedulerService] runDueLinkedInSync success (saved=${result?.savedJobs ?? 0}, skipped=${result?.skippedJobs ?? 0})`,
       );
@@ -91,6 +107,20 @@ export class JobSyncSchedulerService {
     try {
       const schedule = await systemSettingsService.getLinkedInSyncSchedule();
       const result = await jobsService.autoHideExpiredLinkedInJobs(schedule.hide_after_weeks);
+
+      if (process.env.NODE_ENV === 'production') {
+        posthog.capture({
+          distinctId: 'system:scheduler',
+          event: 'scheduler.linkedin_job_auto_hide_ran',
+          properties: {
+            source: 'scheduler',
+            integration: 'linkedin_job_auto_hide',
+            updated_count: result?.updatedCount ?? 0,
+            hide_after_weeks: schedule.hide_after_weeks,
+            updated_jobs: result?.updatedJobs ?? [],
+          },
+        });
+      }
 
       log.info?.(
         `[JobSyncSchedulerService] runDueLinkedInAutoHide success (updated=${result?.updatedCount ?? 0}, hide_after_weeks=${schedule.hide_after_weeks})`,

@@ -16,9 +16,17 @@ vi.mock('../../src/services/shared/jobsService.js', () => ({
   },
 }));
 
+vi.mock('../../src/config/posthog.js', () => ({
+  default: {
+    capture: vi.fn(),
+    captureException: vi.fn(),
+  },
+}));
+
 import { jobSyncSchedulerService } from '../../src/services/shared/jobSyncSchedulerService.js';
 import { systemSettingsService } from '../../src/services/admin/systemSettingsService.js';
 import { jobsService } from '../../src/services/shared/jobsService.js';
+import posthog from '../../src/config/posthog.js';
 
 const silentLog = { info: vi.fn(), error: vi.fn() };
 
@@ -72,8 +80,16 @@ describe('JobSyncSchedulerService.runDueLinkedInSync', () => {
     systemSettingsService.getLinkedInSyncSchedule.mockResolvedValue(schedule());
     systemSettingsService.getLinkedInLastSyncedAt.mockResolvedValue(null);
     systemSettingsService.getLinkedInSyncFilter.mockResolvedValue({ advanced_title_filter: ['esg'] });
-    jobsService.syncJobsFromLinkedIn.mockResolvedValue({ success: true, savedJobs: 3, skippedJobs: 7 });
-    jobsService.autoHideExpiredLinkedInJobs.mockResolvedValue({ updatedCount: 4 });
+    jobsService.syncJobsFromLinkedIn.mockResolvedValue({
+      success: true,
+      savedJobs: 3,
+      skippedJobs: 7,
+      fetchedJobs: [{ id: 'ln-1', title: 'ESG Analyst' }],
+    });
+    jobsService.autoHideExpiredLinkedInJobs.mockResolvedValue({
+      updatedCount: 4,
+      updatedJobs: [{ id: 10, title: 'Waste Coordinator' }],
+    });
   });
 
   it('runs sync with the stored filter when due', async () => {
@@ -83,6 +99,26 @@ describe('JobSyncSchedulerService.runDueLinkedInSync', () => {
 
     expect(jobsService.syncJobsFromLinkedIn).toHaveBeenCalledWith({ filter: { advanced_title_filter: ['esg'] }, limit: 10 });
     expect(res.ran).toBe(true);
+  });
+
+  it('captures a success event for production scheduler runs', async () => {
+    vi.spyOn(jobSyncSchedulerService, 'isDue').mockReturnValue(true);
+    const oldEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    await jobSyncSchedulerService.runDueLinkedInSync(silentLog);
+
+    expect(posthog.capture).toHaveBeenCalledWith(expect.objectContaining({
+      distinctId: 'system:scheduler',
+      event: 'scheduler.linkedin_job_update_ran',
+      properties: expect.objectContaining({
+        saved_jobs: 3,
+        skipped_jobs: 7,
+        job_limit: 10,
+        fetched_jobs: [{ id: 'ln-1', title: 'ESG Analyst' }],
+      }),
+    }));
+    process.env.NODE_ENV = oldEnv;
   });
 
   it('skips sync when not due', async () => {
@@ -111,7 +147,10 @@ describe('JobSyncSchedulerService.runDueLinkedInAutoHide', () => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
     systemSettingsService.getLinkedInSyncSchedule.mockResolvedValue(schedule({ enabled: false, hide_after_weeks: 3 }));
-    jobsService.autoHideExpiredLinkedInJobs.mockResolvedValue({ updatedCount: 2 });
+    jobsService.autoHideExpiredLinkedInJobs.mockResolvedValue({
+      updatedCount: 2,
+      updatedJobs: [{ id: 10, title: 'Waste Coordinator' }],
+    });
   });
 
   it('auto-hides LinkedIn jobs using the configured fallback week threshold', async () => {
@@ -120,6 +159,24 @@ describe('JobSyncSchedulerService.runDueLinkedInAutoHide', () => {
     expect(jobsService.autoHideExpiredLinkedInJobs).toHaveBeenCalledWith(3);
     expect(res.ran).toBe(true);
     expect(res.updatedCount).toBe(2);
+  });
+
+  it('captures auto-hide success details for production scheduler runs', async () => {
+    const oldEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    await jobSyncSchedulerService.runDueLinkedInAutoHide(silentLog);
+
+    expect(posthog.capture).toHaveBeenCalledWith(expect.objectContaining({
+      distinctId: 'system:scheduler',
+      event: 'scheduler.linkedin_job_auto_hide_ran',
+      properties: expect.objectContaining({
+        updated_count: 2,
+        hide_after_weeks: 3,
+        updated_jobs: [{ id: 10, title: 'Waste Coordinator' }],
+      }),
+    }));
+    process.env.NODE_ENV = oldEnv;
   });
 
   it('does not throw when auto-hide fails', async () => {

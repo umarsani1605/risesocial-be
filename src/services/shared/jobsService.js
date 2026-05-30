@@ -324,7 +324,10 @@ export class JobsService {
   async autoHideExpiredLinkedInJobs(hideAfterWeeks, now = new Date()) {
     const fallbackCreatedBefore = new Date(now.getTime() - hideAfterWeeks * 7 * MS_PER_DAY);
     const result = await jobsRepository.autoHideExpiredLinkedInJobs({ now, fallbackCreatedBefore });
-    return { updatedCount: result?.count ?? 0 };
+    return {
+      updatedCount: result?.count ?? 0,
+      updatedJobs: result?.jobs ?? [],
+    };
   }
 
   async syncJobsFromLinkedIn(options = {}) {
@@ -348,6 +351,7 @@ export class JobsService {
           totalJobs: 0,
           savedJobs: 0,
           skippedJobs: 0,
+          fetchedJobs: [],
         };
       }
 
@@ -470,6 +474,10 @@ export class JobsService {
         totalJobs: linkedinJobs.length,
         savedJobs: savedCount,
         skippedJobs: skippedCount,
+        fetchedJobs: linkedinJobs.map((job) => ({
+          id: String(job.id),
+          title: job.title,
+        })),
       };
     } catch (error) {
       throw error;

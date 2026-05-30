@@ -273,31 +273,44 @@ export class JobsRepository extends BaseRepository {
   }
 
   async autoHideExpiredLinkedInJobs({ now, fallbackCreatedBefore }) {
-    return await this.model.updateMany({
-      where: {
-        status: 'active',
-        AND: [
-          {
-            OR: [
-              { source: 'linkedin' },
-              { linkedin_job_id: { not: null } },
-            ],
-          },
-          {
-            OR: [
-              { valid_until: { lte: now } },
-              {
-                AND: [
-                  { valid_until: null },
-                  { created_at: { lte: fallbackCreatedBefore } },
-                ],
-              },
-            ],
-          },
-        ],
-      },
+    const where = {
+      status: 'active',
+      AND: [
+        {
+          OR: [
+            { source: 'linkedin' },
+            { linkedin_job_id: { not: null } },
+          ],
+        },
+        {
+          OR: [
+            { valid_until: { lte: now } },
+            {
+              AND: [
+                { valid_until: null },
+                { created_at: { lte: fallbackCreatedBefore } },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const jobsToHide = await this.model.findMany({
+      where,
+      select: { id: true, title: true },
+    });
+
+    if (jobsToHide.length === 0) {
+      return { count: 0, jobs: [] };
+    }
+
+    const result = await this.model.updateMany({
+      where: { id: { in: jobsToHide.map((job) => job.id) } },
       data: { status: 'inactive' },
     });
+
+    return { count: result.count, jobs: jobsToHide };
   }
 
   async findJobsByLinkedInIds(linkedinIds) {
