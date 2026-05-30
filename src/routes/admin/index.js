@@ -11,3 +11,4 @@ export { default as transaction } from './transactionRoutes.js';
 export { default as permission } from './permissionRoutes.js';
 export { default as placement } from './placementRoutes.js';
 export { default as cohortPlacement } from './cohortPlacementRoutes.js';
+export { default as broadcast } from './broadcastRoutes.js';

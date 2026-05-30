@@ -31,7 +31,6 @@ export class UserRepository extends BaseRepository {
         const user = await tx.user.create({ data: userData, include: { user_settings: true } });
 
         const defaultNotificationPreferences = {
-          promo_notification: true,
           job_notification: true,
           program_notification: true,
         };

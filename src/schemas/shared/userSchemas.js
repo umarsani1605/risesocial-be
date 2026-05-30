@@ -229,7 +229,6 @@ export const getNotificationPreferencesSchema = {
       {
         type: 'object',
         properties: {
-          promo_notification: { type: 'boolean', description: 'Promotional notifications' },
           job_notification: { type: 'boolean', description: 'Job notifications' },
           program_notification: { type: 'boolean', description: 'Program notifications' },
         },
@@ -253,7 +252,6 @@ export const updateNotificationPreferencesSchema = {
       preferences: {
         type: 'object',
         properties: {
-          promo_notification: { type: 'boolean', description: 'Promotional notifications' },
           job_notification: { type: 'boolean', description: 'Job notifications' },
           program_notification: { type: 'boolean', description: 'Program notifications' },
         },
@@ -267,7 +265,6 @@ export const updateNotificationPreferencesSchema = {
       {
         type: 'object',
         properties: {
-          promo_notification: { type: 'boolean', description: 'Promotional notifications' },
           job_notification: { type: 'boolean', description: 'Job notifications' },
           program_notification: { type: 'boolean', description: 'Program notifications' },
         },

@@ -43,6 +43,15 @@ export class AdminSystemSettingsController {
     }
   }
 
+  async getPublicSiteSettings(request, reply) {
+    try {
+      const settings = await systemSettingsService.getPublicSiteSettings();
+      return reply.send(successResponse(settings, 'Public site settings retrieved successfully'));
+    } catch (error) {
+      return reply.send(errorResponse(error.message, 500));
+    }
+  }
+
   async getSetting(request, reply) {
     try {
       const { key } = request.params;

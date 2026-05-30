@@ -31,6 +31,11 @@ export const UPLOAD_CONFIG = {
     maxSize: 5 * MB,
     storagePath: 'academies/images',
   },
+  broadcast_image: {
+    mimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'],
+    maxSize: 5 * MB,
+    storagePath: 'images/broadcasts',
+  },
   user_avatar: {
     mimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
     maxSize: 5 * MB,

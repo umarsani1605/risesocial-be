@@ -6,3 +6,4 @@ export { default as jobs } from './jobsRoutes.js';
 export { default as testimonials } from './testimonialsRoutes.js';
 export { default as fileUpload } from './fileUploadRoutes.js';
 export { default as cohort, certificateVerifyRoutes as certificateVerify } from './cohortRoutes.js';
+export { default as settings } from './settingsRoutes.js';

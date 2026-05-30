@@ -123,7 +123,6 @@ describe('UserRepository Integration Tests', () => {
 
       expect(settings).not.toBeNull();
       expect(settings.value).toEqual({
-        promo_notification: true,
         job_notification: true,
         program_notification: true,
       });

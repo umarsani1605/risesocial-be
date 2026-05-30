@@ -10,8 +10,8 @@ export function renderEmailButton({ label, href }) {
   return `
     <table cellpadding="0" cellspacing="0" border="0" style="margin:32px auto 0;">
       <tr>
-        <td align="center" bgcolor="${RISE_PRIMARY}" style="border-radius:8px;">
-          <a href="${href}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">
+        <td align="center" bgcolor="${RISE_PRIMARY}" style="border-radius:10px;">
+          <a href="${href}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:8px 22px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">
             ${label}
           </a>
         </td>
@@ -40,6 +40,7 @@ export function renderEmailLayout({
   disclaimer = "",
 }) {
   const logoUrl = getEmailLogoUrl();
+  const year = new Date().getFullYear();
 
   return `<!DOCTYPE html>
 <html>
@@ -51,17 +52,15 @@ export function renderEmailLayout({
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;">
     <tr>
       <td align="center">
-        <table width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#ffffff;border-radius:10px;overflow:hidden;">
+        <table width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#ffffff;overflow:hidden;">
           <tr>
-            <td style="background:${RISE_PRIMARY};padding:34px 40px;">
-              <img src="${logoUrl}" alt="Rise Social" style="display:block;max-width:100px;width:100%;height:auto;border:0;">
+            <td style="background:${RISE_PRIMARY};padding:20px 40px;">
+              <img src="${logoUrl}" alt="Rise Social" style="display:block;max-width:72px;width:100%;height:auto;border:0;">
             </td>
           </tr>
           <tr>
-            <td style="padding:46px 40px 40px;">
-              <h1 style="margin:0 0 24px;color:#111827;font-size:28px;line-height:1.2;font-weight:800;">
-                ${title}
-              </h1>
+            <td style="padding:12px 40px 24px;">
+              ${title ? `<h1 style="margin:0 0 24px;color:#111827;font-size:28px;line-height:1.2;font-weight:800;">${title}</h1>` : ""}
               <div style="color:#374151;font-size:16px;line-height:1.8;">
                 ${intro}
                 ${content}
@@ -69,10 +68,13 @@ export function renderEmailLayout({
               </div>
             </td>
           </tr>
+        </table>
+        <table width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;">
           <tr>
-            <td style="padding:28px 40px;background:#fafafa;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px;line-height:1.8;">
-              ${disclaimer ? `<div style="margin-bottom:12px;">${disclaimer}</div>` : ""}
-              <div>© Rise Social</div>
+            <td style="padding:28px 40px;text-align:center;color:#9ca3af;font-size:12px;line-height:1.8;">
+              ${disclaimer ? `<div style="margin-bottom:8px;">${disclaimer}</div>` : ""}
+              <div style="margin-bottom:6px;">Bandung, West Java 40286, Indonesia</div>
+              <div>© ${year} Rise Social</div>
             </td>
           </tr>
         </table>

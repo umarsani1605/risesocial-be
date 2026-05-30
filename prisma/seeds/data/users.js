@@ -26,7 +26,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: false },
       { key: 'program_notification', value: false },
-      { key: 'promo_notification', value: false },
       { key: 'language', value: 'id' },
     ],
   },
@@ -49,7 +48,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: false },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: false },
       { key: 'language', value: 'id' },
     ],
   },
@@ -72,7 +70,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: true },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'en' },
     ],
@@ -96,7 +93,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'id' },
     ],
@@ -120,7 +116,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: true },
       { key: 'email_digest', value: 'daily' },
       { key: 'language', value: 'id' },
     ],
@@ -144,7 +139,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: false },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'en' },
     ],
@@ -168,7 +162,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: true },
       { key: 'email_digest', value: 'never' },
       { key: 'language', value: 'id' },
     ],
@@ -192,7 +185,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: false },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'id' },
     ],
@@ -216,7 +208,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'daily' },
       { key: 'language', value: 'id' },
     ],
@@ -240,7 +231,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: false },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: true },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'en' },
     ],
@@ -264,7 +254,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'never' },
       { key: 'language', value: 'en' },
     ],
@@ -288,7 +277,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: true },
       { key: 'email_digest', value: 'daily' },
       { key: 'language', value: 'id' },
     ],
@@ -312,7 +300,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: false },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'en' },
     ],
@@ -336,7 +323,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: true },
       { key: 'email_digest', value: 'never' },
       { key: 'language', value: 'id' },
     ],
@@ -360,7 +346,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: false },
       { key: 'program_notification', value: false },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'never' },
       { key: 'language', value: 'id' },
     ],
@@ -384,7 +369,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'id' },
     ],
@@ -408,7 +392,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: true },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'id' },
     ],
@@ -432,7 +415,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: false },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'id' },
     ],
@@ -456,7 +438,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'daily' },
       { key: 'language', value: 'id' },
     ],
@@ -480,7 +461,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: true },
-      { key: 'promo_notification', value: true },
       { key: 'email_digest', value: 'weekly' },
       { key: 'language', value: 'en' },
     ],
@@ -504,7 +484,6 @@ export const users = [
     settings: [
       { key: 'job_notification', value: true },
       { key: 'program_notification', value: false },
-      { key: 'promo_notification', value: false },
       { key: 'email_digest', value: 'never' },
       { key: 'language', value: 'en' },
     ],

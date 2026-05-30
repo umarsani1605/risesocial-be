@@ -159,7 +159,6 @@ export async function seedUsers() {
         user_id: user.id,
         job_notification: processedUsers[index].user_setting?.job_notification ?? true,
         program_notification: processedUsers[index].user_setting?.program_notification ?? true,
-        promo_notification: processedUsers[index].user_setting?.promo_notification ?? false,
       }));
 
       // Bulk create user settings

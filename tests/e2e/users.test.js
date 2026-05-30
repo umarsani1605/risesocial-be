@@ -194,7 +194,6 @@ describe('Users API E2E Tests', () => {
 
       expect(body.success).toBe(true);
       expect(body.data).toBeDefined();
-      expect(body.data).toHaveProperty('promo_notification');
       expect(body.data).toHaveProperty('job_notification');
       expect(body.data).toHaveProperty('program_notification');
     });
@@ -235,7 +234,6 @@ describe('Users API E2E Tests', () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
 
-      expect(body.data.promo_notification).toBe(true);
       expect(body.data.job_notification).toBe(true);
       expect(body.data.program_notification).toBe(true);
     });
@@ -251,7 +249,6 @@ describe('Users API E2E Tests', () => {
         },
         payload: {
           preferences: {
-            promo_notification: false,
             job_notification: true,
             program_notification: false,
           },
@@ -262,7 +259,6 @@ describe('Users API E2E Tests', () => {
       const body = JSON.parse(response.payload);
 
       expect(body.success).toBe(true);
-      expect(body.data.promo_notification).toBe(false);
       expect(body.data.job_notification).toBe(true);
       expect(body.data.program_notification).toBe(false);
     });
@@ -276,7 +272,7 @@ describe('Users API E2E Tests', () => {
         },
         payload: {
           preferences: {
-            promo_notification: true,
+            program_notification: true,
           },
         },
       });
@@ -284,9 +280,8 @@ describe('Users API E2E Tests', () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
 
-      expect(body.data.promo_notification).toBe(true);
+      expect(body.data.program_notification).toBe(true);
       expect(body.data.job_notification).toBe(false);
-      expect(body.data.program_notification).toBe(false);
     });
   });
 

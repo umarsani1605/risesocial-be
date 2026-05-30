@@ -21,9 +21,7 @@
       "skills": ["Leadership", "Management", "System Administration", "Database Management"],
       "user_setting": {
         "job_notification": false,
-        "program_notification": true,
-        "promo_notification": false
-      }
+        "program_notification": true      }
     },
     {
       "username": "demo",
@@ -46,9 +44,7 @@
       "skills": ["JavaScript", "Node.js", "React", "Vue.js", "PostgreSQL"],
       "user_setting": {
         "job_notification": true,
-        "program_notification": true,
-        "promo_notification": true
-      }
+        "program_notification": true      }
     },
     {
       "username": "sarah",
@@ -71,9 +67,7 @@
       "skills": ["ESG Analysis", "Sustainability Reporting", "Carbon Footprint", "Climate Change"],
       "user_setting": {
         "job_notification": true,
-        "program_notification": true,
-        "promo_notification": false
-      }
+        "program_notification": true      }
     }
   ]
 } 

@@ -8,6 +8,7 @@ const PERMISSION_REGISTRY = [
   { key: 'admin.transactions', name: 'Transactions',     description: 'Lihat & kelola transaksi',         available_levels: ['VIEWER', 'EDITOR'] },
   { key: 'admin.ryls',         name: 'RYLS',             description: 'Kelola registrasi RYLS',           available_levels: ['VIEWER', 'EDITOR'] },
   { key: 'admin.jobs',         name: 'Jobs',             description: 'Kelola job listing',               available_levels: ['VIEWER', 'EDITOR'] },
+  { key: 'admin.broadcast',    name: 'Email Broadcast',  description: 'Kirim & lacak email broadcast',    available_levels: ['VIEWER', 'EDITOR'] },
   { key: 'admin.statistics',   name: 'Statistics',       description: 'Lihat statistik platform',         available_levels: ['VIEWER'] },
   { key: 'admin.settings',     name: 'System Settings',  description: 'Kelola konfigurasi sistem',        available_levels: ['VIEWER', 'EDITOR'] },
 ];

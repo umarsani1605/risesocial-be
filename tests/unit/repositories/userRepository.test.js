@@ -147,7 +147,6 @@ describe('UserRepository', () => {
           user_id: mockCreatedUser.id,
           key: 'notification_preferences',
           value: {
-            promo_notification: true,
             job_notification: true,
             program_notification: true,
           },

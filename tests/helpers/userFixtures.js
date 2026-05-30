@@ -86,9 +86,7 @@ export async function seedUsersWithSettings() {
       data: {
         user_id: user.id,
         key: 'notification_preferences',
-        value: {
-          promo_notification: true,
-          job_notification: true,
+        value: {          job_notification: true,
           program_notification: true,
         },
       },
@@ -163,9 +161,7 @@ export function getMockUserWithSettings(overrides = {}) {
         id: 1,
         user_id: 1,
         key: 'notification_preferences',
-        value: {
-          promo_notification: true,
-          job_notification: true,
+        value: {          job_notification: true,
           program_notification: true,
         },
         created_at: new Date(),
@@ -184,9 +180,7 @@ export function getMockUserSettings() {
       id: 1,
       user_id: 1,
       key: 'notification_preferences',
-      value: {
-        promo_notification: true,
-        job_notification: true,
+      value: {        job_notification: true,
         program_notification: true,
       },
       created_at: new Date(),
@@ -207,9 +201,7 @@ export function getMockUserSettings() {
  * Get mock notification preferences (for unit tests)
  */
 export function getMockNotificationPreferences(overrides = {}) {
-  return {
-    promo_notification: true,
-    job_notification: true,
+  return {    job_notification: true,
     program_notification: true,
     ...overrides,
   };

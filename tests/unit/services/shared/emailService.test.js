@@ -59,12 +59,12 @@ describe('EmailService', () => {
       );
       expect(sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
-          htmlContent: expect.stringContaining('padding:12px 22px'),
+          htmlContent: expect.stringContaining('padding:8px 22px'),
         }),
       );
       expect(sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
-          htmlContent: expect.stringContaining('border-radius:10px;overflow:hidden'),
+          htmlContent: expect.stringContaining('background:#ffffff;overflow:hidden'),
         }),
       );
       expect(sendEmail).toHaveBeenCalledWith(

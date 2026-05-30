@@ -71,7 +71,7 @@ describe('UserService Integration Tests', () => {
 
       const notificationSettings = settings.find((s) => s.key === 'notification_preferences');
       expect(notificationSettings).toBeDefined();
-      expect(notificationSettings.value).toHaveProperty('promo_notification');
+      expect(notificationSettings.value).toHaveProperty('program_notification');
     });
 
     it('should prevent duplicate email registration', async () => {

@@ -277,7 +277,7 @@ export class UserService {
 
   async updateNotificationPreferences(userId, preferences) {
     try {
-      const validKeys = ['promo_notification', 'job_notification', 'program_notification'];
+      const validKeys = ['job_notification', 'program_notification'];
       const validatedPreferences = {};
 
       for (const key of validKeys) {
@@ -301,7 +301,6 @@ export class UserService {
 
       if (!setting || !setting.value) {
         return {
-          promo_notification: true,
           job_notification: true,
           program_notification: true,
         };

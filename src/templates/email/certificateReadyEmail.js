@@ -4,11 +4,11 @@ export function certificateReadyEmail({ name, cohortName, academyTitle, certCode
   const downloadUrl = certificateUrl || verifyUrl;
 
   return renderEmailLayout({
-    title: 'Sertifikat Kelulusan',
+    title: 'Certificate of Completion',
     intro: `
-      <p style="margin:0 0 18px;">Hai ${name}!</p>
-      <p style="margin:0 0 18px;">Perjuanganmu akhirnya membuahkan hasil. Selamat kamu telah berhasil menyelesaikan program ini dengan luar biasa!</p>
-      <p style="margin:0;">Berikut adalah detail sertifikatmu yang sudah siap diunduh:</p>
+      <p style="margin:0 0 18px;">Hi ${name}!</p>
+      <p style="margin:0 0 18px;">Your hard work has finally paid off. Congratulations on successfully completing this program!</p>
+      <p style="margin:0;">Here are the details of your certificate, ready to download:</p>
     `,
     content: `
       ${renderEmailInfoBox(`
@@ -24,12 +24,12 @@ export function certificateReadyEmail({ name, cohortName, academyTitle, certCode
         </table>
       `)}
       ${downloadUrl ? `
-        ${renderEmailButton({ label: 'Unduh Sertifikat', href: downloadUrl })}
+        ${renderEmailButton({ label: 'Download Certificate', href: downloadUrl })}
       ` : ''}
     `,
     outro: `
-      <p style="margin:32px 0 0;">Kamu dapat mengunduh sertifikat melalui tombol diatas atau melalui halaman Academy di dashboard Rise Social.</p>
-      <p style="margin:32px 0 0;">Salam hangat,</p>
+      <p style="margin:32px 0 0;">You can download your certificate using the button above or from the Academy page in your Rise Social dashboard.</p>
+      <p style="margin:32px 0 0;">Warm regards,</p>
       <p style="margin:6px 0 0;font-weight:700;">Rise Social</p>
     `,
   });

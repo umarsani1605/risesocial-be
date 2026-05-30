@@ -52,7 +52,6 @@ export class UserController {
 
       // Ensure preferences is a plain object for serialization
       const plainPreferences = {
-        promo_notification: preferences.promo_notification,
         job_notification: preferences.job_notification,
         program_notification: preferences.program_notification,
       };
@@ -76,7 +75,6 @@ export class UserController {
 
       // Ensure preferences is a plain object for serialization
       const plainPreferences = {
-        promo_notification: updatedPreferences.promo_notification,
         job_notification: updatedPreferences.job_notification,
         program_notification: updatedPreferences.program_notification,
       };

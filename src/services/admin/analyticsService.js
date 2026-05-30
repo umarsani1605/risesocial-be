@@ -12,7 +12,10 @@ const PAYMENT_STATUS_META = [
   ['refunded', 'Refunded', '#3b82f6'],
 ];
 
-const CATEGORY_COLORS = ['#1bb1a0', '#3b82f6', '#f59e0b', '#a855f7', '#ef4444', '#14b8a6', '#64748b'];
+// Mirrors the frontend palette (DEFAULT_CHART_COLOR_NAMES in app/utils/chartColor.ts):
+// first slice is the brand rise-orange, then distinct hues. Keeps every analytics
+// chart on the same series color across tabs.
+const CATEGORY_COLORS = ['#FF8E50', '#1bb1a0', '#3b82f6', '#a855f7', '#22c55e', '#eab308', '#ec4899'];
 
 const PRODUCT_TYPE_LABELS = {
   academy_enrollment: 'Academy',

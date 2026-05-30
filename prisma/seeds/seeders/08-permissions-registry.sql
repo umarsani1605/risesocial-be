@@ -7,6 +7,7 @@ VALUES
   ('admin.transactions', 'Transactions', 'Lihat & kelola transaksi', ARRAY['VIEWER', 'EDITOR']::TEXT[]),
   ('admin.ryls', 'RYLS', 'Kelola registrasi RYLS', ARRAY['VIEWER', 'EDITOR']::TEXT[]),
   ('admin.jobs', 'Jobs', 'Kelola job listing', ARRAY['VIEWER', 'EDITOR']::TEXT[]),
+  ('admin.broadcast', 'Email Broadcast', 'Kirim & lacak email broadcast', ARRAY['VIEWER', 'EDITOR']::TEXT[]),
   ('admin.statistics', 'Statistics', 'Lihat statistik platform', ARRAY['VIEWER']::TEXT[]),
   ('admin.settings', 'System Settings', 'Kelola konfigurasi sistem', ARRAY['VIEWER', 'EDITOR']::TEXT[])
 ON CONFLICT ("key") DO UPDATE
