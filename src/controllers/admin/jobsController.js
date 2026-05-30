@@ -95,8 +95,9 @@ class JobsController {
   syncLinkedInJobs = async (request, reply) => {
     try {
 
-      const { filter = {} } = request.body || {};
+      const { filter = {}, limit } = request.body || {};
       const options = { filter };
+      if (limit !== undefined) options.limit = Number(limit);
 
 
       const result = await this.jobsService.syncJobsFromLinkedIn(options);

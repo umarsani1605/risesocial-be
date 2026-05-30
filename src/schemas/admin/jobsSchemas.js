@@ -157,6 +157,7 @@ export const syncLinkedInJobsSchema = {
     additionalProperties: true,
     properties: {
       filter: { type: 'object', additionalProperties: true },
+      limit: { type: 'integer', minimum: 1, maximum: 100 },
     },
   },
   response: {

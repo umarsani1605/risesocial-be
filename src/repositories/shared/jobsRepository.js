@@ -272,6 +272,34 @@ export class JobsRepository extends BaseRepository {
     });
   }
 
+  async autoHideExpiredLinkedInJobs({ now, fallbackCreatedBefore }) {
+    return await this.model.updateMany({
+      where: {
+        status: 'active',
+        AND: [
+          {
+            OR: [
+              { source: 'linkedin' },
+              { linkedin_job_id: { not: null } },
+            ],
+          },
+          {
+            OR: [
+              { valid_until: { lte: now } },
+              {
+                AND: [
+                  { valid_until: null },
+                  { created_at: { lte: fallbackCreatedBefore } },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      data: { status: 'inactive' },
+    });
+  }
+
   async findJobsByLinkedInIds(linkedinIds) {
     const ids = (linkedinIds || []).map((v) => String(v));
     return await this.model.findMany({

@@ -18,8 +18,8 @@ export class LinkedInJobSearch {
 
   async searchJobs(options = {}) {
 
-    const { filter = {} } = options;
-    const FIXED_LIMIT = 10;
+    const { filter = {}, limit } = options;
+    const resolvedLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Number(limit) : 10;
 
     try {
       const hasWhitespace = (val) => /\s/.test(String(val));
@@ -38,7 +38,7 @@ export class LinkedInJobSearch {
 
       const params = new URLSearchParams();
 
-      params.append('limit', String(FIXED_LIMIT));
+      params.append('limit', String(resolvedLimit));
 
       params.append('description_type', 'text');
       params.append('include_ai', 'true');

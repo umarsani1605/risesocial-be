@@ -1,5 +1,8 @@
 import { jobsRepository } from '../../repositories/shared/jobsRepository.js';
 import { linkedInJobSearch } from '../../integrations/linkedinJobSearch.js';
+import { systemSettingsService } from '../admin/systemSettingsService.js';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export class JobsService {
 
@@ -318,6 +321,12 @@ export class JobsService {
     return uniqueCategories;
   }
 
+  async autoHideExpiredLinkedInJobs(hideAfterWeeks, now = new Date()) {
+    const fallbackCreatedBefore = new Date(now.getTime() - hideAfterWeeks * 7 * MS_PER_DAY);
+    const result = await jobsRepository.autoHideExpiredLinkedInJobs({ now, fallbackCreatedBefore });
+    return { updatedCount: result?.count ?? 0 };
+  }
+
   async syncJobsFromLinkedIn(options = {}) {
     try {
       const searchResult = await linkedInJobSearch.searchJobs(options);
@@ -327,6 +336,10 @@ export class JobsService {
       }
 
       const linkedinJobs = searchResult.jobs;
+
+      // A successful fetch counts as a completed sync run — record it so the
+      // scheduler cadence advances and manual + scheduled syncs share one clock.
+      await systemSettingsService.setLinkedInLastSyncedAt(new Date());
 
       if (linkedinJobs.length === 0) {
         return {
